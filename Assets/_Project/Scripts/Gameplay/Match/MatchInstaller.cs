@@ -1,21 +1,74 @@
+using BomberLegends.Data.Balance;
+using BomberLegends.Gameplay.Board;
+using BomberLegends.Gameplay.Player;
+using BomberLegends.Input;
 using BomberLegends.Services;
 using BomberLegends.Services.Scenes;
+using BomberLegends.Simulation;
+using BomberLegends.Simulation.Board;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace BomberLegends.Gameplay.Match
 {
     /// <summary>
-    /// Wires the match scene. At this milestone it only provides a way back to the hub, so the
-    /// full scene flow can be exercised end to end; the board, simulation and HUD arrive in
-    /// Milestone 1.
+    /// Builds a match: reads the level, starts the simulation, draws the board and connects input.
     /// </summary>
+    /// <remarks>
+    /// The level is authored here as text for Milestone 1 so movement can be tried against many
+    /// shapes without any tooling existing yet. T-025 replaces this with a level asset, at which
+    /// point this reads the asset and nothing else changes.
+    /// </remarks>
     public sealed class MatchInstaller : SceneInstaller
     {
         [Header("Scene references")]
         [SerializeField]
+        [Tooltip("Drives the simulation and the view.")]
+        private MatchRunner? _runner;
+
+        [SerializeField]
+        [Tooltip("Draws the tile grid.")]
+        private BoardRenderer? _boardRenderer;
+
+        [SerializeField]
+        [Tooltip("Draws the player.")]
+        private PlayerView? _playerView;
+
+        [SerializeField]
+        [Tooltip("On-screen thumbstick. Optional: keyboard and gamepad work without it.")]
+        private VirtualJoystick? _joystick;
+
+        [SerializeField]
         [Tooltip("Abandons the match and returns to the hub.")]
         private Button? _quitButton;
+
+        [Header("Configuration")]
+        [SerializeField]
+        [Tooltip("Stick handling. Tuned on device; see T-015.")]
+        private InputFeelConfig? _inputFeel;
+
+        [SerializeField, Range(1f, 12f)]
+        [Tooltip("Player speed in tiles per second.")]
+        private float _moveSpeedTilesPerSecond = 4f;
+
+        [Header("Level")]
+        [SerializeField]
+        [Tooltip("'#' solid, 'X' destructible, '.' floor, 'P' spawn. The first row is the top.")]
+        [TextArea(6, 20)]
+        private string _levelLayout =
+            "#############\n" +
+            "#P.....X....#\n" +
+            "#.#.#.#.#.#.#\n" +
+            "#..X.....X..#\n" +
+            "#.#.#.#.#.#.#\n" +
+            "#...X...X...#\n" +
+            "#.#.#.#.#.#.#\n" +
+            "#....X......#\n" +
+            "#############";
+
+        [SerializeField]
+        [Tooltip("Seed for every random decision the match makes. A fixed value makes runs repeatable.")]
+        private uint _seed = 1u;
 
         private GameContext? _context;
 
@@ -27,13 +80,32 @@ namespace BomberLegends.Gameplay.Match
         {
             _context = context;
 
-            if (_quitButton == null)
+            if (_quitButton != null)
             {
-                Debug.LogError("[Match] No quit button is assigned; the hub cannot be reached.");
+                _quitButton.onClick.AddListener(ReturnToHub);
+            }
+
+            if (_runner == null || _boardRenderer == null || _playerView == null)
+            {
+                Debug.LogError("[Match] The scene is missing its runner, board renderer or player view.");
                 return;
             }
 
-            _quitButton.onClick.AddListener(ReturnToHub);
+            if (!TryParseLevel(out var layout))
+            {
+                return;
+            }
+
+            var projector = new IsometricProjector();
+            var simulation = new GameSimulation(
+                SimulationConfig.FromTilesPerSecond(_moveSpeedTilesPerSecond),
+                layout,
+                _seed);
+
+            _boardRenderer.Build(simulation.State.Board, projector);
+            _playerView.Initialise(projector);
+
+            _runner.Begin(simulation, CreateInputSource(projector), _playerView);
         }
 
         private void OnDestroy()
@@ -44,6 +116,47 @@ namespace BomberLegends.Gameplay.Match
             }
         }
 
+        private bool TryParseLevel(out LevelLayout layout)
+        {
+            layout = default;
+
+            var rows = _levelLayout
+                .Replace("\r", string.Empty)
+                .Split('\n', System.StringSplitOptions.RemoveEmptyEntries);
+
+            try
+            {
+                layout = LevelLayout.Parse(rows);
+                return true;
+            }
+            catch (System.ArgumentException exception)
+            {
+                Debug.LogError($"[Match] The level layout is invalid: {exception.Message}");
+                return false;
+            }
+        }
+
+        private IInputSource CreateInputSource(IGridProjection projection)
+        {
+            // A developer can pick up whichever control surface is to hand without changing a
+            // setting, which matters a great deal while feel is being tuned.
+            if (_joystick != null && _inputFeel != null)
+            {
+                return new CompositeInputSource(
+                    new KeyboardInputSource(),
+                    new GamepadInputSource(),
+                    new TouchInputSource(_joystick, _inputFeel, projection));
+            }
+
+            if (_joystick != null)
+            {
+                Debug.LogWarning(
+                    "[Match] No input feel config is assigned, so the on-screen stick is disabled.");
+            }
+
+            return new CompositeInputSource(new KeyboardInputSource(), new GamepadInputSource());
+        }
+
         private async void ReturnToHub()
         {
             if (_context == null)
@@ -51,6 +164,7 @@ namespace BomberLegends.Gameplay.Match
                 return;
             }
 
+            _runner?.Stop();
             await _context.Scenes.TransitionToAsync(SceneId.Hub);
         }
     }

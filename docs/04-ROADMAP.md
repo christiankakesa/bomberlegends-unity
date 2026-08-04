@@ -47,8 +47,14 @@ production (Q8 in `01-ANALYSIS.md` §13 is unanswered).
 | **Exit criteria** | Cold start < 4 s on target device · save round-trips across app restart · all assemblies compile with the dependency rules enforced · a .apk exists |
 | **Why first** | Every later milestone deploys through this pipeline. A day-one Android build means device performance is never a late surprise. |
 
-## M1 — Movement & Feel
+## M1 — Movement & Feel — 🟡 **BUILT pending on-device tuning (2026-08-05)**
 **Duration:** 5 days · **Build:** walk around a grid, on a phone, with your thumb
+
+> **Status.** T-010 → T-016 implemented. 240 EditMode + 9 PlayMode tests green; the simulation
+> allocates zero bytes per tick and cannot tunnel a wall at any speed. **The exit criterion is not
+> met:** it requires the feel parameters tuned on a real phone and five testers navigating a maze
+> unassisted with zero stuck-on-geometry incidents. The mechanisms are built and unit-tested; the
+> numbers are starting points.
 
 | | |
 |---|---|

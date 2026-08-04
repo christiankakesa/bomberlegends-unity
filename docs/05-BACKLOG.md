@@ -103,43 +103,53 @@ Applies to **every** task; per-task DoD lists only the additions.
 
 # MILESTONE 1 — Movement & Feel  *(highest-risk milestone)*
 
-### T-010 · `BoardState` and level layout
+### T-010 · `BoardState` and level layout — ✅ **DONE 2026-08-05**
+**Outcome** `TileType`, `BoardState` (flat row-major array, allocated once) and `LevelLayout` with a text parser. Reads outside the board return `Solid` rather than throwing, which removes a bounds check from every movement and blast call site. `LevelLayout.Parse` takes rows top-down the way a level looks when written out and maps the first row to the highest Y — asserted by test, since getting it backwards would silently mirror every level.
 **Goal** Flat-array board (`TileType[]` + damage bytes) with coordinate indexing, bounds checks, and occupancy queries in `Simulation`.
 **Dependencies** T-003 · **Complexity** S
 **Test criteria** Index round-trip for every cell of a 13×11 board; out-of-bounds queries return `Solid` rather than throwing.
 **DoD** Zero allocation after construction; no `List<T>`/`Dictionary<K,V>` in the board.
 
-### T-011 · `GameSimulation` shell and tick loop
+### T-011 · `GameSimulation` shell and tick loop — ✅ **DONE 2026-08-05**
+**Outcome** `GameSimulation` with `Tick(in PlayerIntent)` as the sole mutator, `SimulationState`, an ordered system list, `SimEventBuffer` (fixed capacity; overflow counted, never grown) and `ComputeStateHash()`. **Verified: 10 000 ticks allocate exactly 0 bytes** (`GC.GetAllocatedBytesForCurrentThread`). Determinism verified over 200 ticks of scripted input across two instances.
 **Goal** `GameSimulation` with `Tick(in PlayerIntent)`, `SimulationState`, the ordered system list of §4.2 (stubs), `SimEvent` buffer, `ComputeStateHash()`.
 **Dependencies** T-010 · **Complexity** M
 **Test criteria** 10 000 empty ticks allocate 0 bytes; the state hash is stable and order-independent.
 **DoD** `Tick` is the only public mutator; system order documented in code as an explicit, readable list.
 
-### T-012 · `MatchRunner` accumulator and view interpolation
+### T-012 · `MatchRunner` accumulator and view interpolation — ✅ **DONE 2026-08-05**
+**Outcome** Pacing extracted into `FixedStepAccumulator` (engine-free) so it is tested against exact frame times rather than only observed. Verified: **exactly 30 steps/second at 30, 60 and 120 fps**, and within one step of wall clock over a 60-second run at 90 and 144 fps. A 500 ms stall yields 5 ticks with the 10-tick backlog discarded, then pacing recovers. `FixedUpdate` not used.
 **Goal** Fixed 30 Hz accumulator in `Update`, interpolation alpha, `ViewSynchroniser` skeleton draining `SimEvent`s.
 **Dependencies** T-011 · **Complexity** M
 **Test criteria** Simulation advances exactly 30 ticks/second at 30, 60, and 120 fps render rates; no spiral-of-death when a frame takes 500 ms (max catch-up ticks enforced).
 **DoD** `FixedUpdate` not used; max catch-up capped; interpolation visibly smooth on device.
 
-### T-013 · `MovementSystem` (simulation side)
+### T-013 · `MovementSystem` (simulation side) — ✅ **DONE 2026-08-05**
+**Outcome** Soft-grid movement with lane snapping, deferred turns, corner assist and wall collision that settles exactly on the tile centre. Movement applies in sub-steps of at most half a tile, so **no speed can tunnel through a wall** — tested at 3 tiles/tick. **17 movement tests**, including no positional drift across 5 000 ticks of back-and-forth travel.
 **Goal** Soft-grid movement: continuous position, lane snapping, occupancy blocking, direction changes only at valid points.
 **Dependencies** T-011 · **Complexity** M
 **Test criteria** ≥ 20 unit tests: walls block, lane centring is stable, no tunnelling at high speed, no drift over 10 000 ticks.
 **DoD** Movement fully deterministic; speed expressed in tiles/tick; zero float drift accumulation.
 
-### T-014 · Isometric projection, rendering and depth sorting
+### T-014 · Isometric projection, rendering and depth sorting — 🟡 **CODE COMPLETE · draw calls unmeasured**
+**Outcome** `IsometricProjector` with `ScreenToGrid` proven to be the exact inverse of `GridToWorld` by test — the controls and the picture cannot drift apart. Depth sorting derives from grid coordinates with sub-tile resolution, so an actor sorts correctly part-way between tiles instead of popping; floor tiles carry an offset that guarantees they never occlude. Placeholder art is generated procedurally, keeping the slice free of binary assets.
+**⚠️ Outstanding** "< 20 draw calls" and the four-approach-direction sorting check need a device or the Frame Debugger. Deferred to the T-036 performance pass.
 **Goal** `IsometricProjector` (grid ↔ world ↔ screen), board renderer with placeholder tiles, deterministic depth key from grid coordinates.
 **Dependencies** T-013 · **Complexity** M
 **Test criteria** Player renders correctly in front of and behind blocks from all four approach directions; no sort flicker when moving along a lane; a full board is < 20 draw calls.
 **DoD** Single sprite atlas; sort key derived from coordinates, not Unity's transparency sort; verified at three aspect ratios.
 
-### T-015 · Touch input, virtual joystick and **feel tuning**  ⚑ *critical*
+### T-015 · Touch input, virtual joystick and **feel tuning**  ⚑ *critical* — 🟡 **MECHANISMS BUILT · tuning and sign-off need a device**
+**Outcome** All five feel mechanisms exist. Input layer: basis rotation via the exact inverse projection, cardinal snap with **hysteresis**, and change-only buffering. Simulation layer (from T-013): corner assist and deferred turns. `DirectionSnapper` is a pure function and unit-tested, including a 100-sample sweep across the diagonal asserting the direction never flickers. Every parameter lives on `InputFeelConfig` with `[Range]` sliders, tunable in play mode.
+**Design note** The buffer fires only on direction *changes*. A naive 120 ms buffer would carry the player ~0.5 tiles past a deliberate release, which would wreck precise bomb placement in Milestone 2.
+**⚠️ Outstanding — this is the milestone's real exit criterion** The DoD requires tuning on a real phone and five testers navigating a maze unassisted, with zero stuck-on-geometry incidents over ten minutes. None of that can be done from here. **The numbers currently in `InputFeel.asset` are starting points, not tuned values.**
 **Goal** `TouchInputSource` + on-screen joystick implementing all five mechanisms of `03-ARCHITECTURE.md` §9: basis rotation, cardinal snap with hysteresis, 120 ms input buffering, corner-cutting assist, deferred-turn tolerance. All parameters on `MovementFeelConfig`.
 **Dependencies** T-013, T-014 · **Complexity** L
 **Test criteria** Unit tests for basis rotation and hysteresis boundaries · **on-device**: 0 stuck-on-geometry incidents in 10 minutes · 5 testers navigate a maze with no instruction · corner-turn success rate ≥ 90% when input is issued within 150 ms of the junction.
 **DoD** Every feel parameter tunable in play mode via `[Range]` sliders; tuned values committed with a comment explaining each; **signed off on a real phone, not in the Editor**. *This task is the single biggest determinant of whether the game feels good. Budget the full L and do not compress it.*
 
-### T-016 · Keyboard/gamepad input source
+### T-016 · Keyboard/gamepad input source — ✅ **DONE 2026-08-05**
+**Outcome** `KeyboardInputSource` and `GamepadInputSource` produce identical `PlayerIntent` values to touch. `CompositeInputSource` polls in priority order so a developer can switch between keyboard, pad and the on-screen stick without a setting change — which matters while feel is being tuned. Gamepad reads the d-pad before the stick, since it is already discrete and needs no snapping.
 **Goal** `KeyboardInputSource` and `GamepadInputSource` producing identical `PlayerIntent`s.
 **Dependencies** T-015 · **Complexity** S
 **Test criteria** Identical simulation behaviour across all three sources given equivalent input.

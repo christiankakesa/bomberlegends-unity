@@ -1,7 +1,14 @@
 {
     "name": "BomberLegends.Gameplay",
     "rootNamespace": "BomberLegends.Gameplay",
-    "references": ["BomberLegends.Core","BomberLegends.Simulation","BomberLegends.Data","BomberLegends.Services","BomberLegends.Input"],
+    "references": [
+        "BomberLegends.Core",
+        "BomberLegends.Simulation",
+        "BomberLegends.Data",
+        "BomberLegends.Services",
+        "BomberLegends.Input",
+        "Unity.InputSystem"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
