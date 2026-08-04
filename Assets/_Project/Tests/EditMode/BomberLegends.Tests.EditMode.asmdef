@@ -1,0 +1,14 @@
+{
+    "name": "BomberLegends.Tests.EditMode",
+    "rootNamespace": "BomberLegends.Tests.EditMode",
+    "references": ["UnityEngine.TestRunner","UnityEditor.TestRunner","BomberLegends.Core","BomberLegends.Simulation","BomberLegends.Data","BomberLegends.Services","BomberLegends.Input","BomberLegends.Meta","BomberLegends.Gameplay","BomberLegends.UI","BomberLegends.Bootstrap"],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": ["nunit.framework.dll"],
+    "autoReferenced": false,
+    "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

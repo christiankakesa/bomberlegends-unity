@@ -1,0 +1,14 @@
+{
+    "name": "BomberLegends.Simulation",
+    "rootNamespace": "BomberLegends.Simulation",
+    "references": ["BomberLegends.Core"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

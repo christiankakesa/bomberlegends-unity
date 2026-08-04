@@ -1,0 +1,14 @@
+{
+    "name": "BomberLegends.UI",
+    "rootNamespace": "BomberLegends.UI",
+    "references": ["BomberLegends.Core","BomberLegends.Simulation","BomberLegends.Data","BomberLegends.Services","BomberLegends.Meta"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,14 @@
+{
+    "name": "BomberLegends.Input",
+    "rootNamespace": "BomberLegends.Input",
+    "references": ["BomberLegends.Core","BomberLegends.Simulation","BomberLegends.Data","Unity.InputSystem"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

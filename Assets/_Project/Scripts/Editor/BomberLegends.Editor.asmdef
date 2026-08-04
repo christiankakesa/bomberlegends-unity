@@ -1,0 +1,29 @@
+{
+    "name": "BomberLegends.Editor",
+    "rootNamespace": "BomberLegends.Editor",
+    "references": [
+        "BomberLegends.Core",
+        "BomberLegends.Simulation",
+        "BomberLegends.Data",
+        "BomberLegends.Services",
+        "BomberLegends.Input",
+        "BomberLegends.Meta",
+        "BomberLegends.Gameplay",
+        "BomberLegends.UI",
+        "BomberLegends.Bootstrap",
+        "Unity.InputSystem",
+        "UnityEditor.TestRunner",
+        "UnityEngine.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

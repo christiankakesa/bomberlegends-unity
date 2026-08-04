@@ -1,0 +1,31 @@
+{
+    "name": "BomberLegends.Tests.PlayMode",
+    "rootNamespace": "BomberLegends.Tests.PlayMode",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "BomberLegends.Core",
+        "BomberLegends.Simulation",
+        "BomberLegends.Data",
+        "BomberLegends.Services",
+        "BomberLegends.Input",
+        "BomberLegends.Meta",
+        "BomberLegends.Gameplay",
+        "BomberLegends.UI",
+        "BomberLegends.Bootstrap",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
