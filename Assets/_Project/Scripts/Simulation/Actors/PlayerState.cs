@@ -1,4 +1,5 @@
 using BomberLegends.Core;
+using BomberLegends.Simulation.Items;
 using BomberLegends.Simulation.Skills;
 
 namespace BomberLegends.Simulation.Actors
@@ -64,6 +65,29 @@ namespace BomberLegends.Simulation.Actors
         /// <summary>Dash travel per tick along each axis, in sub-tile units.</summary>
         public int DashVelocityY;
 
+        /// <summary>Behaviours the current dash carries, captured when it started.</summary>
+        /// <remarks>
+        /// Snapshotted rather than read from the slot each tick so a dash already in flight behaves
+        /// the way it did when it was launched, whatever happens to the loadout mid-dash.
+        /// </remarks>
+        public SkillTraits DashTraits;
+
+        /// <summary>Damage the current dash deals on contact.</summary>
+        public int DashPower;
+
+        /// <summary>
+        /// Whether the player was dashing during this tick's movement.
+        /// </summary>
+        /// <remarks>
+        /// Distinct from <see cref="IsDashing"/>, which is already false by the time damage is
+        /// resolved on the dash's final tick. Without this the last tick of every dash would deal
+        /// no contact damage — a gap far easier to ship than to notice.
+        /// </remarks>
+        public bool DashedThisTick;
+
+        /// <summary>Passive items being carried.</summary>
+        public ItemInventory Items;
+
         /// <summary>Whether the player is mid-dash.</summary>
         public readonly bool IsDashing => DashTicksRemaining > 0;
 
@@ -76,7 +100,8 @@ namespace BomberLegends.Simulation.Actors
             int bombCapacity,
             int blastRange,
             int maxHealth,
-            SkillLoadout skills = default) =>
+            SkillLoadout skills = default,
+            ItemInventory items = default) =>
             new PlayerState
             {
                 Position = SubTilePoint.AtCentreOf(tile),
@@ -92,7 +117,11 @@ namespace BomberLegends.Simulation.Actors
                 Skills = skills.IsCreated ? skills : SkillLoadout.Empty(),
                 DashTicksRemaining = 0,
                 DashVelocityX = 0,
-                DashVelocityY = 0
+                DashVelocityY = 0,
+                DashTraits = SkillTraits.None,
+                DashPower = 0,
+                DashedThisTick = false,
+                Items = items.IsCreated ? items : ItemInventory.WithSlots(1)
             };
     }
 }

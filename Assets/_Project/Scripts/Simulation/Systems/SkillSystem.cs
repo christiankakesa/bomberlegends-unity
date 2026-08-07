@@ -104,6 +104,8 @@ namespace BomberLegends.Simulation.Systems
             state.Player.DashTicksRemaining = slot.DurationTicks;
             state.Player.DashVelocityX = velocityX;
             state.Player.DashVelocityY = velocityY;
+            state.Player.DashTraits = slot.Traits;
+            state.Player.DashPower = slot.Power;
 
             events.Add(new SimEvent(
                 SimEventType.DashStarted, state.Player.Tile, 0, slot.DurationTicks));
@@ -137,7 +139,12 @@ namespace BomberLegends.Simulation.Systems
             }
 
             var projectile = state.Projectiles.Fire(
-                state.Player.Position, velocityX, velocityY, slot.DurationTicks, slot.Power);
+                state.Player.Position,
+                velocityX,
+                velocityY,
+                slot.DurationTicks,
+                slot.Power,
+                slot.Traits);
 
             if (projectile < 0)
             {

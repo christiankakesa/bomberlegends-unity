@@ -44,7 +44,8 @@ namespace BomberLegends.Simulation
             int skillshotDurationTicks = 30,
             int skillshotCooldownTicks = 45,
             int skillshotDamage = 50,
-            int maxProjectiles = 16)
+            int maxProjectiles = 16,
+            int itemSlots = 2)
         {
             MoveSpeedPerTick = moveSpeedPerTick;
             LaneSnapPerTick = laneSnapPerTick;
@@ -78,6 +79,7 @@ namespace BomberLegends.Simulation
             SkillshotCooldownTicks = skillshotCooldownTicks;
             SkillshotDamage = skillshotDamage;
             MaxProjectiles = maxProjectiles;
+            ItemSlots = itemSlots;
         }
 
         /// <summary>Sub-tile units the player advances each tick while moving.</summary>
@@ -242,6 +244,15 @@ namespace BomberLegends.Simulation
         /// <summary>The most skillshots that can be in flight at once.</summary>
         public int MaxProjectiles { get; }
 
+        /// <summary>
+        /// How many passive items a player may carry.
+        /// </summary>
+        /// <remarks>
+        /// Small on purpose. Scarcity is what forces a build to be a choice rather than a
+        /// collection; the design allows four eventually, and the slice runs on two.
+        /// </remarks>
+        public int ItemSlots { get; }
+
         /// <summary>The loadout a player starts a run with, before any item touches it.</summary>
         public Skills.SkillLoadout CreateStartingLoadout() =>
             Skills.SkillLoadout.Of(
@@ -392,6 +403,11 @@ namespace BomberLegends.Simulation
             if (MaxProjectiles <= 0)
             {
                 throw new ArgumentException("There must be room for at least one skillshot.");
+            }
+
+            if (ItemSlots <= 0)
+            {
+                throw new ArgumentException("A player must have at least one item slot.");
             }
 
             if (PlayerRadius <= 0 || PlayerRadius >= Core.SubTilePoint.HalfTile)

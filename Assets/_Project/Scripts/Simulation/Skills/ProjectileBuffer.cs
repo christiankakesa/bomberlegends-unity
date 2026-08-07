@@ -56,7 +56,12 @@ namespace BomberLegends.Simulation.Skills
 
         /// <summary>Claims a slot, or returns <c>-1</c> when every slot is in use.</summary>
         public int Fire(
-            Core.SubTilePoint origin, int velocityX, int velocityY, int lifetimeTicks, int damage)
+            Core.SubTilePoint origin,
+            int velocityX,
+            int velocityY,
+            int lifetimeTicks,
+            int damage,
+            SkillTraits traits = SkillTraits.None)
         {
             for (var i = 0; i < _projectiles.Length; i++)
             {
@@ -72,6 +77,8 @@ namespace BomberLegends.Simulation.Skills
                     VelocityY = velocityY,
                     TicksRemaining = lifetimeTicks,
                     Damage = damage,
+                    Traits = traits,
+                    OriginTile = origin.Tile,
                     IsActive = true
                 };
 

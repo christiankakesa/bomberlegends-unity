@@ -7,6 +7,7 @@ using BomberLegends.Services;
 using BomberLegends.Services.Scenes;
 using BomberLegends.Simulation;
 using BomberLegends.Simulation.Board;
+using BomberLegends.Simulation.Items;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -100,6 +101,13 @@ namespace BomberLegends.Gameplay.Match
         [Tooltip("Seed for every random decision the match makes. A fixed value makes runs repeatable.")]
         private uint _seed = 1u;
 
+        [Header("Loadout")]
+        [SerializeField]
+        [Tooltip(
+            "Items the player starts with. Two slots by default. Change these between runs to feel " +
+            "whether one item visibly changes how the game plays — that is the question the slice asks.")]
+        private ItemId[] _startingItems = System.Array.Empty<ItemId>();
+
         private GameContext? _context;
 
         /// <inheritdoc />
@@ -129,6 +137,8 @@ namespace BomberLegends.Gameplay.Match
             var projector = new BoardProjector(_tileSize, _blockHeight);
             var config = SimulationConfig.FromTilesPerSecond(_moveSpeedTilesPerSecond);
             var simulation = new GameSimulation(config, layout, _seed);
+
+            GrantStartingItems(simulation);
 
             _boardRenderer.Build(simulation.State.Board, projector);
             _playerView.Initialise(projector);
@@ -160,6 +170,29 @@ namespace BomberLegends.Gameplay.Match
             if (_quitButton != null)
             {
                 _quitButton.onClick.RemoveListener(ReturnToHub);
+            }
+        }
+
+        /// <summary>
+        /// Hands the player their starting build.
+        /// </summary>
+        /// <remarks>
+        /// Milestone 6 replaces this with a choice between arenas. Granting from the Inspector until
+        /// then is what lets the slice's real question — does swapping one item change how the game
+        /// plays — be answered before a run loop exists.
+        /// </remarks>
+        private void GrantStartingItems(GameSimulation simulation)
+        {
+            for (var i = 0; i < _startingItems.Length; i++)
+            {
+                var id = _startingItems[i];
+
+                if (id != ItemId.None && !simulation.TryGrantItem(id))
+                {
+                    Debug.LogWarning(
+                        $"[Match] {ItemCatalog.Name(id)} was not granted; it is either a duplicate " +
+                        "or the item slots are full.");
+                }
             }
         }
 

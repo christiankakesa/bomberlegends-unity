@@ -1,4 +1,5 @@
 using BomberLegends.Simulation.Events;
+using BomberLegends.Simulation.Skills;
 
 namespace BomberLegends.Simulation.Systems
 {
@@ -28,6 +29,7 @@ namespace BomberLegends.Simulation.Systems
             state.Player.Health.Age();
 
             ApplyBlastToEnemies(ref state, config, events);
+            ApplyDashToEnemies(ref state, config, events);
             ApplyBlastToPlayer(ref state, config, events);
             ApplyContactToPlayer(ref state, config, events);
 
@@ -57,6 +59,65 @@ namespace BomberLegends.Simulation.Systems
 
                 events.Add(new SimEvent(
                     SimEventType.DamageTaken, enemy.Tile, slot + 1, config.BlastDamageToEnemy));
+
+                if (!enemy.Health.IsAlive)
+                {
+                    enemy.IsActive = false;
+                    events.Add(new SimEvent(SimEventType.EnemyKilled, enemy.Tile, slot + 1));
+                }
+
+                state.Enemies[slot] = enemy;
+            }
+        }
+
+        /// <summary>
+        /// Injures every enemy a damaging dash is passing through.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Resolved before the enemy's own contact damage, so killing what you dash through is the
+        /// reward for committing to it. Surviving enemies still land their hit: the dash grants no
+        /// immunity, so passing through a mob is a trade rather than a free kill. That is what keeps
+        /// the skill honest now that it is a weapon as well as an escape.
+        /// </para>
+        /// <para>
+        /// A single overlap test per tick is enough, and safely so: a dash covers less ground in one
+        /// tick than the combined width of the two boxes, so it cannot pass through an enemy
+        /// unnoticed. <c>DashOutrunsContact</c> asserts that relationship holds.
+        /// </para>
+        /// </remarks>
+        private static void ApplyDashToEnemies(
+            ref SimulationState state, in SimulationConfig config, SimEventBuffer events)
+        {
+            if (!state.Player.DashedThisTick ||
+                !state.Player.DashTraits.Has(SkillTraits.DamagesContacts) ||
+                state.Player.DashPower <= 0)
+            {
+                return;
+            }
+
+            for (var slot = 0; slot < state.Enemies.Capacity; slot++)
+            {
+                var enemy = state.Enemies[slot];
+
+                if (!enemy.IsActive)
+                {
+                    continue;
+                }
+
+                if (!GridMotion.Overlaps(
+                        state.Player.Position, config.PlayerRadius, enemy.Position, config.EnemyRadius))
+                {
+                    continue;
+                }
+
+                if (!enemy.Health.TryTakeDamage(state.Player.DashPower, config.InvulnerabilityTicks))
+                {
+                    continue;
+                }
+
+                events.Add(new SimEvent(
+                    SimEventType.DamageTaken, enemy.Tile, slot + 1, state.Player.DashPower));
 
                 if (!enemy.Health.IsAlive)
                 {

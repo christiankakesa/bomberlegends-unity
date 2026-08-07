@@ -25,6 +25,20 @@ namespace BomberLegends.Simulation.Skills
         /// <summary>Damage it deals on contact.</summary>
         public int Damage;
 
+        /// <summary>Behaviours carried over from the skill that fired it.</summary>
+        public SkillTraits Traits;
+
+        /// <summary>
+        /// The tile it was fired from.
+        /// </summary>
+        /// <remarks>
+        /// Kept so a detonating shot cannot set off the bomb the player is standing on. Without
+        /// that exemption, equipping such an item would turn every shot fired while stood over your
+        /// own bomb into a suicide — and it would quietly contradict the "walk off your own bomb"
+        /// grace the game already grants.
+        /// </remarks>
+        public GridCoord OriginTile;
+
         /// <summary>Whether this slot holds a projectile in flight.</summary>
         public bool IsActive;
 

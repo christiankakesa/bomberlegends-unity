@@ -109,8 +109,8 @@ their build does, the synergy pillar has not landed and no amount of content wil
 | M2 | Bombs, blasts, chain detonation, views | ✅ T-017 → T-019 done; T-020/T-021 deferred |
 | **M2b** | 3D migration + 360° movement + wall sliding + corner slip | ✅ complete, verified in editor |
 | **M3** | Health, damage, one enemy that fights back | ✅ **complete, verified in editor** |
-| **M4** | Skill framework + dash + skillshot | ✅ **complete, awaiting play verdict** |
-| M5 | Item framework + three items + two passive slots | |
+| **M4** | Skill framework + dash + skillshot | ✅ **complete, verified in play** |
+| **M5** | Item framework + three items + two passive slots | ✅ **complete, awaiting play verdict** |
 | M6 | Run loop: arenas, item choice, death, restart | |
 | — | **▶ VALIDATION GATE** — the question in §3 | |
 | M7+ | Third skill, slots 3–4, bosses, meta, art, audio, mobile port | |
@@ -237,6 +237,121 @@ follows the direction of travel, so keyboard-only play is never blocked.
   #1 gets answered.
 - **No dedicated dash visual.** The movement itself is loud enough to read; a trail is polish for
   later. The HUD does show live charges, which is the readout that changes decisions.
+
+### Play verdict (2026-08-07)
+
+**The first clause of the slice question is answered: yes.** Moving freely, aiming a skillshot and
+setting off grid-shaped explosions *do* feel good together. That is the hybrid premise itself, and it
+was the one thing no amount of architecture could establish. The second clause — *"does changing one
+item visibly change how I play?"* — remains open and is what M5 exists to answer.
+
+Caveat for the record: this is the designer's verdict, not a playtest. The §3 success thresholds are
+measured against players who did not build the thing.
+
+**The dash is an offensive tool, not just an escape.** Reported unprompted: it is used to fight mobs,
+not merely to clear your own blast. That was not designed for and it is the best news in the
+milestone, because it means the dash carries **two competing uses on one charge** — you cannot dash in
+*and* dash out. That tension is what makes it a skill rather than a button, and it means the escape
+tuning recorded above was only half the story.
+
+> **Design opening, and a warning for M5.** The obvious dash item — *a second charge* — is a far
+> bigger power spike than it looks. It does not merely double the escapes; it converts "in **or**
+> out" into "in **and** out" and deletes the decision that makes the dash good. It should be
+> expensive, late, or carry a real cost. **Cooldown reduction is the safer dash item**: it shortens
+> the committed window without removing the choice.
+>
+> Relatedly: **the dash currently grants no immunity frames**, and that is now load-bearing rather
+> than incidental. Dashing past a mob is risky on purpose. Adding i-frames later would silently
+> convert the skill from positional to defensive — so if an item grants them, that is a build
+> identity to design deliberately, never a stat to tack on.
+
+---
+
+## 4d. M5 notes (2026-08-07)
+
+**Delivered.** An item framework, three items, two passive slots, and a build readout.
+**337 EditMode + 10 PlayMode tests green, zero warnings.**
+
+### Synergy without a synergy table
+
+An item is `ItemEffect`: a target skill (or *all* of them), some **traits** to graft on, and some
+**numbers** to shift. Nothing in it names a dash or a skillshot.
+
+Traits are the behavioural axis — `DetonatesBombs`, `DamagesContacts` — and they are generic in the
+same way the numbers are: a trait says *what happens on contact*, not which skill is doing the
+touching, so the same flag reads sensibly on a projectile and on a dash.
+
+> **This is the whole design.** Synergy emerges from traits and numbers composing. There is no table
+> of item pairs anywhere in the codebase, and there must never be one: such a table grows as the
+> square of the item count and is the standard way this kind of system dies. Adding an item is a row
+> in `ItemCatalog`, not a branch in a system.
+
+### The three items
+
+| Item | Effect | Axis |
+|---|---|---|
+| **Overcharge** | Skillshot sets off bombs it flies over | behaviour |
+| **Momentum** | Dash injures what it passes through (+40 flat power) | behaviour |
+| **Kinetic Core** | Every skill +50% magnitude | numbers |
+
+Three items into two slots means every run **leaves one behind** — which is exactly the "deliberately
+pick a different item on run 2" experiment the slice measures.
+
+Any pair plays differently. Overcharge + Kinetic Core is a long-range remote detonator. Momentum +
+Kinetic Core is a 4.5-tile damaging charge. Overcharge + Momentum is the full loop: dash through the
+mob, drop a bomb behind you, dash clear, shoot it. **None of those combinations is written down
+anywhere** — they fall out of two independent effects landing on the same loadout.
+
+### Overcharge is nine lines, because it reuses everything
+
+A detonating shot **sets the bomb's fuse to zero** rather than exploding it. `FuseSystem` then finds
+it due later in the same tick, and the shared detonation queue, chain reactions and the queued-guard
+against a ring of bombs triggering each other forever all apply unchanged. Detonating directly would
+have meant a second copy of all of it.
+
+Two consequences worth stating:
+
+- **The tick order was reversed from M4.** Skillshots now run *before* fuses rather than after
+  enemies, so a triggered bomb goes off in the same tick — otherwise shooting a bomb would feel like
+  asking it politely. The cost is that a shot is judged against enemy positions from the end of the
+  previous tick; at 80 units of enemy movement against a 660-unit overlap window, that is not
+  detectable. This reverses a decision recorded in §4c, deliberately.
+- **The bomb under your feet is exempt.** Without it, equipping Overcharge would turn every shot
+  fired while standing over your own bomb into a suicide — and would quietly contradict the
+  walk-off-your-own-bomb grace the game already grants. Same exemption, same reason.
+
+**Overcharge also answers open question #3 in the right direction.** It does not compete with the
+bomb; it makes the bomb *more* central by turning a timer you plan around into a trigger you hold.
+
+### Applied once, not recomputed
+
+Items permanently rewrite the loadout when taken. A run only ever adds items, so recomputing
+effective stats every tick would cost work every frame to support a case that never happens, and
+would need a stable ordering rule to stay deterministic.
+
+**The cost, recorded honestly:** an item cannot be removed, and the loadout no longer remembers its
+base values. The inventory is kept anyway — no tick reads it — because it is what a readout shows,
+what a save would store, and what a recompute-from-base would need if removal is ever required.
+
+Order-independence holds today because **no field takes both a flat addition and a percentage**
+(power is flat, magnitude is percentage). A test compares the two grant orders and would catch it if
+that ever stopped being true.
+
+### Honouring the M4 warning
+
+The M4 play verdict recorded that a second dash charge would convert "dash in **or** out" into "in
+**and** out" and delete the decision that makes the dash good. **No starting item grants a dash
+charge, and a test enforces it** by walking the catalog — so a future item cannot reintroduce it by
+accident without someone deliberately deleting that test.
+
+### How to try it
+
+`Match` scene → `MatchInstaller` → **Loadout → Starting Items**. Set two and play; set a different
+two and play again. Milestone 6 replaces this with a choice between arenas — granting from the
+Inspector until then is what lets the slice's real question be answered before a run loop exists.
+
+The build is shown in the HUD, because the slice measures whether players can describe their build
+unprompted and one they cannot see is one they cannot describe.
 
 ---
 

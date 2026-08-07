@@ -1,5 +1,6 @@
 using BomberLegends.Core;
 using BomberLegends.Simulation.Events;
+using BomberLegends.Simulation.Skills;
 
 namespace BomberLegends.Simulation.Systems
 {
@@ -84,6 +85,8 @@ namespace BomberLegends.Simulation.Systems
 
                 projectile.Position = next;
 
+                TryDetonateBombs(ref state, projectile);
+
                 if (state.Board.IsBlocking(next.Tile))
                 {
                     events.Add(new SimEvent(SimEventType.ProjectileEnded, next.Tile, slot));
@@ -160,6 +163,57 @@ namespace BomberLegends.Simulation.Systems
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Sets off any bomb the shot is flying over, when it carries the trait for it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Zeroing the fuse rather than detonating directly is the whole implementation. The bomb is
+        /// then due when <see cref="FuseSystem"/> runs later in the same tick, and everything that
+        /// already exists — the shared detonation queue, chain reactions, the queued guard against a
+        /// ring of bombs triggering each other forever — applies unchanged. Detonating here instead
+        /// would mean a second copy of all of it.
+        /// </para>
+        /// <para>
+        /// The shot is not consumed. Carrying on lets a single trigger walk a whole line of bombs,
+        /// which is the point of the item rather than a side effect of it.
+        /// </para>
+        /// </remarks>
+        private static void TryDetonateBombs(
+            ref SimulationState state, in Skills.ProjectileState projectile)
+        {
+            if (!projectile.Traits.Has(SkillTraits.DetonatesBombs))
+            {
+                return;
+            }
+
+            var tile = projectile.Tile;
+
+            // The bomb underfoot when the shot was fired is exempt, exactly as it is exempt from
+            // blocking the player who placed it.
+            if (tile.Equals(projectile.OriginTile))
+            {
+                return;
+            }
+
+            var bombSlot = state.BombGrid.SlotAt(tile);
+
+            if (bombSlot < 0)
+            {
+                return;
+            }
+
+            var bomb = state.Bombs[bombSlot];
+
+            if (!bomb.IsActive || bomb.FuseTicksRemaining <= 0)
+            {
+                return;
+            }
+
+            bomb.FuseTicksRemaining = 0;
+            state.Bombs[bombSlot] = bomb;
         }
 
         /// <summary>How many collision checks this tick's travel needs.</summary>

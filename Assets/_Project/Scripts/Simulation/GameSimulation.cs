@@ -4,6 +4,7 @@ using BomberLegends.Simulation.Actors;
 using BomberLegends.Simulation.Board;
 using BomberLegends.Simulation.Bombs;
 using BomberLegends.Simulation.Events;
+using BomberLegends.Simulation.Items;
 using BomberLegends.Simulation.Skills;
 using BomberLegends.Simulation.Systems;
 
@@ -57,7 +58,8 @@ namespace BomberLegends.Simulation
                     config.StartingBombCapacity,
                     config.StartingBlastRange,
                     config.PlayerMaxHealth,
-                    config.CreateStartingLoadout()),
+                    config.CreateStartingLoadout(),
+                    ItemInventory.WithSlots(config.ItemSlots)),
                 Enemies = new EnemyBuffer(config.MaxEnemies),
                 Bombs = new BombBuffer(config.MaxBombs),
                 BombGrid = new BombGrid(layout.Width, layout.Height),
@@ -74,6 +76,16 @@ namespace BomberLegends.Simulation
 
             _events.Add(new SimEvent(SimEventType.PlayerSpawned, layout.PlayerSpawn));
         }
+
+        /// <summary>
+        /// Gives the player an item, folding its effect into their loadout.
+        /// </summary>
+        /// <remarks>
+        /// Public because a run hands items out between arenas, and the slice hands them out at
+        /// match start so two builds can be compared without a run loop existing yet.
+        /// </remarks>
+        /// <returns>Whether the item was taken; a duplicate or a full inventory refuses it.</returns>
+        public bool TryGrantItem(ItemId id) => ItemSystem.TryGrant(ref _state, id, _events);
 
         /// <summary>
         /// The current state, returned by reference so reading it copies nothing.
@@ -121,25 +133,25 @@ namespace BomberLegends.Simulation
             // 3. Placement — turn a button press into a bomb on the board.
             BombPlacementSystem.Tick(ref _state, _config, intent, _events);
 
-            // 4. Fuses — burn down, and queue whatever is due.
-            var queued = FuseSystem.Tick(ref _state, _detonationQueue);
-
-            // 5. Blasts — age existing fire, then resolve detonations and everything they chain into.
-            BlastSystem.Tick(ref _state, _config, _detonationQueue, queued, _events);
-
-            // 6. Enemies — pursue, colliding with the world exactly as the player does.
-            EnemySystem.Tick(ref _state, _config, _events);
-
-            // 7. Skillshots — fly against final positions, so a shot is judged against where the
-            //    enemy actually ended the tick rather than where it started.
+            // 4. Skillshots — fly, hit, and zero the fuse of any bomb they are meant to set off.
+            //    Ahead of the fuses on purpose: a shot that triggers a bomb must detonate it in the
+            //    same tick, or shooting a bomb would feel like asking it politely.
             ProjectileSystem.Tick(ref _state, _config, _events);
 
+            // 5. Fuses — burn down, and queue whatever is due, including anything a shot just armed.
+            var queued = FuseSystem.Tick(ref _state, _detonationQueue);
+
+            // 6. Blasts — age existing fire, then resolve detonations and everything they chain into.
+            BlastSystem.Tick(ref _state, _config, _detonationQueue, queued, _events);
+
+            // 7. Enemies — pursue, colliding with the world exactly as the player does.
+            EnemySystem.Tick(ref _state, _config, _events);
+
             // 8. Damage — read a finished picture of what is on fire and who is touching whom.
-            //    Must follow the blast, or it would judge a half-resolved explosion. Also follows
-            //    skillshots, so an enemy killed by one does not still land a contact hit.
+            //    Must follow the blast, or it would judge a half-resolved explosion.
             DamageSystem.Tick(ref _state, _config, _events);
 
-            // Items, pickups, objectives and scoring slot in here in Milestone 5.
+            // Pickups, objectives, timer and scoring slot in here in Milestone 6.
 
             _state.Tick++;
         }
@@ -179,6 +191,15 @@ namespace BomberLegends.Simulation
                     hash = Fold(hash, (byte)skill.Id);
                     hash = Fold(hash, (ulong)(uint)skill.CooldownRemaining);
                     hash = Fold(hash, (ulong)(uint)skill.Charges);
+                    hash = Fold(hash, (byte)skill.Traits);
+                    hash = Fold(hash, (ulong)(uint)skill.Magnitude);
+                    hash = Fold(hash, (ulong)(uint)skill.Power);
+                    hash = Fold(hash, (ulong)(uint)skill.DurationTicks);
+                }
+
+                for (var index = 0; index < _state.Player.Items.Capacity; index++)
+                {
+                    hash = Fold(hash, (byte)_state.Player.Items[index]);
                 }
 
                 for (var slot = 0; slot < _state.Projectiles.Capacity; slot++)

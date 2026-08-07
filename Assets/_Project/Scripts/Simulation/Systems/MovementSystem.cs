@@ -47,6 +47,7 @@ namespace BomberLegends.Simulation.Systems
             // what makes it read as a dash rather than a burst of speed, and it is what stops it
             // being a strictly better way to walk: you cannot correct mid-flight.
             var dashing = player.IsDashing;
+            player.DashedThisTick = dashing;
 
             if (dashing)
             {

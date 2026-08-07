@@ -43,6 +43,9 @@ namespace BomberLegends.Simulation.Skills
         /// <summary>How long the effect lasts. Multiplied by <see cref="Magnitude"/> this is range.</summary>
         public int DurationTicks;
 
+        /// <summary>Behaviours items have grafted onto this skill.</summary>
+        public SkillTraits Traits;
+
         /// <summary>Whether this slot's button was down last tick, so use triggers on the press.</summary>
         public bool HeldLastTick;
 
@@ -68,6 +71,7 @@ namespace BomberLegends.Simulation.Skills
                 Power = power,
                 Magnitude = magnitude,
                 DurationTicks = durationTicks,
+                Traits = SkillTraits.None,
                 HeldLastTick = false
             };
 

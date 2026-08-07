@@ -63,7 +63,13 @@ namespace BomberLegends.Simulation.Events
         /// A skillshot stopped. <c>EntityId</c> is its projectile slot; <c>Value</c> is the damage
         /// dealt, or zero when it hit terrain or ran out of range.
         /// </summary>
-        ProjectileEnded = 14
+        ProjectileEnded = 14,
+
+        /// <summary>
+        /// An item was taken. <c>EntityId</c> is its inventory slot, <c>Value</c> its
+        /// <see cref="Items.ItemId"/>.
+        /// </summary>
+        ItemAcquired = 15
     }
 
     /// <summary>

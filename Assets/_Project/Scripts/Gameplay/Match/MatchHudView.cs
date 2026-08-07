@@ -1,5 +1,6 @@
 using System.Text;
 using BomberLegends.Simulation;
+using BomberLegends.Simulation.Items;
 using BomberLegends.Simulation.Skills;
 using UnityEngine;
 using UnityEngine.UI;
@@ -89,7 +90,31 @@ namespace BomberLegends.Gameplay.Match
                 }
             }
 
+            AppendBuild(simulation);
+
             _output.text = _text.ToString();
+        }
+
+        /// <summary>
+        /// Writes out what the player is carrying.
+        /// </summary>
+        /// <remarks>
+        /// On screen because the slice measures whether players can describe their build unprompted.
+        /// A build they cannot see is one they cannot describe.
+        /// </remarks>
+        private void AppendBuild(GameSimulation simulation)
+        {
+            var items = simulation.State.Player.Items;
+
+            for (var index = 0; index < items.Capacity; index++)
+            {
+                var id = items[index];
+
+                if (id != ItemId.None)
+                {
+                    _text.Append("    ").Append(ItemCatalog.Name(id));
+                }
+            }
         }
 
         private bool ChargesUnchanged(GameSimulation simulation)
