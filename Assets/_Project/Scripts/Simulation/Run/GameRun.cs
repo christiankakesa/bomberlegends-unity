@@ -37,6 +37,7 @@ namespace BomberLegends.Simulation.Run
         private int _heldCount;
         private int _offerCount;
         private int _arenaIndex;
+        private ItemId _pending;
 
         /// <summary>Starts a run on the first arena.</summary>
         /// <exception cref="ArgumentException">No arenas were supplied.</exception>
@@ -83,6 +84,12 @@ namespace BomberLegends.Simulation.Run
         public ReadOnlySpan<ItemId> Held => _held.AsSpan(0, _heldCount);
 
         /// <summary>
+        /// The item waiting to be taken while <see cref="Phase"/> is
+        /// <see cref="RunPhase.Discarding"/>.
+        /// </summary>
+        public ItemId Pending => _pending;
+
+        /// <summary>
         /// Reacts to whatever the current arena's simulation has decided.
         /// </summary>
         /// <remarks>
@@ -103,8 +110,8 @@ namespace BomberLegends.Simulation.Run
                     return true;
 
                 case MatchPhase.Victory:
-                    // With nothing left worth offering, the run rolls straight on rather than
-                    // stopping to present an empty choice.
+                    // Only genuinely nothing left to show — every item already held — rolls the run
+                    // straight on. A full inventory still gets an offer; it is simply a swap.
                     if (BuildOffers() == 0)
                     {
                         AdvanceArena();
@@ -139,14 +146,66 @@ namespace BomberLegends.Simulation.Run
                 }
             }
 
-            if (!offered || _heldCount >= _held.Length)
+            if (!offered)
             {
                 return false;
             }
 
-            _held[_heldCount++] = id;
-            AdvanceArena();
+            // With a slot free this is simply a gain. With none, the run asks the better question:
+            // not "what do I want?" but "what am I willing to give up?".
+            if (_heldCount < _held.Length)
+            {
+                _held[_heldCount++] = id;
+                AdvanceArena();
+                return true;
+            }
 
+            _pending = id;
+            Phase = RunPhase.Discarding;
+            return true;
+        }
+
+        /// <summary>Gives up a held item to take the pending one.</summary>
+        /// <returns>Whether the swap was valid.</returns>
+        public bool TryDiscard(ItemId discard)
+        {
+            if (Phase != RunPhase.Discarding || _pending == ItemId.None)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < _heldCount; i++)
+            {
+                if (_held[i] != discard)
+                {
+                    continue;
+                }
+
+                _held[i] = _pending;
+                _pending = ItemId.None;
+                AdvanceArena();
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Declines the offer and moves on.
+        /// </summary>
+        /// <remarks>
+        /// Necessary once offers become swaps. Without it a late run would force a player to break a
+        /// build they are happy with, turning a decision into a penalty for having chosen well.
+        /// </remarks>
+        public bool Skip()
+        {
+            if (Phase != RunPhase.Choosing && Phase != RunPhase.Discarding)
+            {
+                return false;
+            }
+
+            _pending = ItemId.None;
+            AdvanceArena();
             return true;
         }
 
@@ -163,6 +222,7 @@ namespace BomberLegends.Simulation.Run
             _heldCount = 0;
             _offerCount = 0;
             _arenaIndex = 0;
+            _pending = ItemId.None;
             _random = new DeterministicRandom(_seed);
 
             Array.Clear(_held, 0, _held.Length);
@@ -189,6 +249,7 @@ namespace BomberLegends.Simulation.Run
 
             _arenaIndex++;
             _offerCount = 0;
+            _pending = ItemId.None;
 
             BuildArena(health);
             Phase = RunPhase.Fighting;
@@ -217,16 +278,11 @@ namespace BomberLegends.Simulation.Run
         {
             _offerCount = 0;
 
-            if (_heldCount >= _held.Length)
-            {
-                return 0;
-            }
-
             // Shuffled by the run's own generator so the offer is part of the reproducible run
             // rather than a roll made somewhere the replay cannot see.
             var pool = ItemCatalog.All;
             var available = 0;
-            Span<ItemId> candidates = stackalloc ItemId[16];
+            Span<ItemId> candidates = stackalloc ItemId[32];
 
             for (var i = 0; i < pool.Length && available < candidates.Length; i++)
             {

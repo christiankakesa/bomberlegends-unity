@@ -47,24 +47,44 @@ namespace BomberLegends.Simulation.Systems
             var pressedThisTick = !player.BombHeldLastTick;
             player.BombHeldLastTick = true;
 
-            if (!pressedThisTick ||
-                player.BombCooldownTicksRemaining > 0 ||
-                player.ActiveBombs >= player.BombCapacity)
+            if (!pressedThisTick || player.BombCooldownTicksRemaining > 0)
             {
                 return;
+            }
+
+            TryPlace(ref state, config, events);
+        }
+
+        /// <summary>
+        /// Puts a bomb under the player if there is room for one, ignoring buttons and cooldown.
+        /// </summary>
+        /// <remarks>
+        /// Shared with skills that lay bombs themselves. They must obey the same capacity and
+        /// occupancy rules as the button does, or an item would quietly become a way around the
+        /// limit that the whole bomb economy rests on.
+        /// </remarks>
+        /// <returns>Whether a bomb was placed.</returns>
+        public static bool TryPlace(
+            ref SimulationState state, in SimulationConfig config, SimEventBuffer events)
+        {
+            ref var player = ref state.Player;
+
+            if (player.ActiveBombs >= player.BombCapacity)
+            {
+                return false;
             }
 
             var tile = player.Tile;
 
             if (state.BombGrid.HasBomb(tile) || !state.Board.IsWalkable(tile))
             {
-                return;
+                return false;
             }
 
             var slot = state.Bombs.Place(tile, config.FuseTicks, player.BlastRange);
             if (slot < 0)
             {
-                return;
+                return false;
             }
 
             state.BombGrid.Set(tile, slot);
@@ -72,6 +92,7 @@ namespace BomberLegends.Simulation.Systems
             player.BombCooldownTicksRemaining = config.BombCooldownTicks;
 
             events.Add(new SimEvent(SimEventType.BombPlaced, tile, slot, player.BlastRange));
+            return true;
         }
     }
 }

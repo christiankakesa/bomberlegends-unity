@@ -9,6 +9,9 @@ namespace BomberLegends.Simulation.Run
         /// <summary>An arena is cleared and an item is being chosen.</summary>
         Choosing = 1,
 
+        /// <summary>Every slot is full, so something must be given up to take the chosen item.</summary>
+        Discarding = 3,
+
         /// <summary>The player died. Only a restart leaves this state.</summary>
         Ended = 2
     }

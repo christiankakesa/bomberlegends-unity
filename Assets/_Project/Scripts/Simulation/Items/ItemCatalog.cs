@@ -24,7 +24,13 @@ namespace BomberLegends.Simulation.Items
         {
             ItemId.Overcharge,
             ItemId.Momentum,
-            ItemId.KineticCore
+            ItemId.KineticCore,
+            ItemId.PiercingRounds,
+            ItemId.BombTrail,
+            ItemId.Quickstep,
+            ItemId.FocusingLens,
+            ItemId.Overclock,
+            ItemId.TwinShot
         };
 
         /// <summary>What holding <paramref name="id"/> does.</summary>
@@ -50,6 +56,44 @@ namespace BomberLegends.Simulation.Items
             ItemId.KineticCore => new ItemEffect(
                 magnitudePercent: 50),
 
+            // Turns the shot from a single answer into a line of them. Composes hard with
+            // Overcharge: one trigger that walks a row of enemies *and* the bombs among them.
+            ItemId.PiercingRounds => new ItemEffect(
+                target: SkillId.Skillshot,
+                addTraits: SkillTraits.Pierces),
+
+            // The strongest composition in the pool, and deliberately so. On its own it is a way to
+            // lay a trap while escaping; with Overcharge it becomes place-and-trigger at will, which
+            // is a genuinely different game. Bound by the same bomb capacity as the button, so it
+            // adds a way to place bombs and never a way to place more of them.
+            ItemId.BombTrail => new ItemEffect(
+                target: SkillId.Dash,
+                addTraits: SkillTraits.LeavesBombs),
+
+            // The safe dash upgrade. Shortens the window you are committed for without giving you a
+            // second charge, which is the distinction the M4 play verdict turned on.
+            ItemId.Quickstep => new ItemEffect(
+                target: SkillId.Dash,
+                cooldownPercent: -40),
+
+            // A real trade rather than an upgrade: far more damage per shot, but slow enough that
+            // leading a moving target becomes a skill. Pairs naturally with Kinetic Core, which
+            // buys the lost speed back.
+            ItemId.FocusingLens => new ItemEffect(
+                target: SkillId.Skillshot,
+                flatPower: 30,
+                magnitudePercent: -30),
+
+            ItemId.Overclock => new ItemEffect(
+                cooldownPercent: -25),
+
+            // Banking a second shot costs recharge speed, so it is a choice between burst and
+            // sustain rather than a strict gain.
+            ItemId.TwinShot => new ItemEffect(
+                target: SkillId.Skillshot,
+                cooldownPercent: 25,
+                bonusCharges: 1),
+
             _ => default
         };
 
@@ -59,6 +103,12 @@ namespace BomberLegends.Simulation.Items
             ItemId.Overcharge => "OVERCHARGE",
             ItemId.Momentum => "MOMENTUM",
             ItemId.KineticCore => "KINETIC CORE",
+            ItemId.PiercingRounds => "PIERCING ROUNDS",
+            ItemId.BombTrail => "BOMB TRAIL",
+            ItemId.Quickstep => "QUICKSTEP",
+            ItemId.FocusingLens => "FOCUSING LENS",
+            ItemId.Overclock => "OVERCLOCK",
+            ItemId.TwinShot => "TWIN SHOT",
             _ => "—"
         };
     }

@@ -68,6 +68,8 @@ namespace BomberLegends.Gameplay.Run
             if (_overlay != null)
             {
                 _overlay.Chosen += OnChosen;
+                _overlay.Discarded += OnDiscarded;
+                _overlay.Skipped += OnSkipped;
                 _overlay.Restarted += OnRestart;
             }
 
@@ -81,6 +83,8 @@ namespace BomberLegends.Gameplay.Run
             if (_overlay != null)
             {
                 _overlay.Chosen -= OnChosen;
+                _overlay.Discarded -= OnDiscarded;
+                _overlay.Skipped -= OnSkipped;
                 _overlay.Restarted -= OnRestart;
             }
         }
@@ -104,7 +108,19 @@ namespace BomberLegends.Gameplay.Run
             ApplyPhase(force: false);
         }
 
-        private void OnChosen(Simulation.Items.ItemId id) => _run.TryChoose(id);
+        private void OnChosen(Simulation.Items.ItemId id)
+        {
+            if (_run.TryChoose(id))
+            {
+                // Choosing with a full inventory opens the discard step rather than advancing, so
+                // the overlay has to be refreshed now rather than waiting for an arena change.
+                ApplyPhase(force: true);
+            }
+        }
+
+        private void OnDiscarded(Simulation.Items.ItemId id) => _run.TryDiscard(id);
+
+        private void OnSkipped() => _run.Skip();
 
         private void OnRestart() => _run.Restart();
 
@@ -126,6 +142,10 @@ namespace BomberLegends.Gameplay.Run
             {
                 case RunPhase.Choosing:
                     _overlay.ShowChoices(_run.Offers, _run.ArenaNumber);
+                    break;
+
+                case RunPhase.Discarding:
+                    _overlay.ShowDiscard(_run.Held, _run.Pending);
                     break;
 
                 case RunPhase.Ended:

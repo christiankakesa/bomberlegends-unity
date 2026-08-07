@@ -120,7 +120,7 @@ their build does, the synergy pillar has not landed and no amount of content wil
 | **M3** | Health, damage, one enemy that fights back | ✅ **complete, verified in editor** |
 | **M4** | Skill framework + dash + skillshot | ✅ **complete, verified in play** |
 | **M5** | Item framework + three items + two passive slots | ✅ **complete, verified in play** |
-| **M6** | Run loop: arenas, item choice, death, restart | ✅ **complete, awaiting play verdict** |
+| **M6** | Run loop: arenas, item choice, death, restart | ✅ **complete, verified in play** |
 | — | **▶ VALIDATION GATE** — the question in §3 | **now reachable — needs playtesters** |
 | M7+ | Third skill, slots 3–4, bosses, meta, art, audio, mobile port | |
 
@@ -441,6 +441,85 @@ Text layouts in the installer, cycled in order: the original open grid, a chambe
 wide corridor arena. `T-025` still replaces authored text with a `LevelDefinition` asset; nothing
 about the loop changes when it does.
 
+### Play verdict (2026-08-07)
+
+**The loop holds together.** Played end to end — clear, choose, carry forward, die, restart —
+and reported as *"pretty good at this stage"*. Taken as what it says: the loop works mechanically and
+is not yet claimed to be finished. Every system the vertical slice specified now exists and has been
+played.
+
+**Deliberately not claimed.** This verdict does not cover the things M6 most needs to learn, because
+they were not reported and inferring them would be inventing data:
+
+- whether a run goes flat after its two choices are spent;
+- whether the restart is fast *enough* to keep a player going for a third attempt;
+- whether 25 health per arena clear is the right number.
+
+The first of those is the one that matters, and it is question #2 — which stays open and is now
+blocked on content, not systems.
+
+**Milestone status: the slice is built.** What stands between here and the validation gate is
+playtesters and, on the evidence of §4e, more items to choose between.
+
+---
+
+## 4f. Item pool widening (2026-08-07)
+
+**Delivered.** Nine items, offers that continue once slots are full, and the ability to decline one.
+**373 EditMode + 10 PlayMode tests green, zero warnings.**
+
+### The correction that shaped this
+
+The plan was "widen the pool". Halfway in, that turned out not to be sufficient on its own:
+
+> **More items does not give a run more decisions.** With two slots you get two choices whatever the
+> pool size — arena five is still choiceless. Pool size drives *variety between runs*, which serves
+> "picks differently on run 2". It does nothing for §4e's actual complaint.
+
+So the offer had to keep coming once slots were full. That means **swaps**, which means removing a
+held item — the exact thing the M5 notes recorded as impossible.
+
+**It turned out to be free.** That limitation lived inside a single `GameSimulation`; a run already
+rebuilds the loadout from scratch for each arena by re-granting the held list. Removing an item is
+list manipulation, and the next arena simply never applies it. The recorded cost never came due, and
+a test now proves a swapped-away item's *effect* is gone rather than merely unlisted.
+
+### The pool
+
+| Item | Effect | Axis |
+|---|---|---|
+| Overcharge | Skillshot sets off bombs it flies over | behaviour |
+| Momentum | Dash injures what it passes through | behaviour |
+| Piercing Rounds | Skillshot is not used up by the first enemy | behaviour |
+| **Bomb Trail** | Dashing lays a bomb where you left | behaviour |
+| Kinetic Core | Every skill +50% magnitude | numbers |
+| Overclock | Every skill −25% cooldown | numbers |
+| Quickstep | Dash −40% cooldown | numbers |
+| Focusing Lens | Skillshot +30 power, −30% magnitude | **trade** |
+| Twin Shot | Skillshot +1 charge, +25% cooldown | **trade** |
+
+Two of them are deliberately *trades* rather than upgrades, so an offer can be genuinely declinable
+rather than always-yes. Two new traits carry four of the behaviour items; the rest are numbers.
+
+**Bomb Trail is the strongest pairing in the pool and is written down nowhere.** With Overcharge it
+becomes place-and-trigger at will: the dash lays the bomb, the shot sets it off. That is two
+independent effects composing, which is the whole thesis. It is bound by the same bomb capacity as
+the button — an item may add a *way* to place bombs, never a way to place *more* of them, or it
+quietly breaks the economy the Bomberman layer rests on. Tested.
+
+### Rules the offers now follow
+
+- **Full slots offer a swap, not nothing.** Late in a run the question stops being "what do I want?"
+  and becomes "what am I willing to give up?" — a better question that costs nothing extra to ask.
+- **Any offer can be declined.** Without a skip, a late run would force a player to break a build
+  they were happy with, turning a decision into a penalty for having chosen well.
+- **A swap is two steps** — take, then choose what to give up — and can be abandoned at either.
+
+### Still honouring the M4 warning
+
+No item grants a **dash** charge. Twin Shot banks a second *skillshot*, which is a different skill
+and a different decision. The catalog-walking test still enforces it.
+
 ---
 
 ## 5. Open questions
@@ -449,8 +528,9 @@ about the loop changes when it does.
    simultaneous decision-making. Worth validating two before committing to three.
 2. **What does a run cost in time?** Roguelite runs are typically 20–40 minutes. That is far longer
    than the 6–10 minute mobile session the original design targeted, and it changes the save model
-   (a run must survive being interrupted). **Still open after M6, and now blocked on content rather
-   than on systems** — three items into two slots gives a run exactly two decisions. See §4e.
+   (a run must survive being interrupted). **No longer blocked**: nine items and swap-when-full mean
+   every arena presents a decision for as long as a run lasts (§4f). What remains unmeasured is
+   whether those decisions stay *interesting* deep into a run — which needs a playtest, not code.
 3. **Does the bomb stay the primary verb?** If the skillshot is more effective than bombing, the
    Bomberman layer becomes set dressing. Bombs must remain the highest-damage, highest-risk option.
 4. **Hit-stop.** Deliberately not implemented: pausing a fixed-tick authoritative simulation on frame

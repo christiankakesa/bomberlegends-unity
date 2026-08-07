@@ -101,6 +101,13 @@ namespace BomberLegends.Simulation.Systems
                 return false;
             }
 
+            // Laid before the dash carries the player away, so the bomb marks where they left
+            // rather than where they arrived — which is what makes it a trap instead of a suicide.
+            if (slot.Traits.Has(SkillTraits.LeavesBombs))
+            {
+                BombPlacementSystem.TryPlace(ref state, config, events);
+            }
+
             state.Player.DashTicksRemaining = slot.DurationTicks;
             state.Player.DashVelocityX = velocityX;
             state.Player.DashVelocityY = velocityY;

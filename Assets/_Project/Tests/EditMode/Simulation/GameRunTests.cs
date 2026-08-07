@@ -250,20 +250,102 @@ namespace BomberLegends.Tests.EditMode.Simulation
         }
 
         [Test]
-        public void WithNothingLeftToOffer_TheRunRollsStraightOn()
+        public void WithSlotsFull_TheOfferBecomesASwap()
         {
-            // Three items into one slot: the first clear is a choice, the second cannot be.
+            // Late in a run the question stops being "what do I want?" and becomes "what am I
+            // willing to give up?" — which is why a full inventory keeps getting offers.
             var run = new GameRun(Config(itemSlots: 1), Arenas(4), seed: 1u);
 
             ClearArena(run);
+            run.TryChoose(run.Offers[0]);
+            var first = run.Held[0];
+
+            ClearArena(run);
             Assert.That(run.Phase, Is.EqualTo(RunPhase.Choosing));
+
+            var taking = run.Offers[0];
+            Assert.That(run.TryChoose(taking), Is.True);
+            Assert.That(run.Phase, Is.EqualTo(RunPhase.Discarding),
+                "with no free slot, taking something must first cost something");
+            Assert.That(run.Pending, Is.EqualTo(taking));
+
+            Assert.That(run.TryDiscard(first), Is.True);
+            Assert.That(run.Phase, Is.EqualTo(RunPhase.Fighting));
+            Assert.That(run.Held.ToArray(), Is.EqualTo(new[] { taking }));
+        }
+
+        [Test]
+        public void AnOfferCanBeDeclined()
+        {
+            // Without this a late run would force a player to break a build they are happy with,
+            // turning a decision into a penalty for having chosen well.
+            var run = new GameRun(Config(itemSlots: 1), Arenas(4), seed: 1u);
+
+            ClearArena(run);
+            run.TryChoose(run.Offers[0]);
+            var kept = run.Held[0];
+
+            ClearArena(run);
+            Assert.That(run.Skip(), Is.True);
+
+            Assert.That(run.Phase, Is.EqualTo(RunPhase.Fighting));
+            Assert.That(run.ArenaNumber, Is.EqualTo(3));
+            Assert.That(run.Held.ToArray(), Is.EqualTo(new[] { kept }), "skipping keeps the build");
+        }
+
+        [Test]
+        public void ASwapCanBeAbandonedPartWayThrough()
+        {
+            var run = new GameRun(Config(itemSlots: 1), Arenas(4), seed: 1u);
+
+            ClearArena(run);
+            run.TryChoose(run.Offers[0]);
+            var kept = run.Held[0];
+
+            ClearArena(run);
+            run.TryChoose(run.Offers[0]);
+            Assume.That(run.Phase, Is.EqualTo(RunPhase.Discarding));
+
+            Assert.That(run.Skip(), Is.True);
+            Assert.That(run.Held.ToArray(), Is.EqualTo(new[] { kept }));
+            Assert.That(run.Pending, Is.EqualTo(ItemId.None));
+        }
+
+        [Test]
+        public void SomethingNotHeldCannotBeGivenUp()
+        {
+            var run = new GameRun(Config(itemSlots: 1), Arenas(4), seed: 1u);
+
+            ClearArena(run);
             run.TryChoose(run.Offers[0]);
 
             ClearArena(run);
+            run.TryChoose(run.Offers[0]);
+            Assume.That(run.Phase, Is.EqualTo(RunPhase.Discarding));
 
-            Assert.That(run.Phase, Is.EqualTo(RunPhase.Fighting),
-                "an empty choice must not be presented");
-            Assert.That(run.ArenaNumber, Is.EqualTo(3));
+            Assert.That(run.TryDiscard(ItemId.None), Is.False);
+            Assert.That(run.Phase, Is.EqualTo(RunPhase.Discarding));
+        }
+
+        [Test]
+        public void ASwappedAwayItemStopsAffectingTheBuild()
+        {
+            // The M5 note said items could never be removed. That limit was inside one simulation;
+            // a run rebuilds the loadout per arena, so a swap genuinely undoes the old item.
+            var run = new GameRun(
+                Config(itemSlots: 1), Arenas(4), seed: 1u, startingItems: new[] { ItemId.Momentum });
+
+            Assume.That(run.Current.State.Player.Skills[0].Power, Is.EqualTo(40));
+
+            ClearArena(run);
+            Assume.That(run.Phase, Is.EqualTo(RunPhase.Choosing));
+
+            run.TryChoose(run.Offers[0]);
+            Assume.That(run.Phase, Is.EqualTo(RunPhase.Discarding));
+            run.TryDiscard(ItemId.Momentum);
+
+            Assert.That(run.Current.State.Player.Skills[0].Power, Is.Zero,
+                "the discarded item's effect must be gone, not merely unlisted");
         }
 
         [Test]
@@ -392,8 +474,9 @@ namespace BomberLegends.Tests.EditMode.Simulation
 
             ClearArena(run);
 
-            Assert.That(run.Phase, Is.EqualTo(RunPhase.Fighting),
-                "a full inventory leaves nothing to offer");
+            Assert.That(run.Phase, Is.EqualTo(RunPhase.Choosing),
+                "a full inventory still gets an offer; it is simply a swap");
+            Assert.That(run.Held.Length, Is.EqualTo(2));
         }
 
         // ---------- guarantees ----------
@@ -408,19 +491,15 @@ namespace BomberLegends.Tests.EditMode.Simulation
 
             var choicesMade = 0;
 
-            for (var arena = 0; arena < 3; arena++)
+            for (var arena = 0; arena < 4; arena++)
             {
                 ClearArena(first);
                 ClearArena(second);
 
                 Assert.That(second.Phase, Is.EqualTo(first.Phase),
                     $"the runs disagreed about what happens after arena {arena + 1}");
-
-                if (first.Phase != RunPhase.Choosing)
-                {
-                    // Slots are full, so there is nothing left to offer. Still a valid step.
-                    continue;
-                }
+                Assert.That(first.Phase, Is.EqualTo(RunPhase.Choosing),
+                    "with nine items and two slots, every clear must still present a decision");
 
                 Assert.That(second.Offers.ToArray(), Is.EqualTo(first.Offers.ToArray()),
                     $"the offer on arena {arena + 1} must be part of the reproducible run");
@@ -429,12 +508,18 @@ namespace BomberLegends.Tests.EditMode.Simulation
                 second.TryChoose(second.Offers[0]);
                 choicesMade++;
 
+                if (first.Phase == RunPhase.Discarding)
+                {
+                    first.TryDiscard(first.Held[0]);
+                    second.TryDiscard(second.Held[0]);
+                }
+
                 Assert.That(
                     second.Current.ComputeStateHash(), Is.EqualTo(first.Current.ComputeStateHash()));
             }
 
-            Assert.That(choicesMade, Is.EqualTo(2),
-                "two slots means exactly two choices; if this changes the test is measuring less");
+            Assert.That(choicesMade, Is.EqualTo(4),
+                "a decision after every arena is the point of widening the pool");
         }
 
         [Test]

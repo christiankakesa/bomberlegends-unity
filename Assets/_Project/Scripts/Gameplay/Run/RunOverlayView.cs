@@ -26,9 +26,17 @@ namespace BomberLegends.Gameplay.Run
         private GameObject? _panel;
         private Text? _title;
         private Button? _restart;
+        private Button? _skip;
+        private bool _discarding;
 
         /// <summary>Raised with the item the player picked.</summary>
         public event Action<ItemId>? Chosen;
+
+        /// <summary>Raised with the held item the player gave up.</summary>
+        public event Action<ItemId>? Discarded;
+
+        /// <summary>Raised when the player declines the offer.</summary>
+        public event Action? Skipped;
 
         /// <summary>Raised when the player asks for a fresh run.</summary>
         public event Action? Restarted;
@@ -55,11 +63,15 @@ namespace BomberLegends.Gameplay.Run
                 var button = CreateButton(_panel.transform, offset, new Vector2(240f, 90f));
 
                 var index = i;
-                button.onClick.AddListener(() => Chosen?.Invoke(_choiceIds[index]));
+                button.onClick.AddListener(() => OnPressed(index));
 
                 _choices[i] = button;
                 _choiceLabels[i] = button.GetComponentInChildren<Text>();
             }
+
+            _skip = CreateButton(_panel.transform, new Vector2(0f, -110f), new Vector2(220f, 64f));
+            _skip.GetComponentInChildren<Text>().text = "SKIP";
+            _skip.onClick.AddListener(() => Skipped?.Invoke());
 
             _restart = CreateButton(_panel.transform, new Vector2(0f, -110f), new Vector2(300f, 90f));
             _restart.GetComponentInChildren<Text>().text = "RESTART";
@@ -76,23 +88,59 @@ namespace BomberLegends.Gameplay.Run
                 return;
             }
 
+            _discarding = false;
             _title.text = $"ARENA {arenaNumber} CLEARED — CHOOSE ONE";
 
+            FillButtons(offers);
+
+            _skip?.gameObject.SetActive(true);
+            _restart?.gameObject.SetActive(false);
+            _panel.SetActive(true);
+        }
+
+        /// <summary>Shows which held item to give up for the one being taken.</summary>
+        public void ShowDiscard(ReadOnlySpan<ItemId> held, ItemId taking)
+        {
+            if (_panel == null || _title == null)
+            {
+                return;
+            }
+
+            _discarding = true;
+            _title.text = $"TAKING {ItemCatalog.Name(taking)} — GIVE UP WHICH?";
+
+            FillButtons(held);
+
+            _skip?.gameObject.SetActive(true);
+            _restart?.gameObject.SetActive(false);
+            _panel.SetActive(true);
+        }
+
+        private void FillButtons(ReadOnlySpan<ItemId> ids)
+        {
             for (var i = 0; i < _choices.Length; i++)
             {
-                var has = i < offers.Length;
+                var has = i < ids.Length;
 
                 _choices[i].gameObject.SetActive(has);
 
                 if (has)
                 {
-                    _choiceIds[i] = offers[i];
-                    _choiceLabels[i].text = ItemCatalog.Name(offers[i]);
+                    _choiceIds[i] = ids[i];
+                    _choiceLabels[i].text = ItemCatalog.Name(ids[i]);
                 }
             }
+        }
 
-            _restart?.gameObject.SetActive(false);
-            _panel.SetActive(true);
+        private void OnPressed(int index)
+        {
+            if (_discarding)
+            {
+                Discarded?.Invoke(_choiceIds[index]);
+                return;
+            }
+
+            Chosen?.Invoke(_choiceIds[index]);
         }
 
         /// <summary>Shows the death screen.</summary>
@@ -103,6 +151,7 @@ namespace BomberLegends.Gameplay.Run
                 return;
             }
 
+            _discarding = false;
             _title.text = $"DIED ON ARENA {arenaNumber}";
 
             for (var i = 0; i < _choices.Length; i++)
@@ -110,6 +159,7 @@ namespace BomberLegends.Gameplay.Run
                 _choices[i].gameObject.SetActive(false);
             }
 
+            _skip?.gameObject.SetActive(false);
             _restart?.gameObject.SetActive(true);
             _panel.SetActive(true);
         }

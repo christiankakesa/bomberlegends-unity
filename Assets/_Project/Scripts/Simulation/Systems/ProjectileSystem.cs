@@ -156,6 +156,14 @@ namespace BomberLegends.Simulation.Systems
 
                 state.Enemies[index] = enemy;
 
+                // A piercing shot carries on. It cannot re-hit the same enemy on the way through,
+                // because the immunity window it just applied refuses the next contact — so the
+                // trait needs no memory of what it has already touched.
+                if (projectile.Traits.Has(SkillTraits.Pierces))
+                {
+                    continue;
+                }
+
                 events.Add(new SimEvent(
                     SimEventType.ProjectileEnded, projectile.Tile, slot, projectile.Damage));
 

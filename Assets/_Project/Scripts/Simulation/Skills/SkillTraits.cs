@@ -28,7 +28,13 @@ namespace BomberLegends.Simulation.Skills
         DetonatesBombs = 1 << 0,
 
         /// <summary>Enemies the skill touches take its <see cref="SkillSlot.Power"/> as damage.</summary>
-        DamagesContacts = 1 << 1
+        DamagesContacts = 1 << 1,
+
+        /// <summary>The skill is not used up by the first thing it hits.</summary>
+        Pierces = 1 << 2,
+
+        /// <summary>Using the skill lays a bomb where the player is standing.</summary>
+        LeavesBombs = 1 << 3
     }
 
     /// <summary>Allocation-free helpers for <see cref="SkillTraits"/>.</summary>

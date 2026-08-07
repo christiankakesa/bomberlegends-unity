@@ -18,6 +18,24 @@ namespace BomberLegends.Simulation.Items
         Momentum = 2,
 
         /// <summary>Every skill travels half again as far and fast.</summary>
-        KineticCore = 3
+        KineticCore = 3,
+
+        /// <summary>The skillshot is not used up by the first enemy it hits.</summary>
+        PiercingRounds = 4,
+
+        /// <summary>Dashing lays a bomb where you left.</summary>
+        BombTrail = 5,
+
+        /// <summary>The dash recovers much faster.</summary>
+        Quickstep = 6,
+
+        /// <summary>The skillshot hits far harder but travels slower.</summary>
+        FocusingLens = 7,
+
+        /// <summary>Every skill recovers faster.</summary>
+        Overclock = 8,
+
+        /// <summary>A second skillshot can be banked, at the cost of recharge speed.</summary>
+        TwinShot = 9
     }
 }

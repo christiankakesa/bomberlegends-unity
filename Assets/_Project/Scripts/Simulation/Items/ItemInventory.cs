@@ -109,5 +109,33 @@ namespace BomberLegends.Simulation.Items
 
             return -1;
         }
+
+        /// <summary>
+        /// Swaps a held item for another, returning whether it happened.
+        /// </summary>
+        /// <remarks>
+        /// Replacement exists so a run keeps presenting decisions once every slot is full. Late in a
+        /// run the interesting question stops being "what do I want?" and becomes "what am I willing
+        /// to give up?", which is a better question and costs nothing extra to ask.
+        /// </remarks>
+        public bool TryReplace(ItemId discard, ItemId take)
+        {
+            if (_items == null || discard == ItemId.None || take == ItemId.None ||
+                discard == take || Contains(take))
+            {
+                return false;
+            }
+
+            for (var i = 0; i < _items.Length; i++)
+            {
+                if (_items[i] == discard)
+                {
+                    _items[i] = take;
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }

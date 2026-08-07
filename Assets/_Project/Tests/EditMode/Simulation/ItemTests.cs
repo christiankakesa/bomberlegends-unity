@@ -22,7 +22,7 @@ namespace BomberLegends.Tests.EditMode.Simulation
 
         private static SimulationConfig Config(
             int fuse = 90,
-            int bombCapacity = 1,
+            int bombCapacity = 2,
             int itemSlots = 2,
             int enemySpeed = 80) =>
             new SimulationConfig(
@@ -212,7 +212,7 @@ namespace BomberLegends.Tests.EditMode.Simulation
             Assert.That(simulation.TryGrantItem(ItemId.Overcharge), Is.True);
             Assert.That(simulation.TryGrantItem(ItemId.Momentum), Is.True);
             Assert.That(simulation.TryGrantItem(ItemId.KineticCore), Is.False,
-                "a third item must not fit; scarcity is what makes a build a choice");
+                "a third item must not fit within one arena; scarcity is what makes a build a choice");
 
             Assert.That(simulation.State.Player.Items.Count, Is.EqualTo(2));
             Assert.That(simulation.State.Player.Items.IsFull, Is.True);
@@ -476,6 +476,208 @@ namespace BomberLegends.Tests.EditMode.Simulation
             Assert.That(items.Contains(ItemId.Overcharge), Is.True);
             Assert.That(items.Contains(ItemId.Momentum), Is.True);
             Assert.That(items.Contains(ItemId.KineticCore), Is.False);
+        }
+
+        // ---------- the wider pool ----------
+
+        [Test]
+        public void ThePoolIsWideEnoughToKeepOfferingSomethingNew()
+        {
+            // Three items into two slots gave a run two decisions and then nothing. The pool has to
+            // stay comfortably ahead of the slots or a run goes flat, which is exactly what the
+            // M6 notes flagged as the binding constraint on run length.
+            Assert.That(ItemCatalog.All.Length, Is.GreaterThanOrEqualTo(8));
+        }
+
+        [Test]
+        public void EveryItemIsDistinctFromEveryOther()
+        {
+            // Two items with identical effects are one item and a wasted offer slot.
+            for (var i = 0; i < ItemCatalog.All.Length; i++)
+            {
+                for (var j = i + 1; j < ItemCatalog.All.Length; j++)
+                {
+                    var a = ItemCatalog.Effect(ItemCatalog.All[i]);
+                    var b = ItemCatalog.Effect(ItemCatalog.All[j]);
+
+                    var identical =
+                        a.Target == b.Target &&
+                        a.AddTraits == b.AddTraits &&
+                        a.FlatPower == b.FlatPower &&
+                        a.MagnitudePercent == b.MagnitudePercent &&
+                        a.CooldownPercent == b.CooldownPercent &&
+                        a.DurationPercent == b.DurationPercent &&
+                        a.BonusCharges == b.BonusCharges;
+
+                    Assert.That(identical, Is.False,
+                        $"{ItemCatalog.Name(ItemCatalog.All[i])} and " +
+                        $"{ItemCatalog.Name(ItemCatalog.All[j])} do the same thing");
+                }
+            }
+        }
+
+        [Test]
+        public void PiercingRounds_LetsAShotHitMoreThanOneEnemy()
+        {
+            var simulation = new GameSimulation(
+                Config(enemySpeed: 1),
+                LevelLayout.Parse(
+                    "###########",
+                    "#P..E.E...#",
+                    "###########"),
+                seed: 1u);
+
+            simulation.TryGrantItem(ItemId.PiercingRounds);
+
+            simulation.Tick(Shoot(100, 0));
+            Advance(simulation, 30);
+
+            var hurt = 0;
+            for (var i = 0; i < simulation.State.Enemies.Capacity; i++)
+            {
+                var enemy = simulation.State.Enemies[i];
+                if (enemy.IsActive && enemy.Health.Current < enemy.Health.Max)
+                {
+                    hurt++;
+                }
+            }
+
+            Assert.That(hurt, Is.EqualTo(2), "a piercing shot must reach the enemy behind the first");
+        }
+
+        [Test]
+        public void WithoutPiercing_AShotStopsAtTheFirstEnemy()
+        {
+            var simulation = new GameSimulation(
+                Config(enemySpeed: 1),
+                LevelLayout.Parse(
+                    "###########",
+                    "#P..E.E...#",
+                    "###########"),
+                seed: 1u);
+
+            simulation.Tick(Shoot(100, 0));
+            Advance(simulation, 30);
+
+            var hurt = 0;
+            for (var i = 0; i < simulation.State.Enemies.Capacity; i++)
+            {
+                var enemy = simulation.State.Enemies[i];
+                if (enemy.IsActive && enemy.Health.Current < enemy.Health.Max)
+                {
+                    hurt++;
+                }
+            }
+
+            Assert.That(hurt, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void BombTrail_LaysABombWhereTheDashBegan()
+        {
+            var simulation = Room();
+            simulation.TryGrantItem(ItemId.BombTrail);
+
+            var from = simulation.State.Player.Tile;
+
+            simulation.Tick(Dash(Direction.East));
+
+            Assert.That(simulation.State.BombGrid.HasBomb(from), Is.True,
+                "the bomb must mark where the player left, not where they arrived");
+        }
+
+        [Test]
+        public void BombTrail_IsStillBoundByBombCapacity()
+        {
+            // An item may add a way to place bombs. It must never add a way to place more of them,
+            // or it quietly breaks the economy the whole Bomberman layer rests on.
+            var simulation = Room(Config(bombCapacity: 1));
+            simulation.TryGrantItem(ItemId.BombTrail);
+
+            simulation.Tick(Bomb);
+            Assume.That(simulation.State.Bombs.ActiveCount, Is.EqualTo(1));
+
+            Advance(simulation, 4, PlayerIntent.FromDirection(Direction.East));
+            simulation.Tick(Dash(Direction.East));
+
+            Assert.That(simulation.State.Bombs.ActiveCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void BombTrailAndOvercharge_ComposeIntoPlaceAndTrigger()
+        {
+            // The strongest pairing in the pool, and written down nowhere: the dash lays the bomb,
+            // the shot sets it off.
+            var simulation = Room(Config(fuse: 600));
+            simulation.TryGrantItem(ItemId.BombTrail);
+            simulation.TryGrantItem(ItemId.Overcharge);
+
+            simulation.Tick(Dash(Direction.East));
+            Assume.That(simulation.State.Bombs.ActiveCount, Is.EqualTo(1));
+
+            // Dash clear, turn round, and trigger it. The fuse has hundreds of ticks left.
+            Advance(simulation, 30, PlayerIntent.FromDirection(Direction.East));
+
+            Assert.That(
+                AdvanceUntilEvent(simulation, SimEventType.BombDetonated, 40, Shoot(-100, 0)),
+                Is.True);
+        }
+
+        [Test]
+        public void Quickstep_ShortensTheDashCooldownWithoutBankingACharge()
+        {
+            var simulation = Room();
+            var before = simulation.State.Player.Skills[0].CooldownTicks;
+            var charges = simulation.State.Player.Skills[0].MaxCharges;
+
+            simulation.TryGrantItem(ItemId.Quickstep);
+
+            Assert.That(simulation.State.Player.Skills[0].CooldownTicks, Is.LessThan(before));
+            Assert.That(simulation.State.Player.Skills[0].MaxCharges, Is.EqualTo(charges),
+                "the safe dash upgrade shortens commitment; it does not remove the choice");
+        }
+
+        [Test]
+        public void FocusingLens_TradesSpeedForDamage()
+        {
+            var simulation = Room();
+            var power = simulation.State.Player.Skills[1].Power;
+            var speed = simulation.State.Player.Skills[1].Magnitude;
+
+            simulation.TryGrantItem(ItemId.FocusingLens);
+
+            var shot = simulation.State.Player.Skills[1];
+
+            Assert.That(shot.Power, Is.GreaterThan(power));
+            Assert.That(shot.Magnitude, Is.LessThan(speed), "a trade, not an upgrade");
+        }
+
+        [Test]
+        public void TwinShot_BanksASecondShotAtACost()
+        {
+            var simulation = Room();
+            var cooldown = simulation.State.Player.Skills[1].CooldownTicks;
+
+            simulation.TryGrantItem(ItemId.TwinShot);
+
+            var shot = simulation.State.Player.Skills[1];
+
+            Assert.That(shot.MaxCharges, Is.EqualTo(2));
+            Assert.That(shot.Charges, Is.EqualTo(2), "and the extra charge is available immediately");
+            Assert.That(shot.CooldownTicks, Is.GreaterThan(cooldown), "burst is paid for in sustain");
+        }
+
+        [Test]
+        public void Overclock_ShortensEverySkillsCooldown()
+        {
+            var simulation = Room();
+            var dash = simulation.State.Player.Skills[0].CooldownTicks;
+            var shot = simulation.State.Player.Skills[1].CooldownTicks;
+
+            simulation.TryGrantItem(ItemId.Overclock);
+
+            Assert.That(simulation.State.Player.Skills[0].CooldownTicks, Is.LessThan(dash));
+            Assert.That(simulation.State.Player.Skills[1].CooldownTicks, Is.LessThan(shot));
         }
 
         // ---------- guarantees ----------
