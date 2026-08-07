@@ -62,6 +62,15 @@ this game.
 > ### The question
 > **"Does moving freely, aiming a skillshot, and setting off grid-shaped explosions feel good
 > together — and does changing one item visibly change how I play?"**
+>
+> ### ✅ Answered yes, both clauses — M4 (2026-08-07) and M5 (2026-08-07)
+> First clause at M4; second at M5, on the designer's own report of having to **change how he played
+> based on the items he was carrying**. That is the synergy pillar landing, and it is the bet the
+> whole v2.0 revision was made on.
+>
+> **This is not the validation gate.** The gate below is measured against players who did not build
+> the game, and it needs the run loop (M6) to exist first. What is settled is that the concept is
+> worth taking to that gate — which was genuinely in question until now.
 
 ### Minimum systems
 
@@ -110,9 +119,9 @@ their build does, the synergy pillar has not landed and no amount of content wil
 | **M2b** | 3D migration + 360° movement + wall sliding + corner slip | ✅ complete, verified in editor |
 | **M3** | Health, damage, one enemy that fights back | ✅ **complete, verified in editor** |
 | **M4** | Skill framework + dash + skillshot | ✅ **complete, verified in play** |
-| **M5** | Item framework + three items + two passive slots | ✅ **complete, awaiting play verdict** |
-| M6 | Run loop: arenas, item choice, death, restart | |
-| — | **▶ VALIDATION GATE** — the question in §3 | |
+| **M5** | Item framework + three items + two passive slots | ✅ **complete, verified in play** |
+| **M6** | Run loop: arenas, item choice, death, restart | ✅ **complete, awaiting play verdict** |
+| — | **▶ VALIDATION GATE** — the question in §3 | **now reachable — needs playtesters** |
 | M7+ | Third skill, slots 3–4, bosses, meta, art, audio, mobile port | |
 
 Audio (T-020) and screen shake (T-021) move behind the hybrid work. They add polish to a loop whose
@@ -353,6 +362,85 @@ Inspector until then is what lets the slice's real question be answered before a
 The build is shown in the HUD, because the slice measures whether players can describe their build
 unprompted and one they cannot see is one they cannot describe.
 
+### Play verdict (2026-08-07)
+
+**Answered: yes.** All three items tried across both slots. The report — *"I needed to adapt, and
+based on the skills I got I need to change my gameplay"* — is the second clause of the slice question,
+in the designer's own words and unprompted.
+
+Two things that carries beyond "it was fun":
+
+- **The items are legible.** Adapting to a build requires being able to tell what the build *does*.
+  Had the effects been numeric nudges, the honest report would have been "it felt about the same".
+- **Adaptation was forced, not offered.** Changing playstyle because of what you are carrying is the
+  synergy pillar working. It is also the strongest available evidence that three items into two slots
+  is enough scarcity to make a choice matter, which was not obvious in advance.
+
+**What this does and does not settle.** The vertical slice's question is fully answered and the hybrid
+concept is validated at prototype scale. The §3 success thresholds remain unmeasured — they are about
+players who did not build the thing, and they need M6. The risk now shifts from *"is this fun?"* to
+*"does it stay fun across a whole run?"*, which is open question #2 and squarely M6's job.
+
+---
+
+## 4e. M6 notes (2026-08-07)
+
+**Delivered.** The run loop: clear an arena, choose one of three items, carry the build and your
+damage forward, die, restart. **358 EditMode + 10 PlayMode tests green, zero warnings.**
+
+### The decision that shaped it
+
+> *"After 2 or 3 tries players will want to restart fast, so clean restart is OK."* — 2026-08-07
+
+Taken as two instructions, not one. Clean restart is the design; **"fast" is a technical
+requirement**, and it is why a restart rebuilds in place rather than reloading the scene. Pools,
+materials, the camera rig and the input stack all survive. Restarting costs about as much as walking
+through a door, and a test asserts that two hundred restarts complete in well under a second — if a
+single one were ever to become expensive, that is what would catch it.
+
+### Where the decisions live
+
+`GameRun` is engine-free and holds the entire loop: arena order, offers, carry-forward, death,
+restart. `RunController` — the only new MonoBehaviour — watches for exactly one thing:
+
+> **`GameRun.Current` is a different object than the one on screen.** Every transition that starts an
+> arena produces that signal, so nothing has to enumerate which transitions those are, and a new one
+> added later needs no change here at all.
+
+That is the same split that has paid off at every milestone: the loop was written and proven before
+any of the view work existed.
+
+### Rules worth stating
+
+- **Clear condition is "everything that spawned is dead."** An arena that spawns nothing has *no*
+  clear condition rather than being instantly won — which is what keeps an empty test room a sandbox
+  instead of a match that ends on tick one.
+- **Damage carries between arenas**, with a partial heal (25) for clearing one. Full healing would
+  remove the reason to play carefully; none at all makes a third arena arithmetic rather than a
+  fight. **This is the number most likely to need tuning**, and it is Inspector-visible.
+- **An empty choice is never presented.** With slots full the run rolls straight on.
+- **Offers are rolled by the run's own generator**, so which items appeared is part of the
+  reproducible run rather than a roll the replay cannot see.
+- **A starting build now seeds the run** and survives a restart, occupying real slots so the run
+  offers correspondingly fewer. It is a development aid for trying a pairing without playing up to it.
+
+### The honest limit: this cannot answer open question #2
+
+Three items into two slots means a run contains **exactly two meaningful choices**, after which it is
+survival only. That is enough to prove the loop works, and it is *not* enough to answer *"does it
+stay fun for twenty minutes?"*.
+
+> **The item pool is the binding constraint on run length, and it is content work, not slice work.**
+> Question #2 stays open until there are enough items that arena five still presents a decision. The
+> gate can be attempted before then, but a tester who runs out of choices after two arenas is telling
+> you about the pool size, not about the design.
+
+### Three arenas authored
+
+Text layouts in the installer, cycled in order: the original open grid, a chambered layout, and a
+wide corridor arena. `T-025` still replaces authored text with a `LevelDefinition` asset; nothing
+about the loop changes when it does.
+
 ---
 
 ## 5. Open questions
@@ -361,7 +449,8 @@ unprompted and one they cannot see is one they cannot describe.
    simultaneous decision-making. Worth validating two before committing to three.
 2. **What does a run cost in time?** Roguelite runs are typically 20–40 minutes. That is far longer
    than the 6–10 minute mobile session the original design targeted, and it changes the save model
-   (a run must survive being interrupted).
+   (a run must survive being interrupted). **Still open after M6, and now blocked on content rather
+   than on systems** — three items into two slots gives a run exactly two decisions. See §4e.
 3. **Does the bomb stay the primary verb?** If the skillshot is more effective than bombing, the
    Bomberman layer becomes set dressing. Bombs must remain the highest-damage, highest-risk option.
 4. **Hit-stop.** Deliberately not implemented: pausing a fixed-tick authoritative simulation on frame

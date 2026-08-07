@@ -69,7 +69,10 @@ namespace BomberLegends.Simulation.Events
         /// An item was taken. <c>EntityId</c> is its inventory slot, <c>Value</c> its
         /// <see cref="Items.ItemId"/>.
         /// </summary>
-        ItemAcquired = 15
+        ItemAcquired = 15,
+
+        /// <summary>Every enemy the arena spawned is dead.</summary>
+        ArenaCleared = 16
     }
 
     /// <summary>

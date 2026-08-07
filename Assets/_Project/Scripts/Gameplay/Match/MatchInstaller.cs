@@ -8,6 +8,8 @@ using BomberLegends.Services.Scenes;
 using BomberLegends.Simulation;
 using BomberLegends.Simulation.Board;
 using BomberLegends.Simulation.Items;
+using BomberLegends.Simulation.Run;
+using BomberLegends.Gameplay.Run;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -98,14 +100,49 @@ namespace BomberLegends.Gameplay.Match
             "#########################";
 
         [SerializeField]
-        [Tooltip("Seed for every random decision the match makes. A fixed value makes runs repeatable.")]
+        [Tooltip(
+            "Further arenas, in order. A run cycles through these after the layout above. Same " +
+            "glyphs; leave empty to repeat the first arena forever.")]
+        [TextArea(6, 20)]
+        private string[] _additionalArenas =
+        {
+            "#####################\n" +
+            "#P...X...X...X...X..#\n" +
+            "#.###.###.###.###.#.#\n" +
+            "#..X...XE..X...X..X.#\n" +
+            "#.#.#####.#####.#.#.#\n" +
+            "#X...X...E...X...X..#\n" +
+            "#.###.#.#####.#.###.#\n" +
+            "#..X..#..EX..#..X...#\n" +
+            "#.###.#.#####.#.###.#\n" +
+            "#X...X...E...X...X..#\n" +
+            "#.#.#####.#####.#.#.#\n" +
+            "#..X...XE..X...X..X.#\n" +
+            "#####################",
+
+            "###########################\n" +
+            "#P..X....X....X....X....E.#\n" +
+            "#.#.#.##.#.##.#.##.#.##.#.#\n" +
+            "#..X..X....X....X....X....#\n" +
+            "#.##.###.####.####.###.##.#\n" +
+            "#X....E.....X....E.....X..#\n" +
+            "#.##.###.####.####.###.##.#\n" +
+            "#..X..X....X....X....X....#\n" +
+            "#.#.#.##.#.##.#.##.#.##.#.#\n" +
+            "#E....X....X....X....X...E#\n" +
+            "###########################"
+        };
+
+        [SerializeField]
+        [Tooltip("Seed for every random decision the run makes. A fixed value makes runs repeatable.")]
         private uint _seed = 1u;
 
         [Header("Loadout")]
         [SerializeField]
         [Tooltip(
-            "Items the player starts with. Two slots by default. Change these between runs to feel " +
-            "whether one item visibly changes how the game plays — that is the question the slice asks.")]
+            "A build every attempt begins with. Leave empty to earn items by clearing arenas; fill " +
+            "it to try a specific pairing without playing up to it. Survives a restart and occupies " +
+            "real slots, so the run offers correspondingly fewer.")]
         private ItemId[] _startingItems = System.Array.Empty<ItemId>();
 
         private GameContext? _context;
@@ -129,40 +166,62 @@ namespace BomberLegends.Gameplay.Match
                 return;
             }
 
-            if (!TryParseLevel(out var layout))
+            if (!TryParseArenas(out var arenas))
             {
                 return;
             }
 
             var projector = new BoardProjector(_tileSize, _blockHeight);
             var config = SimulationConfig.FromTilesPerSecond(_moveSpeedTilesPerSecond);
-            var simulation = new GameSimulation(config, layout, _seed);
+            var run = new GameRun(config, arenas, _seed, _startingItems);
 
-            GrantStartingItems(simulation);
-
-            _boardRenderer.Build(simulation.State.Board, projector);
             _playerView.Initialise(projector);
 
-            var spawn = simulation.State.Player.Position;
-            _playerView.Render(spawn, spawn, 0f);
-
-            if (_cameraRig != null)
-            {
-                _cameraRig.Begin(layout.Width, layout.Height, projector, _playerView.WorldPosition);
-            }
-            else
+            if (_cameraRig == null)
             {
                 Debug.LogWarning("[Match] No camera rig assigned; the arena will not be framed.");
             }
 
-            if (_views != null)
+            // Pools and materials are built once and survive every arena change, which is most of
+            // why moving between arenas costs nothing.
+            _views?.Begin(_boardRenderer, projector, config);
+
+            var controller = _runner.gameObject.AddComponent<RunController>();
+
+            controller.Begin(
+                run,
+                _runner,
+                _boardRenderer,
+                _playerView,
+                projector,
+                CreateInputSource(projector),
+                _views,
+                _cameraRig,
+                CreateOverlay());
+        }
+
+        /// <summary>Builds the between-arena screen, or none when there is no canvas to host it.</summary>
+        private RunOverlayView? CreateOverlay()
+        {
+            var canvas = _quitButton != null
+                ? _quitButton.GetComponentInParent<Canvas>()
+                : FindFirstObjectByType<Canvas>();
+
+            if (canvas == null)
             {
-                _views.Begin(_boardRenderer, projector, config);
-                _views.SpawnEnemies(simulation);
+                Debug.LogWarning(
+                    "[Match] No canvas found, so the run overlay is disabled: arenas will chain " +
+                    "without offering an item and death will not offer a restart.");
+                return null;
             }
 
-            _runner.Begin(
-                simulation, CreateInputSource(projector), _playerView, _views, _cameraRig);
+            var host = new GameObject("Run Overlay");
+            host.transform.SetParent(canvas.transform, false);
+
+            var overlay = host.AddComponent<RunOverlayView>();
+            overlay.Build(canvas);
+
+            return overlay;
         }
 
         private void OnDestroy()
@@ -173,34 +232,44 @@ namespace BomberLegends.Gameplay.Match
             }
         }
 
-        /// <summary>
-        /// Hands the player their starting build.
-        /// </summary>
-        /// <remarks>
-        /// Milestone 6 replaces this with a choice between arenas. Granting from the Inspector until
-        /// then is what lets the slice's real question — does swapping one item change how the game
-        /// plays — be answered before a run loop exists.
-        /// </remarks>
-        private void GrantStartingItems(GameSimulation simulation)
+        /// <summary>Parses every authored arena, in the order a run visits them.</summary>
+        private bool TryParseArenas(out LevelLayout[] arenas)
         {
-            for (var i = 0; i < _startingItems.Length; i++)
-            {
-                var id = _startingItems[i];
+            arenas = System.Array.Empty<LevelLayout>();
 
-                if (id != ItemId.None && !simulation.TryGrantItem(id))
+            var parsed = new System.Collections.Generic.List<LevelLayout>(_additionalArenas.Length + 1);
+
+            if (!TryParseLayout(_levelLayout, 0, out var first))
+            {
+                return false;
+            }
+
+            parsed.Add(first);
+
+            for (var i = 0; i < _additionalArenas.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(_additionalArenas[i]))
                 {
-                    Debug.LogWarning(
-                        $"[Match] {ItemCatalog.Name(id)} was not granted; it is either a duplicate " +
-                        "or the item slots are full.");
+                    continue;
+                }
+
+                // One bad arena must not cost the whole run. The rest still make a playable
+                // sequence, and the error names which one to fix.
+                if (TryParseLayout(_additionalArenas[i], i + 1, out var arena))
+                {
+                    parsed.Add(arena);
                 }
             }
+
+            arenas = parsed.ToArray();
+            return true;
         }
 
-        private bool TryParseLevel(out LevelLayout layout)
+        private static bool TryParseLayout(string text, int index, out LevelLayout layout)
         {
             layout = default;
 
-            var rows = _levelLayout
+            var rows = text
                 .Replace("\r", string.Empty)
                 .Split('\n', System.StringSplitOptions.RemoveEmptyEntries);
 
@@ -211,7 +280,7 @@ namespace BomberLegends.Gameplay.Match
             }
             catch (System.ArgumentException exception)
             {
-                Debug.LogError($"[Match] The level layout is invalid: {exception.Message}");
+                Debug.LogError($"[Match] Arena {index + 1} is invalid: {exception.Message}");
                 return false;
             }
         }

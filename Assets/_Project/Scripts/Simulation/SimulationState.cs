@@ -31,6 +31,16 @@ namespace BomberLegends.Simulation
         /// <summary>Every enemy in the arena.</summary>
         public Actors.EnemyBuffer Enemies;
 
+        /// <summary>
+        /// How many enemies this arena started with.
+        /// </summary>
+        /// <remarks>
+        /// The clear condition is "everything that spawned is dead", so an arena that spawned
+        /// nothing has no clear condition at all rather than being instantly won. That distinction
+        /// is what keeps an empty test room a sandbox instead of a match that ends on tick one.
+        /// </remarks>
+        public int SpawnedEnemyCount;
+
         /// <summary>Every bomb on the board.</summary>
         public BombBuffer Bombs;
 

@@ -45,7 +45,8 @@ namespace BomberLegends.Simulation
             int skillshotCooldownTicks = 45,
             int skillshotDamage = 50,
             int maxProjectiles = 16,
-            int itemSlots = 2)
+            int itemSlots = 2,
+            int arenaClearHealing = 25)
         {
             MoveSpeedPerTick = moveSpeedPerTick;
             LaneSnapPerTick = laneSnapPerTick;
@@ -80,6 +81,7 @@ namespace BomberLegends.Simulation
             SkillshotDamage = skillshotDamage;
             MaxProjectiles = maxProjectiles;
             ItemSlots = itemSlots;
+            ArenaClearHealing = arenaClearHealing;
         }
 
         /// <summary>Sub-tile units the player advances each tick while moving.</summary>
@@ -253,6 +255,16 @@ namespace BomberLegends.Simulation
         /// </remarks>
         public int ItemSlots { get; }
 
+        /// <summary>
+        /// Health restored for clearing an arena.
+        /// </summary>
+        /// <remarks>
+        /// Health carries between arenas, so a run is a resource to manage rather than a series of
+        /// separate fights. Healing fully would remove the reason to play carefully; healing not at
+        /// all makes a third arena arithmetic rather than a fight. Expect to tune this.
+        /// </remarks>
+        public int ArenaClearHealing { get; }
+
         /// <summary>The loadout a player starts a run with, before any item touches it.</summary>
         public Skills.SkillLoadout CreateStartingLoadout() =>
             Skills.SkillLoadout.Of(
@@ -408,6 +420,11 @@ namespace BomberLegends.Simulation
             if (ItemSlots <= 0)
             {
                 throw new ArgumentException("A player must have at least one item slot.");
+            }
+
+            if (ArenaClearHealing < 0)
+            {
+                throw new ArgumentException("Clearing an arena must not cost health.");
             }
 
             if (PlayerRadius <= 0 || PlayerRadius >= Core.SubTilePoint.HalfTile)

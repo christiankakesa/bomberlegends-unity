@@ -34,6 +34,10 @@ namespace BomberLegends.Gameplay.Match
 
         private int _lastHealth = -1;
         private int _lastEnemies = -1;
+        private int _lastArena = -1;
+
+        /// <summary>Which arena of the run this is. Zero hides it.</summary>
+        public int ArenaNumber { get; set; }
 
         /// <summary>Refreshes the readout if anything it shows has changed.</summary>
         public void Render(GameSimulation simulation)
@@ -48,13 +52,15 @@ namespace BomberLegends.Gameplay.Match
 
             // Rebuilding a string every frame would allocate for no reason; almost every frame
             // shows exactly what the last one did.
-            if (health == _lastHealth && enemies == _lastEnemies && ChargesUnchanged(simulation))
+            if (health == _lastHealth && enemies == _lastEnemies && ArenaNumber == _lastArena &&
+                ChargesUnchanged(simulation))
             {
                 return;
             }
 
             _lastHealth = health;
             _lastEnemies = enemies;
+            _lastArena = ArenaNumber;
 
             if (simulation.Phase == MatchPhase.Defeat)
             {
@@ -63,6 +69,12 @@ namespace BomberLegends.Gameplay.Match
             }
 
             _text.Clear();
+
+            if (ArenaNumber > 0)
+            {
+                _text.Append("ARENA ").Append(ArenaNumber).Append("    ");
+            }
+
             _text.Append("HP ").Append(health).Append("    ENEMIES ").Append(enemies);
 
             for (var index = 0; index < SkillLoadout.SlotCount; index++)

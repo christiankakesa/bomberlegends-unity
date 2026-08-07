@@ -86,6 +86,9 @@ namespace BomberLegends.Gameplay.Match
         private bool _reportedOverflow;
         private bool _prewarming;
 
+        /// <summary>The readout, so a run can tell it which arena this is.</summary>
+        public MatchHudView? Hud => _hud;
+
         /// <summary>Prepares the pools for a match.</summary>
         public void Begin(
             BoardRenderer boardRenderer,

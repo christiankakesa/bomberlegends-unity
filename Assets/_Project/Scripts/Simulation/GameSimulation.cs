@@ -37,7 +37,12 @@ namespace BomberLegends.Simulation
         /// <param name="layout">The level's starting state.</param>
         /// <param name="seed">Seeds every random decision the match will make.</param>
         /// <exception cref="ArgumentException">The configuration is unusable.</exception>
-        public GameSimulation(in SimulationConfig config, in LevelLayout layout, uint seed)
+        /// <param name="carriedHealth">
+        /// Health to start with, or zero for full. A run carries damage between arenas, which is
+        /// what makes a whole run a resource to manage rather than a series of separate fights.
+        /// </param>
+        public GameSimulation(
+            in SimulationConfig config, in LevelLayout layout, uint seed, int carriedHealth = 0)
         {
             config.Validate();
 
@@ -72,6 +77,14 @@ namespace BomberLegends.Simulation
             for (var i = 0; i < spawns.Length; i++)
             {
                 _state.Enemies.Spawn(spawns[i], config.EnemyMaxHealth);
+            }
+
+            _state.SpawnedEnemyCount = spawns.Length;
+
+            if (carriedHealth > 0)
+            {
+                _state.Player.Health.Current =
+                    carriedHealth < config.PlayerMaxHealth ? carriedHealth : config.PlayerMaxHealth;
             }
 
             _events.Add(new SimEvent(SimEventType.PlayerSpawned, layout.PlayerSpawn));
@@ -151,7 +164,14 @@ namespace BomberLegends.Simulation
             //    Must follow the blast, or it would judge a half-resolved explosion.
             DamageSystem.Tick(ref _state, _config, _events);
 
-            // Pickups, objectives, timer and scoring slot in here in Milestone 6.
+            // Clear condition. Read after damage, so an enemy killed this tick counts this tick.
+            if (_state.Phase == MatchPhase.Playing &&
+                _state.SpawnedEnemyCount > 0 &&
+                _state.Enemies.AliveCount == 0)
+            {
+                _state.Phase = MatchPhase.Victory;
+                _events.Add(new SimEvent(SimEventType.ArenaCleared, _state.Player.Tile));
+            }
 
             _state.Tick++;
         }
