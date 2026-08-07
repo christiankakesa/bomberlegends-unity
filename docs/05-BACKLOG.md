@@ -201,6 +201,16 @@ Applies to **every** task; per-task DoD lists only the additions.
 
 # MILESTONE 3 — Threat & Consequence
 
+> **Superseded from here on.** The v2.0 concept revision replanned everything below T-021. What
+> actually shipped is recorded in [07-CONCEPT-REVISION.md](07-CONCEPT-REVISION.md) §4, which is the
+> authority for milestone status. Two notes on how reality diverged from these entries:
+>
+> - **T-022/T-023 delivered as M3**, but with *pursuing* enemies rather than fixed patrols, and with
+>   a health pool and immunity window rather than three lives — both consequences of the revision.
+>   Patrol paths and respawn are no longer planned in this form.
+> - **M4 (skills, dash, skillshot) has no entry here at all.** It did not exist when this backlog was
+>   written. The numbered tasks below are kept for the ones still genuinely pending.
+
 ### T-022 · `EnemySystem` — Patrouilleur Basic
 **Goal** Fixed patrol paths on the grid, blocked by bombs and walls, killed by blasts, lethal on player contact.
 **Dependencies** T-018 · **Complexity** M

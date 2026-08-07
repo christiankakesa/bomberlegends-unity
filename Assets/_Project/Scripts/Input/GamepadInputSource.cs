@@ -31,9 +31,30 @@ namespace BomberLegends.Input
                 buttons = buttons.With(IntentButtons.Bomb);
             }
 
+            if (gamepad.buttonEast.isPressed)
+            {
+                buttons = buttons.With(IntentButtons.Skill1);
+            }
+
             if (gamepad.buttonWest.isPressed)
             {
-                buttons = buttons.With(IntentButtons.Special);
+                buttons = buttons.With(IntentButtons.Skill2);
+            }
+
+            if (gamepad.buttonNorth.isPressed)
+            {
+                buttons = buttons.With(IntentButtons.Skill3);
+            }
+
+            // The right stick aims, which is what makes a pad a genuine alternative to a mouse
+            // rather than a downgrade: both can point somewhere the player is not running.
+            sbyte aimX = 0;
+            sbyte aimY = 0;
+            var aim = gamepad.rightStick.ReadValue();
+
+            if (aim.magnitude >= StickDeadzone)
+            {
+                PointerAim.TryPack(aim.x, aim.y, out aimX, out aimY);
             }
 
             var dpad = gamepad.dpad.ReadValue();
@@ -42,19 +63,23 @@ namespace BomberLegends.Input
                 return new PlayerIntent(
                     (sbyte)Mathf.RoundToInt(dpad.x * PlayerIntent.AxisRange),
                     (sbyte)Mathf.RoundToInt(dpad.y * PlayerIntent.AxisRange),
-                    buttons);
+                    buttons,
+                    aimX,
+                    aimY);
             }
 
             var stick = gamepad.leftStick.ReadValue();
             if (stick.magnitude < StickDeadzone)
             {
-                return new PlayerIntent(0, 0, buttons);
+                return new PlayerIntent(0, 0, buttons, aimX, aimY);
             }
 
             return new PlayerIntent(
                 (sbyte)Mathf.RoundToInt(Mathf.Clamp(stick.x, -1f, 1f) * PlayerIntent.AxisRange),
                 (sbyte)Mathf.RoundToInt(Mathf.Clamp(stick.y, -1f, 1f) * PlayerIntent.AxisRange),
-                buttons);
+                buttons,
+                aimX,
+                aimY);
         }
     }
 }

@@ -4,6 +4,7 @@ using BomberLegends.Simulation.Actors;
 using BomberLegends.Simulation.Board;
 using BomberLegends.Simulation.Bombs;
 using BomberLegends.Simulation.Events;
+using BomberLegends.Simulation.Skills;
 using BomberLegends.Simulation.Systems;
 
 namespace BomberLegends.Simulation
@@ -55,11 +56,13 @@ namespace BomberLegends.Simulation
                     layout.PlayerSpawn,
                     config.StartingBombCapacity,
                     config.StartingBlastRange,
-                    config.PlayerMaxHealth),
+                    config.PlayerMaxHealth,
+                    config.CreateStartingLoadout()),
                 Enemies = new EnemyBuffer(config.MaxEnemies),
                 Bombs = new BombBuffer(config.MaxBombs),
                 BombGrid = new BombGrid(layout.Width, layout.Height),
                 BlastGrid = new BlastGrid(layout.Width, layout.Height),
+                Projectiles = new ProjectileBuffer(config.MaxProjectiles),
                 Random = new DeterministicRandom(seed)
             };
 
@@ -107,26 +110,36 @@ namespace BomberLegends.Simulation
                 return;
             }
 
-            // 1. Movement — soft-grid travel, turn rules, wall and bomb collision.
+            // 1. Skills — recharge, then turn presses into effects. Ahead of movement so a dash
+            //    pressed this tick moves the player this tick; latency on a dash is unforgivable.
+            SkillSystem.Tick(ref _state, _config, intent, _events);
+
+            // 2. Movement — soft-grid travel, turn rules, wall and bomb collision. Reads whatever
+            //    dash the step above may have started.
             MovementSystem.Tick(ref _state, _config, intent, _events);
 
-            // 2. Placement — turn a button press into a bomb on the board.
+            // 3. Placement — turn a button press into a bomb on the board.
             BombPlacementSystem.Tick(ref _state, _config, intent, _events);
 
-            // 3. Fuses — burn down, and queue whatever is due.
+            // 4. Fuses — burn down, and queue whatever is due.
             var queued = FuseSystem.Tick(ref _state, _detonationQueue);
 
-            // 4. Blasts — age existing fire, then resolve detonations and everything they chain into.
+            // 5. Blasts — age existing fire, then resolve detonations and everything they chain into.
             BlastSystem.Tick(ref _state, _config, _detonationQueue, queued, _events);
 
-            // 5. Enemies — pursue, colliding with the world exactly as the player does.
+            // 6. Enemies — pursue, colliding with the world exactly as the player does.
             EnemySystem.Tick(ref _state, _config, _events);
 
-            // 6. Damage — read a finished picture of what is on fire and who is touching whom.
-            //    Must follow the blast, or it would judge a half-resolved explosion.
+            // 7. Skillshots — fly against final positions, so a shot is judged against where the
+            //    enemy actually ended the tick rather than where it started.
+            ProjectileSystem.Tick(ref _state, _config, _events);
+
+            // 8. Damage — read a finished picture of what is on fire and who is touching whom.
+            //    Must follow the blast, or it would judge a half-resolved explosion. Also follows
+            //    skillshots, so an enemy killed by one does not still land a contact hit.
             DamageSystem.Tick(ref _state, _config, _events);
 
-            // Pickups, objectives, timer and scoring slot in here in Milestone 4.
+            // Items, pickups, objectives and scoring slot in here in Milestone 5.
 
             _state.Tick++;
         }
@@ -156,6 +169,31 @@ namespace BomberLegends.Simulation
                 hash = Fold(hash, (ulong)_state.Player.ActiveBombs);
                 hash = Fold(hash, (ulong)_state.Player.BombCapacity);
                 hash = Fold(hash, (ulong)_state.Player.BlastRange);
+                hash = Fold(hash, (ulong)(uint)_state.Player.DashTicksRemaining);
+                hash = Fold(hash, (ulong)(uint)_state.Player.DashVelocityX);
+                hash = Fold(hash, (ulong)(uint)_state.Player.DashVelocityY);
+
+                for (var index = 0; index < SkillLoadout.SlotCount; index++)
+                {
+                    var skill = _state.Player.Skills[index];
+                    hash = Fold(hash, (byte)skill.Id);
+                    hash = Fold(hash, (ulong)(uint)skill.CooldownRemaining);
+                    hash = Fold(hash, (ulong)(uint)skill.Charges);
+                }
+
+                for (var slot = 0; slot < _state.Projectiles.Capacity; slot++)
+                {
+                    var projectile = _state.Projectiles[slot];
+                    hash = Fold(hash, projectile.IsActive ? 1UL : 0UL);
+                    if (!projectile.IsActive)
+                    {
+                        continue;
+                    }
+
+                    hash = Fold(hash, (ulong)(uint)projectile.Position.X);
+                    hash = Fold(hash, (ulong)(uint)projectile.Position.Y);
+                    hash = Fold(hash, (ulong)(uint)projectile.TicksRemaining);
+                }
 
                 for (var slot = 0; slot < _state.Bombs.Capacity; slot++)
                 {

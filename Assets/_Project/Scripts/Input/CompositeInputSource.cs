@@ -28,18 +28,37 @@ namespace BomberLegends.Input
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// Aim is merged separately from movement and buttons. A player standing perfectly still
+        /// while lining up a skillshot is the single most common thing they will do with it, and
+        /// treating aim as activity would let a resting mouse pointer outrank a held gamepad.
+        /// </remarks>
         public PlayerIntent Sample(int tick)
         {
+            var active = PlayerIntent.None;
+            var hasActive = false;
+            sbyte aimX = 0;
+            sbyte aimY = 0;
+
             for (var i = 0; i < _sources.Length; i++)
             {
                 var intent = _sources[i].Sample(tick);
-                if (intent.MoveX != 0 || intent.MoveY != 0 || intent.Buttons != Core.IntentButtons.None)
+
+                if (!hasActive &&
+                    (intent.MoveX != 0 || intent.MoveY != 0 || intent.Buttons != Core.IntentButtons.None))
                 {
-                    return intent;
+                    active = intent;
+                    hasActive = true;
+                }
+
+                if (aimX == 0 && aimY == 0 && intent.HasAim)
+                {
+                    aimX = intent.AimX;
+                    aimY = intent.AimY;
                 }
             }
 
-            return PlayerIntent.None;
+            return new PlayerIntent(active.MoveX, active.MoveY, active.Buttons, aimX, aimY);
         }
     }
 }

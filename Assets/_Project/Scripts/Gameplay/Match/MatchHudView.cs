@@ -1,4 +1,6 @@
+using System.Text;
 using BomberLegends.Simulation;
+using BomberLegends.Simulation.Skills;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,6 +28,9 @@ namespace BomberLegends.Gameplay.Match
         [Tooltip("Where the readout is written.")]
         private Text? _output;
 
+        private readonly StringBuilder _text = new StringBuilder(96);
+        private readonly int[] _lastCharges = new int[SkillLoadout.SlotCount];
+
         private int _lastHealth = -1;
         private int _lastEnemies = -1;
 
@@ -42,7 +47,7 @@ namespace BomberLegends.Gameplay.Match
 
             // Rebuilding a string every frame would allocate for no reason; almost every frame
             // shows exactly what the last one did.
-            if (health == _lastHealth && enemies == _lastEnemies)
+            if (health == _lastHealth && enemies == _lastEnemies && ChargesUnchanged(simulation))
             {
                 return;
             }
@@ -50,9 +55,61 @@ namespace BomberLegends.Gameplay.Match
             _lastHealth = health;
             _lastEnemies = enemies;
 
-            _output.text = simulation.Phase == MatchPhase.Defeat
-                ? "DEFEATED"
-                : $"HP {health}    ENEMIES {enemies}";
+            if (simulation.Phase == MatchPhase.Defeat)
+            {
+                _output.text = "DEFEATED";
+                return;
+            }
+
+            _text.Clear();
+            _text.Append("HP ").Append(health).Append("    ENEMIES ").Append(enemies);
+
+            for (var index = 0; index < SkillLoadout.SlotCount; index++)
+            {
+                var slot = simulation.State.Player.Skills[index];
+
+                if (!slot.IsEquipped)
+                {
+                    continue;
+                }
+
+                _lastCharges[index] = slot.Charges;
+
+                _text.Append("    ").Append(Label(slot.Id)).Append(' ');
+
+                // Charges rather than a timer: what a player needs mid-fight is whether they can
+                // act, not how long until they can.
+                if (slot.Charges > 0)
+                {
+                    _text.Append(slot.Charges);
+                }
+                else
+                {
+                    _text.Append('-');
+                }
+            }
+
+            _output.text = _text.ToString();
         }
+
+        private bool ChargesUnchanged(GameSimulation simulation)
+        {
+            for (var index = 0; index < SkillLoadout.SlotCount; index++)
+            {
+                if (simulation.State.Player.Skills[index].Charges != _lastCharges[index])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static string Label(SkillId id) => id switch
+        {
+            SkillId.Dash => "DASH",
+            SkillId.Skillshot => "SHOT",
+            _ => "SKILL"
+        };
     }
 }

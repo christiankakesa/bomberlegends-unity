@@ -1,4 +1,5 @@
 using BomberLegends.Core;
+using BomberLegends.Simulation.Skills;
 
 namespace BomberLegends.Simulation.Actors
 {
@@ -46,12 +47,36 @@ namespace BomberLegends.Simulation.Actors
         /// </summary>
         public bool BombHeldLastTick;
 
+        /// <summary>The three active skills the player carries.</summary>
+        public SkillLoadout Skills;
+
+        /// <summary>Ticks left in the current dash, or zero when not dashing.</summary>
+        /// <remarks>
+        /// A dash is a short window during which the player's own steering is ignored and a fixed
+        /// velocity is applied instead. Committing to the direction is what makes it read as a dash
+        /// rather than a speed boost, and it is what stops it being a strictly better way to walk.
+        /// </remarks>
+        public int DashTicksRemaining;
+
+        /// <summary>Dash travel per tick along each axis, in sub-tile units.</summary>
+        public int DashVelocityX;
+
+        /// <summary>Dash travel per tick along each axis, in sub-tile units.</summary>
+        public int DashVelocityY;
+
+        /// <summary>Whether the player is mid-dash.</summary>
+        public readonly bool IsDashing => DashTicksRemaining > 0;
+
         /// <summary>The tile the player occupies.</summary>
         public readonly GridCoord Tile => Position.Tile;
 
         /// <summary>Creates a player standing at the centre of a tile.</summary>
         public static PlayerState SpawnedAt(
-            GridCoord tile, int bombCapacity, int blastRange, int maxHealth) =>
+            GridCoord tile,
+            int bombCapacity,
+            int blastRange,
+            int maxHealth,
+            SkillLoadout skills = default) =>
             new PlayerState
             {
                 Position = SubTilePoint.AtCentreOf(tile),
@@ -63,7 +88,11 @@ namespace BomberLegends.Simulation.Actors
                 BlastRange = blastRange,
                 BombCooldownTicksRemaining = 0,
                 BombHeldLastTick = false,
-                Health = HealthState.Full(maxHealth)
+                Health = HealthState.Full(maxHealth),
+                Skills = skills.IsCreated ? skills : SkillLoadout.Empty(),
+                DashTicksRemaining = 0,
+                DashVelocityX = 0,
+                DashVelocityY = 0
             };
     }
 }

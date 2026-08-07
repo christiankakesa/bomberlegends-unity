@@ -18,11 +18,14 @@ namespace BomberLegends.Core
         /// <summary>Place a bomb.</summary>
         Bomb = 1 << 0,
 
-        /// <summary>Use the equipped special ability.</summary>
-        Special = 1 << 1,
+        /// <summary>Use the skill in the first loadout slot.</summary>
+        Skill1 = 1 << 1,
 
-        /// <summary>Spend the sprint charge.</summary>
-        Sprint = 1 << 2
+        /// <summary>Use the skill in the second loadout slot.</summary>
+        Skill2 = 1 << 2,
+
+        /// <summary>Use the skill in the third loadout slot.</summary>
+        Skill3 = 1 << 3
     }
 
     /// <summary>

@@ -62,6 +62,9 @@ namespace BomberLegends.Gameplay.Camera
         private Bounds _limits;
         private bool _hasLimits;
 
+        /// <summary>The camera being driven, for anything that needs to unproject the pointer.</summary>
+        public UnityEngine.Camera? Camera => Resolve();
+
         /// <summary>Sets up the rig for an arena and snaps straight to the starting point.</summary>
         public void Begin(int boardWidth, int boardHeight, BoardProjector projector, Vector3 target)
         {

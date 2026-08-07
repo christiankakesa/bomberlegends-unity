@@ -35,7 +35,16 @@ namespace BomberLegends.Simulation
             int blastDamageToEnemy = 100,
             int enemySpeedPerTick = 80,
             int enemyRadius = 320,
-            int maxEnemies = 32)
+            int maxEnemies = 32,
+            int dashSpeedPerTick = 500,
+            int dashDurationTicks = 6,
+            int dashCooldownTicks = 60,
+            int dashCharges = 1,
+            int skillshotSpeedPerTick = 400,
+            int skillshotDurationTicks = 30,
+            int skillshotCooldownTicks = 45,
+            int skillshotDamage = 50,
+            int maxProjectiles = 16)
         {
             MoveSpeedPerTick = moveSpeedPerTick;
             LaneSnapPerTick = laneSnapPerTick;
@@ -60,6 +69,15 @@ namespace BomberLegends.Simulation
             EnemySpeedPerTick = enemySpeedPerTick;
             EnemyRadius = enemyRadius;
             MaxEnemies = maxEnemies;
+            DashSpeedPerTick = dashSpeedPerTick;
+            DashDurationTicks = dashDurationTicks;
+            DashCooldownTicks = dashCooldownTicks;
+            DashCharges = dashCharges;
+            SkillshotSpeedPerTick = skillshotSpeedPerTick;
+            SkillshotDurationTicks = skillshotDurationTicks;
+            SkillshotCooldownTicks = skillshotCooldownTicks;
+            SkillshotDamage = skillshotDamage;
+            MaxProjectiles = maxProjectiles;
         }
 
         /// <summary>Sub-tile units the player advances each tick while moving.</summary>
@@ -183,6 +201,63 @@ namespace BomberLegends.Simulation
         /// <summary>The most enemies that can exist at once.</summary>
         public int MaxEnemies { get; }
 
+        /// <summary>Sub-tile units the player covers each tick of a dash.</summary>
+        public int DashSpeedPerTick { get; }
+
+        /// <summary>
+        /// How many ticks a dash lasts. Times the speed, this is how far it carries.
+        /// </summary>
+        /// <remarks>
+        /// The default covers three tiles, which is exactly one more than the starting blast reach.
+        /// A dash therefore clears your own explosion by a single tile and no more — enough that
+        /// escaping is a skill, not enough that laying a bomb at your feet stops being frightening.
+        /// That relationship is the point, so these two numbers move together or not at all.
+        /// </remarks>
+        public int DashDurationTicks { get; }
+
+        /// <summary>Ticks to recover a dash charge.</summary>
+        public int DashCooldownTicks { get; }
+
+        /// <summary>How many dashes may be banked at once.</summary>
+        public int DashCharges { get; }
+
+        /// <summary>Sub-tile units a skillshot travels each tick.</summary>
+        public int SkillshotSpeedPerTick { get; }
+
+        /// <summary>How many ticks a skillshot flies before it fades.</summary>
+        public int SkillshotDurationTicks { get; }
+
+        /// <summary>Ticks to recover a skillshot charge.</summary>
+        public int SkillshotCooldownTicks { get; }
+
+        /// <summary>
+        /// Damage a skillshot deals.
+        /// </summary>
+        /// <remarks>
+        /// Half an enemy, so the aimed shot is a real weapon but not a replacement for the bomb.
+        /// A skillshot that killed outright would make the maze irrelevant.
+        /// </remarks>
+        public int SkillshotDamage { get; }
+
+        /// <summary>The most skillshots that can be in flight at once.</summary>
+        public int MaxProjectiles { get; }
+
+        /// <summary>The loadout a player starts a run with, before any item touches it.</summary>
+        public Skills.SkillLoadout CreateStartingLoadout() =>
+            Skills.SkillLoadout.Of(
+                Skills.SkillSlot.Create(
+                    Skills.SkillId.Dash,
+                    DashCooldownTicks,
+                    DashSpeedPerTick,
+                    DashDurationTicks,
+                    maxCharges: DashCharges),
+                Skills.SkillSlot.Create(
+                    Skills.SkillId.Skillshot,
+                    SkillshotCooldownTicks,
+                    SkillshotSpeedPerTick,
+                    SkillshotDurationTicks,
+                    SkillshotDamage));
+
         /// <summary>Starting values for the vertical slice, tuned on device during T-015.</summary>
         public static SimulationConfig Default => FromTilesPerSecond(4f);
 
@@ -292,6 +367,31 @@ namespace BomberLegends.Simulation
             if (MaxEnemies <= 0)
             {
                 throw new ArgumentException("There must be room for at least one enemy.");
+            }
+
+            if (DashSpeedPerTick <= 0 || DashDurationTicks <= 0)
+            {
+                throw new ArgumentException("A dash must cover ground for at least one tick.");
+            }
+
+            if (DashCooldownTicks < 0 || SkillshotCooldownTicks < 0)
+            {
+                throw new ArgumentException("Skill cooldowns must not be negative.");
+            }
+
+            if (DashCharges <= 0)
+            {
+                throw new ArgumentException("A skill must hold at least one charge.");
+            }
+
+            if (SkillshotSpeedPerTick <= 0 || SkillshotDurationTicks <= 0)
+            {
+                throw new ArgumentException("A skillshot must travel for at least one tick.");
+            }
+
+            if (MaxProjectiles <= 0)
+            {
+                throw new ArgumentException("There must be room for at least one skillshot.");
             }
 
             if (PlayerRadius <= 0 || PlayerRadius >= Core.SubTilePoint.HalfTile)

@@ -109,7 +109,7 @@ their build does, the synergy pillar has not landed and no amount of content wil
 | M2 | Bombs, blasts, chain detonation, views | ✅ T-017 → T-019 done; T-020/T-021 deferred |
 | **M2b** | 3D migration + 360° movement + wall sliding + corner slip | ✅ complete, verified in editor |
 | **M3** | Health, damage, one enemy that fights back | ✅ **complete, verified in editor** |
-| M4 | Skill framework + dash + skillshot | |
+| **M4** | Skill framework + dash + skillshot | ✅ **complete, awaiting play verdict** |
 | M5 | Item framework + three items + two passive slots | |
 | M6 | Run loop: arenas, item choice, death, restart | |
 | — | **▶ VALIDATION GATE** — the question in §3 | |
@@ -158,6 +158,85 @@ a basic mob and it is why trapping works.
 **Deviation on record.** `MatchHudView` lives in Gameplay rather than UI because it reads the live
 simulation, and UI may not reference Gameplay. Acceptable for a greybox readout; the real HUD should
 sit behind a Data event channel so UI can react without seeing gameplay at all.
+
+---
+
+## 4c. M4 notes (2026-08-07)
+
+**Delivered.** A skill framework, a dash and an aimed skillshot. **316 EditMode + 10 PlayMode tests
+green, zero warnings.**
+
+### The framework, and why it is shaped this way
+
+A skill is **an id that selects behaviour, plus four numbers**: cooldown, power, magnitude and
+duration — held in a `SkillSlot`, three of which make a `SkillLoadout`.
+
+Two decisions carry the whole thing:
+
+- **Skill tuning lives in `SimulationState`, not `SimulationConfig`.** Config is immutable and shared
+  across a run; if items rewrite skills, the numbers they rewrite have to be per-run state. Config
+  now only *seeds* the loadout. Getting this backwards is what would have made M5 painful.
+- **The numbers are generic on purpose.** `Magnitude` is dash speed on one skill and projectile speed
+  on another. An item reading "+40% magnitude" therefore applies to both without knowing either
+  exists. A bespoke config type per skill would force every item to switch over every skill — the
+  combinatorial explosion the item system exists to avoid.
+
+`SkillSystem` runs **first in the tick**, ahead of movement, so a dash pressed this tick moves the
+player this tick. Charges recharge **one at a time**, so "more charges" and "shorter cooldown" stay
+genuinely different items rather than the same one twice.
+
+### Dash
+
+Three tiles in 0.2 s, on a two-second cooldown, and it **collides normally** — no phasing through
+walls or bombs. Two properties make it a dash rather than a better walk: it **ignores steering for its
+duration** (you commit to the direction), and it **ends early if it jams against a wall** rather than
+holding your controls hostage while you visibly go nowhere.
+
+> **The tuning relationship to preserve.** Dash reach is `500 × 6 = 3000` units; the starting blast
+> reaches `2 × 1000 = 2000`. A dash therefore clears your own explosion **by exactly one tile** —
+> escaping is a skill, not a formality, and the 34-damage decision survives having a mobility button.
+> A test asserts this pairing so the two numbers cannot drift apart silently.
+
+### Skillshot
+
+Aimed independently of movement, using the two aim bytes `PlayerIntent` has reserved since M1 — which
+is exactly the payoff of having widened the replay format before there was anything to put in it.
+
+- **Stopped by a destructible block, but does not break it.** Load-bearing, and it protects open
+  question #3: bombs stay the only way to open the arena, so the maze becomes real cover and the
+  Bomberman layer keeps its job.
+- **Not stopped by bombs.** They sit low, and a shot swallowed by the bomb at your feet reads as a bug
+  every single time.
+- **50 damage — half an enemy.** A real weapon, not a replacement for the bomb.
+- **Passes through an enemy still inside its immunity window** rather than being consumed for nothing.
+
+### Input
+
+`IntentButtons.Special`/`Sprint` were pre-revision names and are now `Skill1`/`Skill2`/`Skill3`, one
+per loadout slot. **Bit values are unchanged**, so the replay and future wire format is untouched — a
+test now says so explicitly.
+
+Mouse aim arrives through `IAimSource`, declared in Input and implemented in Gameplay by
+`PointerAimSource` — the same inversion already used for `IGridProjection`, because unprojecting the
+pointer needs the camera and Input may not reference Gameplay. The ground plane is taken at the
+player's own height, not at zero, so shots go where the cursor is rather than landing slightly short.
+
+`CompositeInputSource` now merges **aim separately from movement and buttons**. Standing still while
+lining up a shot is the most common thing a player will do with a skillshot, and treating aim as
+"activity" would let a resting mouse outrank a held gamepad.
+
+**Bindings.** Keyboard: `Shift` dash, `Q`/left-click skillshot, `E`/right-click third slot.
+Gamepad: `B` dash, `X` skillshot, `Y` third slot, right stick aims. With no aim supplied the shot
+follows the direction of travel, so keyboard-only play is never blocked.
+
+### Known gaps
+
+- **No mobile skill buttons.** The touch surface still offers only the stick and BOMB. Deliberate on a
+  PC-first build; it becomes real work at the mobile port, not before.
+- **The third slot is empty**, waiting for M5 to put an item in it — which is also how open question
+  #1 gets answered.
+- **No dedicated dash visual.** The movement itself is loud enough to read; a trail is polish for
+  later. The HUD does show live charges, which is the readout that changes decisions.
 
 ---
 

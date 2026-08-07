@@ -43,7 +43,23 @@ namespace BomberLegends.Simulation.Systems
             var previousTile = player.Tile;
             var previousPosition = player.Position;
 
-            ComputeVelocity(intent, config, out var velocityX, out var velocityY);
+            // A dash overrides steering entirely for its duration. Committing to the direction is
+            // what makes it read as a dash rather than a burst of speed, and it is what stops it
+            // being a strictly better way to walk: you cannot correct mid-flight.
+            var dashing = player.IsDashing;
+
+            if (dashing)
+            {
+                player.DashTicksRemaining--;
+            }
+
+            var velocityX = player.DashVelocityX;
+            var velocityY = player.DashVelocityY;
+
+            if (!dashing)
+            {
+                ComputeVelocity(intent, config, out velocityX, out velocityY);
+            }
 
             if (velocityX != 0 || velocityY != 0)
             {
@@ -73,6 +89,13 @@ namespace BomberLegends.Simulation.Systems
             }
 
             player.IsMoving = player.Position != previousPosition;
+
+            // A dash stopped dead by a wall ends there. Letting it grind out its remaining ticks
+            // would hold the player's steering hostage while they visibly go nowhere.
+            if (dashing && !player.IsMoving)
+            {
+                player.DashTicksRemaining = 0;
+            }
 
             var tile = player.Tile;
             if (tile != previousTile)

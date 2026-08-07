@@ -2,6 +2,7 @@ using BomberLegends.Core;
 using BomberLegends.Simulation.Actors;
 using BomberLegends.Simulation.Board;
 using BomberLegends.Simulation.Bombs;
+using BomberLegends.Simulation.Skills;
 
 namespace BomberLegends.Simulation
 {
@@ -38,6 +39,9 @@ namespace BomberLegends.Simulation
 
         /// <summary>How much longer each tile stays lethal.</summary>
         public BlastGrid BlastGrid;
+
+        /// <summary>Every skillshot in flight.</summary>
+        public ProjectileBuffer Projectiles;
 
         /// <summary>
         /// The match's random source. Part of the state because reproducing a match means

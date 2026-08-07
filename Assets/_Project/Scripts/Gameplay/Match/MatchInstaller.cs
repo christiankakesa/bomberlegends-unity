@@ -151,7 +151,8 @@ namespace BomberLegends.Gameplay.Match
                 _views.SpawnEnemies(simulation);
             }
 
-            _runner.Begin(simulation, CreateInputSource(projector), _playerView, _views, _cameraRig);
+            _runner.Begin(
+                simulation, CreateInputSource(projector), _playerView, _views, _cameraRig);
         }
 
         private void OnDestroy()
@@ -186,10 +187,12 @@ namespace BomberLegends.Gameplay.Match
         {
             // A developer can pick up whichever control surface is to hand without changing a
             // setting, which matters a great deal while feel is being tuned.
+            var keyboard = new KeyboardInputSource(CreateAimSource());
+
             if (_joystick != null && _inputFeel != null)
             {
                 return new CompositeInputSource(
-                    new KeyboardInputSource(),
+                    keyboard,
                     new GamepadInputSource(),
                     _bombButton != null
                         ? new TouchInputSource(_joystick, _inputFeel, projection, _bombButton)
@@ -202,7 +205,23 @@ namespace BomberLegends.Gameplay.Match
                     "[Match] No input feel config is assigned, so the on-screen stick is disabled.");
             }
 
-            return new CompositeInputSource(new KeyboardInputSource(), new GamepadInputSource());
+            return new CompositeInputSource(keyboard, new GamepadInputSource());
+        }
+
+        /// <summary>
+        /// Builds the mouse aim source, or none when there is no camera to unproject through.
+        /// </summary>
+        /// <remarks>
+        /// Absence is not an error. Without it the skillshot follows the direction of travel, which
+        /// is exactly what a pad or a touch screen does anyway.
+        /// </remarks>
+        private IAimSource? CreateAimSource()
+        {
+            var camera = _cameraRig != null ? _cameraRig.Camera : UnityEngine.Camera.main;
+
+            return camera != null && _playerView != null
+                ? new PointerAimSource(camera, _playerView)
+                : null;
         }
 
         private async void ReturnToHub()

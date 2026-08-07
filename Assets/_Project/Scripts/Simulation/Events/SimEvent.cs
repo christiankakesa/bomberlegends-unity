@@ -45,7 +45,25 @@ namespace BomberLegends.Simulation.Events
         EnemyKilled = 9,
 
         /// <summary>The player ran out of health.</summary>
-        PlayerDied = 10
+        PlayerDied = 10,
+
+        /// <summary>
+        /// A skill was used. <c>EntityId</c> is its loadout slot, <c>Value</c> its
+        /// <see cref="Skills.SkillId"/>.
+        /// </summary>
+        SkillUsed = 11,
+
+        /// <summary>A dash began. <c>Value</c> is how many ticks it lasts.</summary>
+        DashStarted = 12,
+
+        /// <summary>A skillshot was fired. <c>EntityId</c> is its slot in the projectile buffer.</summary>
+        ProjectileFired = 13,
+
+        /// <summary>
+        /// A skillshot stopped. <c>EntityId</c> is its projectile slot; <c>Value</c> is the damage
+        /// dealt, or zero when it hit terrain or ran out of range.
+        /// </summary>
+        ProjectileEnded = 14
     }
 
     /// <summary>

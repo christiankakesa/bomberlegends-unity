@@ -3,6 +3,7 @@ using BomberLegends.Core;
 using BomberLegends.Gameplay.Board;
 using BomberLegends.Gameplay.Bombs;
 using BomberLegends.Gameplay.Enemies;
+using BomberLegends.Gameplay.Skills;
 using BomberLegends.Gameplay.Vfx;
 using BomberLegends.Simulation;
 using BomberLegends.Simulation.Board;
@@ -66,11 +67,15 @@ namespace BomberLegends.Gameplay.Match
         private ObjectPool<BombView>? _bombPool;
         private ObjectPool<BlastView>? _blastPool;
         private ObjectPool<BlockDestructionView>? _debrisPool;
+        private ObjectPool<ProjectileView>? _projectilePool;
 
         private BombView?[] _bombsBySlot = System.Array.Empty<BombView>();
         private EnemyView?[] _enemiesBySlot = System.Array.Empty<EnemyView>();
         private SubTilePoint[] _enemyPrevious = System.Array.Empty<SubTilePoint>();
         private SubTilePoint[] _enemyCurrent = System.Array.Empty<SubTilePoint>();
+        private ProjectileView?[] _projectilesBySlot = System.Array.Empty<ProjectileView>();
+        private SubTilePoint[] _projectilePrevious = System.Array.Empty<SubTilePoint>();
+        private SubTilePoint[] _projectileCurrent = System.Array.Empty<SubTilePoint>();
         private BoardRenderer? _boardRenderer;
         private BoardProjector _projector = null!;
 
@@ -96,6 +101,9 @@ namespace BomberLegends.Gameplay.Match
             _enemiesBySlot = new EnemyView?[config.MaxEnemies];
             _enemyPrevious = new SubTilePoint[config.MaxEnemies];
             _enemyCurrent = new SubTilePoint[config.MaxEnemies];
+            _projectilesBySlot = new ProjectileView?[config.MaxProjectiles];
+            _projectilePrevious = new SubTilePoint[config.MaxProjectiles];
+            _projectileCurrent = new SubTilePoint[config.MaxProjectiles];
 
             // One shared material per surface type; instances vary only by property block, so the
             // whole effect layer stays batchable and nothing leaks a material per pooled object.
@@ -106,6 +114,8 @@ namespace BomberLegends.Gameplay.Match
             _blastPool = CreatePool(() => CreateEffect<BlastView>("Blast"), _blastPoolSize,
                 view => view.ResetView());
             _debrisPool = CreatePool(() => CreateEffect<BlockDestructionView>("Debris"), _debrisPoolSize,
+                view => view.ResetView());
+            _projectilePool = CreatePool(CreateProjectileView, _projectilesBySlot.Length,
                 view => view.ResetView());
 
             Prewarm();
@@ -149,6 +159,11 @@ namespace BomberLegends.Gameplay.Match
             {
                 _enemyPrevious[slot] = _enemyCurrent[slot];
             }
+
+            for (var slot = 0; slot < _projectileCurrent.Length; slot++)
+            {
+                _projectilePrevious[slot] = _projectileCurrent[slot];
+            }
         }
 
         /// <summary>Reacts to everything the simulation announced this tick.</summary>
@@ -181,6 +196,14 @@ namespace BomberLegends.Gameplay.Match
                     case SimEventType.EnemyKilled:
                         ReleaseEnemy(simEvent.EntityId - 1);
                         break;
+
+                    case SimEventType.ProjectileFired:
+                        SpawnProjectile(simulation, simEvent.EntityId);
+                        break;
+
+                    case SimEventType.ProjectileEnded:
+                        ReleaseProjectile(simEvent.EntityId);
+                        break;
                 }
             }
         }
@@ -189,6 +212,7 @@ namespace BomberLegends.Gameplay.Match
         public void Render(GameSimulation simulation, float deltaSeconds, float alpha)
         {
             RenderEnemies(simulation, alpha);
+            RenderProjectiles(simulation, alpha);
             _hud?.Render(simulation);
 
             for (var i = _activeEffects.Count - 1; i >= 0; i--)
@@ -226,6 +250,11 @@ namespace BomberLegends.Gameplay.Match
             {
                 ReleaseEnemy(slot);
             }
+
+            for (var slot = 0; slot < _projectilesBySlot.Length; slot++)
+            {
+                ReleaseProjectile(slot);
+            }
         }
 
         private void RenderEnemies(GameSimulation simulation, float alpha)
@@ -256,6 +285,74 @@ namespace BomberLegends.Gameplay.Match
                 view.Render(_projector.GridToWorld(gridX, gridY), enemy.Health.IsInvulnerable);
             }
         }
+
+        private void RenderProjectiles(GameSimulation simulation, float alpha)
+        {
+            for (var slot = 0; slot < _projectilesBySlot.Length; slot++)
+            {
+                var view = _projectilesBySlot[slot];
+                if (view == null)
+                {
+                    continue;
+                }
+
+                var gridX = Mathf.LerpUnclamped(
+                    BoardProjector.ToGrid(_projectilePrevious[slot].X),
+                    BoardProjector.ToGrid(_projectileCurrent[slot].X),
+                    alpha);
+                var gridY = Mathf.LerpUnclamped(
+                    BoardProjector.ToGrid(_projectilePrevious[slot].Y),
+                    BoardProjector.ToGrid(_projectileCurrent[slot].Y),
+                    alpha);
+
+                // Held at chest height so a shot reads as passing over the floor rather than
+                // sliding along it, and never disappears behind a block it is flying past.
+                view.Render(_projector.GridToWorld(gridX, gridY, _projector.BlockHeight * 0.5f));
+            }
+        }
+
+        private void SpawnProjectile(GameSimulation simulation, int slot)
+        {
+            if (_projectilePool == null || slot < 0 || slot >= _projectilesBySlot.Length)
+            {
+                return;
+            }
+
+            ReleaseProjectile(slot);
+
+            var position = simulation.State.Projectiles[slot].Position;
+
+            // Spawned with no history, or the first frame would interpolate it in from wherever the
+            // previous occupant of this slot died.
+            _projectilePrevious[slot] = position;
+            _projectileCurrent[slot] = position;
+
+            var view = _projectilePool.Get();
+            view.Begin(_projector.PositionToWorld(position, _projector.BlockHeight * 0.5f));
+
+            _projectilesBySlot[slot] = view;
+        }
+
+        private void ReleaseProjectile(int slot)
+        {
+            if (slot < 0 || slot >= _projectilesBySlot.Length)
+            {
+                return;
+            }
+
+            var view = _projectilesBySlot[slot];
+            if (view == null)
+            {
+                return;
+            }
+
+            _projectilesBySlot[slot] = null;
+            _projectilePool?.Release(view);
+        }
+
+        private ProjectileView CreateProjectileView() =>
+            CreateEffectObject("Skillshot", PlaceholderMeshes.Sphere, _opaqueMaterial)
+                .AddComponent<ProjectileView>();
 
         private void ReleaseEnemy(int slot)
         {
@@ -289,6 +386,15 @@ namespace BomberLegends.Gameplay.Match
                  slot++)
             {
                 _enemyCurrent[slot] = simulation.State.Enemies[slot].Position;
+            }
+
+            for (var slot = 0; slot < _projectileCurrent.Length &&
+                 slot < simulation.State.Projectiles.Capacity; slot++)
+            {
+                if (_projectilesBySlot[slot] != null)
+                {
+                    _projectileCurrent[slot] = simulation.State.Projectiles[slot].Position;
+                }
             }
 
             for (var slot = 0; slot < _bombsBySlot.Length; slot++)
@@ -424,6 +530,7 @@ namespace BomberLegends.Gameplay.Match
             PrewarmPool(_bombPool, _bombPoolSize);
             PrewarmPool(_blastPool, _blastPoolSize);
             PrewarmPool(_debrisPool, _debrisPoolSize);
+            PrewarmPool(_projectilePool, _projectilesBySlot.Length);
 
             _prewarming = false;
 
