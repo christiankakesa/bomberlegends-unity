@@ -1,4 +1,5 @@
 using BomberLegends.Core;
+using BomberLegends.Gameplay.Camera;
 using BomberLegends.Gameplay.Player;
 using BomberLegends.Input;
 using BomberLegends.Simulation;
@@ -34,6 +35,8 @@ namespace BomberLegends.Gameplay.Match
         private GameSimulation? _simulation;
         private IInputSource? _input;
         private PlayerView? _playerView;
+        private MatchViewSynchroniser? _views;
+        private MatchCameraRig? _cameraRig;
 
         private FixedStepAccumulator _accumulator = new FixedStepAccumulator(TickDuration);
         private SubTilePoint _previousPlayerPosition;
@@ -53,11 +56,18 @@ namespace BomberLegends.Gameplay.Match
         public int DiscardedTicks { get; private set; }
 
         /// <summary>Starts driving a match.</summary>
-        public void Begin(GameSimulation simulation, IInputSource input, PlayerView playerView)
+        public void Begin(
+            GameSimulation simulation,
+            IInputSource input,
+            PlayerView playerView,
+            MatchViewSynchroniser? views = null,
+            MatchCameraRig? cameraRig = null)
         {
+            _cameraRig = cameraRig;
             _simulation = simulation;
             _input = input;
             _playerView = playerView;
+            _views = views;
 
             _accumulator.Reset();
             _previousPlayerPosition = simulation.State.Player.Position;
@@ -68,7 +78,11 @@ namespace BomberLegends.Gameplay.Match
         }
 
         /// <summary>Stops driving the match. The simulation is left untouched.</summary>
-        public void Stop() => _simulation = null;
+        public void Stop()
+        {
+            _simulation = null;
+            _views?.Stop();
+        }
 
         private void Update()
         {
@@ -87,11 +101,26 @@ namespace BomberLegends.Gameplay.Match
                 _simulation.Tick(_input.Sample(_simulation.CurrentTick));
 
                 _currentPlayerPosition = _simulation.State.Player.Position;
+
+                // Events are consumed inside the tick loop: they last exactly one tick, and a frame
+                // that runs several ticks would otherwise see only the last one's effects.
+                _views?.Consume(_simulation);
                 DrainEvents();
             }
 
             InterpolationAlpha = _accumulator.Alpha;
             _playerView.Render(_previousPlayerPosition, _currentPlayerPosition, InterpolationAlpha);
+            _views?.Render(_simulation, Time.deltaTime);
+        }
+
+        private void LateUpdate()
+        {
+            // After the player has been placed for this frame, never before: following in Update
+            // leaves the camera a frame behind, which reads as a judder that is hard to trace later.
+            if (_simulation != null && _playerView != null)
+            {
+                _cameraRig?.Follow(_playerView.WorldPosition, Time.deltaTime);
+            }
         }
 
         private void DrainEvents()

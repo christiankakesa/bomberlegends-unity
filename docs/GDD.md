@@ -2,9 +2,9 @@
 
 # **Project Title: Bomber Legends**
 
-**Version:** 1.1 — English translation
+**Version:** 2.0 — concept revision
 
-**Date:** 23 March 2026 (v1.0) — header revised and translated 5 August 2026
+**Date:** 23 March 2026 (v1.0) — translated 5 August 2026 · perspective revised 6 August 2026 · **concept revised 6 August 2026 (v2.0)**
 
 **Author:** Christian Kakesa
 
@@ -36,17 +36,75 @@ Consoles (PS5, Xbox, Switch 2) are out of scope until the prototype is validated
 
 ## **1. EXECUTIVE SUMMARY (PITCH)**
 
-> *[Empty in the original v1.0. This section has never been written. See `01-ANALYSIS.md` §13, Q10 — without a
-> one-paragraph pitch, scope has nothing to be measured against.]*
+An action hybrid that merges the explosive grid destruction of Bomberman, the precision skillshot
+controls of a MOBA, and the item-synergy buildcrafting of a roguelite.
+
+> **"Unleash explosive item synergies and craft devastating builds in an action arena powered by
+> MOBA-precision controls and Bomberman-style arena destruction."**
+
+**Marketing hooks**
+
+* *"Aim. Bomb. Adapt. Master the precision of a MOBA inside an explosive roguelite arena."*
+* *"3 Skills. 4 Passives. Endless Synergies. Forge your ultimate bomb kit and break the arena."*
+* *"Bomberman evolved — now with skillshots, item synergies, and zero limits."*
+
+### The differentiator
+
+Items **change how skills behave**, they do not add percentages. A passive that freezes on impact
+turns a bomb into crowd control; one that chains detonations turns a single charge into a cascade.
+This is the Isaac / Risk of Rain engine, and it is the only one of the three pillars that generates
+replay value by itself.
+
+### Structure
+
+Single-player roguelite runs: clear a stage, choose an item, go again; a run ends on death.
+Multiplayer remains architecturally possible but is not the product.
 
 ---
 
 ## **2. GAMEPLAY PILLARS**
 
-1. **Tactical Bomb Placement:** The heart of the classic gameplay. Players must plan their explosion chains to clear the field and trap enemies without trapping themselves.
-2. **Neon Afro-Futurism:** A distinctive visual identity blending technological architecture with African cultural elements, for a unique and immersive atmosphere.
-3. **Skill Management (Active/Passive):** Unlike classic Bomberman, the player manages a tree of active and passive skills that change their tactical approach, rather than relying on random power-ups.
-4. **Race Against the Clock:** Time pressure is a constant enemy, forcing the player to take risks and optimise their movement.
+1. **Reinvented Nostalgia (Bomberman base).** Accessible grid destruction, maze navigation and chain
+   reactions, modernised with real-time combat.
+2. **Skill Cap and Precision (MOBA controls).** 360° continuous movement, directional skillshots,
+   dashes and real-time dodging.
+3. **Synergy Buildcrafting (roguelite loop).** High-impact items that alter how active skills behave
+   rather than nudging numbers.
+4. **Neon Afro-Futurism.** The visual identity carried over from v1.0 and unchanged — the project's
+   strongest marketing asset.
+
+> *Superseded from v1.0:* "Race Against the Clock" is demoted from a pillar. Time pressure works as
+> an anti-camping measure, not as the source of difficulty, and it conflicts with the deliberate pace
+> that buildcrafting needs.
+
+---
+
+## **2b. LOADOUT STRUCTURE**
+
+Capped deliberately, to protect combat readability and the mobile HUD:
+
+* **3 active skills maximum**, unlocked during a run — typically one mobility, one skillshot, one
+  heavy area effect.
+* **4 passive items maximum**, upgradable during a run, which modify active skills and bomb
+  behaviour rather than granting flat stats.
+
+---
+
+## **2c. HYBRID SPATIAL MODEL** *(the core technical idea)*
+
+Two layers occupy the same arena:
+
+| Layer | Governs | Space |
+|---|---|---|
+| **MOBA layer** | Character movement, skill aiming, projectiles, dodging | **Continuous 360°** |
+| **Bomberman layer** | Bomb placement, destructible blocks, blast propagation | **Anchored grid** |
+
+Blasts propagate strictly along orthogonal grid axes, so danger zones stay tile-shaped and readable
+however freely the player moves.
+
+**Destructible blocks also block skillshots.** Without that, the grid would become decorative the
+moment movement went continuous — it would only govern where bombs sit. Blocking line of fire makes
+the maze matter to the MOBA layer too, so the two layers reinforce each other instead of coexisting.
 
 ---
 
@@ -58,7 +116,10 @@ In the megacity of **Ébène-Prime**, the **Sombra-Corps** corporation controls 
 
 ### **3.2. Art Direction (based on the reference image)**
 
-* **Style:** Detailed isometric pixel art.
+* **Style:** **Low-poly 3D**, viewed three-quarter top-down over a square grid (revised 2026-08-06 to
+  v2.0; superseding both the isometric pixel art of v1.0 and the 2D sprite direction of v1.2).
+  360° movement makes 3D the cheaper pipeline: a model rotates, whereas a sprite character needs a
+  frame authored per facing.
 * **Colour Palette:** Deep night (blue/purple) contrasted with vibrant neon (cyan, magenta, golden orange).
 * **Architecture:** A mix of afro-futurism and cyberpunk. Futuristic buildings with geometric tribal motifs, technological hieroglyphs, and cybernetic tropical vegetation.
 * **Protagonist:** Silhouette of a man with dreadlocks, wearing a luminous tech suit.
@@ -80,7 +141,7 @@ In the megacity of **Ébène-Prime**, the **Sombra-Corps** corporation controls 
 
 ### **5.1. Movement and Grid**
 
-* **Perspective:** 3/4 isometric view.
+* **Perspective:** Three-quarter top-down over a **square** grid. Columns run across the screen, rows recede up it with a slight foreshortening, and blocks stand up off the floor.
 * **Movement Grid:** Movement is visually smooth, but the character automatically aligns to an invisible tile grid for precise bomb placement and explosion collision ("soft-grid" style).
 
 ### **5.2. Bomb System (Core Action)**
@@ -197,6 +258,32 @@ The player can buy skins for their Speed-Runner with Cœurs Néon:
 * **Mobile Performance:** Detailed pixel art with many neon lighting effects can be resource-hungry on low-end mobile devices.
 
 ---
+
+> ### Concept revision, 6 August 2026 (v2.0)
+> Three decisions taken with the concept revision, each recorded because each is expensive to undo:
+> 1. **Low-poly 3D**, not 2D sprites. Driven by 360° movement and the reference art.
+> 2. **PC-first**, mobile as a later port. Mouse aiming suits skillshots, and a seven-slot loadout is
+>    comfortable with a mouse and cramped under a thumb. Supersedes the Android-first decision of
+>    2026-08-05.
+> 3. **Own bombs hit hard, enemies chip.** Combat is HP-based, but the player's own blast removes a
+>    large share of maximum health, so self-trapping stays frightening. A dash plus even HP damage
+>    would have quietly deleted the tension the Bomberman layer exists to create.
+>
+> ### Perspective change, 6 August 2026
+> v1.0 specified a **true isometric** view. That is superseded by a **three-quarter top-down view of a
+> square grid**, for three reasons:
+> 1. **Controls.** In an isometric view the four grid directions land on screen diagonals, so a thumb
+>    pushed "up" is genuinely ambiguous. This was the highest-rated feel risk in the project
+>    (`01-ANALYSIS.md` G6). On a square grid, up is north and right is east — the ambiguity stops
+>    existing rather than being mitigated.
+> 2. **Screen usage.** A diamond board wastes all four corners of a landscape phone; a square grid
+>    fills the frame, so tiles read larger on the same device.
+> 3. **Art cost.** Square tiles at three-quarter view are materially cheaper to author than isometric
+>    ones, which were the dominant cost in the project (`01-ANALYSIS.md` S3).
+>
+> **The afro-futurist neon art direction is unchanged** and remains the project's primary
+> differentiator. Only the camera angle and the tile shape changed. The simulation was unaffected:
+> the grid never knew how it was drawn, so this cost one view class and its tests.
 
 > **Engineering note.** This document records design *intent*. Several mechanics described here are
 > challenged on gameplay grounds in `01-ANALYSIS.md` §9 and §12 — in particular the 5 s bomb cooldown (§6.2.3),

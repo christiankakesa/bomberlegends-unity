@@ -6,31 +6,36 @@ using BomberLegends.Simulation.Events;
 namespace BomberLegends.Simulation.Systems
 {
     /// <summary>
-    /// Moves the player across the board.
+    /// Moves the player freely in any direction, colliding with the grid.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Implements the "soft grid" the design calls for: the player's position is continuous, but
-    /// they travel along lane centres and every rule that matters reads the whole tile they occupy.
-    /// Three behaviours make the difference between this feeling tight and feeling sticky, and all
-    /// three live here:
+    /// The MOBA half of the hybrid. The player is a box that travels continuously; the board it
+    /// collides against is still made of whole tiles, and bombs and blasts still snap to them. That
+    /// split is the whole design: fluid to control, readable to survive.
+    /// </para>
+    /// <para>
+    /// Two behaviours carry the feel:
     /// </para>
     /// <list type="bullet">
-    /// <item><b>Lane snapping</b> pulls the player towards the centre of the corridor they are
-    /// travelling along, so they never scrape an edge and miss an opening.</item>
-    /// <item><b>Deferred turns</b> keep the player moving when they ask to turn while still short of
-    /// a junction, rather than stopping them. Held against a direction, they turn the moment they
-    /// arrive.</item>
-    /// <item><b>Corner assist</b> lets a player who has run into a wall turn immediately regardless
-    /// of alignment, which is what stops them wedging in a corner.</item>
+    /// <item><b>Per-axis resolution</b> produces wall sliding. Running diagonally into a wall drops
+    /// the blocked component and keeps the other, so the player slides along the surface instead of
+    /// stopping dead. This is the continuous successor to the grid version's corner assist, and it
+    /// is just as essential — sticking on walls is what makes a game feel cheap.</item>
+    /// <item><b>Sub-stepping</b> caps how far the box travels before collision is re-checked, so no
+    /// speed can carry it through a wall.</item>
     /// </list>
     /// <para>
-    /// Movement is applied in sub-steps no larger than half a tile so a high speed can never skip
-    /// over a wall.
+    /// Every calculation is integer. Normalising a stick vector needs a square root, and the
+    /// floating-point one is not bit-identical across platforms; one differing bit in a velocity
+    /// compounds into a divergent match, which would break replays and any server-side validation.
     /// </para>
     /// </remarks>
     public static class MovementSystem
     {
+        /// <summary>The most a sub-step may travel, so a wall can never be skipped.</summary>
+        private const int MaxSubStep = SubTilePoint.HalfTile;
+
         /// <summary>Advances the player by one tick.</summary>
         public static void Tick(
             ref SimulationState state,
@@ -43,20 +48,23 @@ namespace BomberLegends.Simulation.Systems
             var previousTile = player.Tile;
             var previousPosition = player.Position;
 
-            var requested = intent.ToDirection(config.DirectionDeadzone);
-            player.MoveDirection = ResolveDirection(ref player, requested, state.Board, config);
+            ComputeVelocity(intent, config, out var velocityX, out var velocityY);
 
-            if (player.MoveDirection != Direction.None)
+            if (velocityX != 0 || velocityY != 0)
             {
+                player.MoveDirection = DominantDirection(velocityX, velocityY);
                 player.Facing = player.MoveDirection;
 
-                if (!Advance(ref player, player.MoveDirection, state.Board, config))
-                {
-                    events.Add(new SimEvent(
-                        SimEventType.PlayerBlocked, player.Tile, 0, (int)player.MoveDirection));
-                }
+                // Bombs the player is already standing on cannot block them this tick. That is the
+                // whole of the classic "walk off your own bomb" rule, with no ownership tracking:
+                // they can leave, and once clear the bomb blocks them like any other obstacle.
+                var exempt = OverlappedBombs(player.Position, config.PlayerRadius, state.BombGrid);
 
-                ApplyLaneSnap(ref player, player.MoveDirection, config);
+                Move(ref player, velocityX, velocityY, state.Board, state.BombGrid, config, exempt);
+            }
+            else
+            {
+                player.MoveDirection = Direction.None;
             }
 
             player.IsMoving = player.Position != previousPosition;
@@ -69,178 +77,265 @@ namespace BomberLegends.Simulation.Systems
         }
 
         /// <summary>
-        /// Decides which way the player travels this tick, applying the turn rules.
+        /// Converts the stick into a velocity in sub-tile units per tick.
         /// </summary>
-        private static Direction ResolveDirection(
+        /// <remarks>
+        /// Magnitude is clamped to the stick's full range before scaling, so pushing diagonally is
+        /// not faster than pushing straight — the classic bug in twin-stick movement. Partial
+        /// deflection is preserved below that, so the stick is genuinely analogue.
+        /// </remarks>
+        private static void ComputeVelocity(
+            in PlayerIntent intent, in SimulationConfig config, out int velocityX, out int velocityY)
+        {
+            int x = intent.MoveX;
+            int y = intent.MoveY;
+
+            var lengthSquared = (x * x) + (y * y);
+            var deadzone = config.DirectionDeadzone;
+
+            if (lengthSquared < deadzone * deadzone)
+            {
+                velocityX = 0;
+                velocityY = 0;
+                return;
+            }
+
+            var length = IntMath.Sqrt(lengthSquared);
+            var speed = config.MoveSpeedPerTick;
+
+            if (length <= PlayerIntent.AxisRange)
+            {
+                velocityX = x * speed / PlayerIntent.AxisRange;
+                velocityY = y * speed / PlayerIntent.AxisRange;
+                return;
+            }
+
+            velocityX = x * speed / length;
+            velocityY = y * speed / length;
+        }
+
+        /// <summary>Applies a velocity in sub-steps, resolving each axis separately.</summary>
+        private static void Move(
             ref PlayerState player,
-            Direction requested,
+            int velocityX,
+            int velocityY,
             BoardState board,
-            in SimulationConfig config)
+            BombGrid bombs,
+            in SimulationConfig config,
+            in ExemptTiles exempt)
         {
-            if (requested == Direction.None)
+            var longest = IntMath.Abs(velocityX) > IntMath.Abs(velocityY)
+                ? IntMath.Abs(velocityX)
+                : IntMath.Abs(velocityY);
+
+            var steps = 1 + ((longest - 1) / MaxSubStep);
+            if (steps < 1)
             {
-                return Direction.None;
+                steps = 1;
             }
 
-            var current = player.MoveDirection;
+            var appliedX = 0;
+            var appliedY = 0;
 
-            // Continuing or reversing needs no alignment: both stay in the same lane.
-            if (requested == current || requested == current.Opposite())
+            for (var step = 1; step <= steps; step++)
             {
-                return requested;
-            }
+                // Targets are recomputed from the total each time rather than accumulated, so
+                // integer division leaves no remainder unspent.
+                var targetX = velocityX * step / steps;
+                var targetY = velocityY * step / steps;
 
-            var tile = player.Tile;
-            if (!board.IsWalkable(tile.Neighbour(requested)))
-            {
-                // Nothing to turn into. Keep whatever we were already doing.
-                return current;
-            }
+                MoveAxis(ref player, targetX - appliedX, horizontal: true, board, bombs, config, exempt);
+                MoveAxis(ref player, targetY - appliedY, horizontal: false, board, bombs, config, exempt);
 
-            // A stationary player always gets their turn; there is no momentum to preserve.
-            if (current == Direction.None)
-            {
-                player.Position = AlignForTurn(player.Position, tile, requested);
-                return requested;
+                appliedX = targetX;
+                appliedY = targetY;
             }
-
-            if (Misalignment(player.Position, tile, requested) <= config.TurnTolerance)
-            {
-                player.Position = AlignForTurn(player.Position, tile, requested);
-                return requested;
-            }
-
-            if (config.CornerAssistEnabled && !board.IsWalkable(tile.Neighbour(current)))
-            {
-                // Running into a wall. Turning is the only thing left, so allow it however
-                // misaligned the player is rather than leaving them stuck against the corner.
-                player.Position = AlignForTurn(player.Position, tile, requested);
-                return requested;
-            }
-
-            // Too far from the junction to turn yet. Carry on; the turn lands on arrival.
-            return current;
         }
 
-        /// <summary>
-        /// How far the player is from the lane they would need to be in to travel
-        /// <paramref name="direction"/>.
-        /// </summary>
-        private static int Misalignment(SubTilePoint position, GridCoord tile, Direction direction)
-        {
-            var offset = direction.ToOffset();
-
-            // Travelling vertically constrains the horizontal position, and the other way round.
-            var value = offset.X != 0
-                ? position.Y - SubTilePoint.CentreOf(tile.Y)
-                : position.X - SubTilePoint.CentreOf(tile.X);
-
-            return value < 0 ? -value : value;
-        }
-
-        /// <summary>Places the player exactly in the lane for <paramref name="direction"/>.</summary>
-        private static SubTilePoint AlignForTurn(SubTilePoint position, GridCoord tile, Direction direction)
-        {
-            var offset = direction.ToOffset();
-
-            return offset.X != 0
-                ? position.WithY(SubTilePoint.CentreOf(tile.Y))
-                : position.WithX(SubTilePoint.CentreOf(tile.X));
-        }
-
-        /// <summary>
-        /// Moves the player along <paramref name="direction"/>, stopping at the centre of the last
-        /// free tile if something blocks the way.
-        /// </summary>
-        /// <returns><see langword="false"/> when a wall stopped the player short.</returns>
-        private static bool Advance(
+        /// <summary>Moves along one axis and pushes back out of anything solid.</summary>
+        private static void MoveAxis(
             ref PlayerState player,
-            Direction direction,
+            int delta,
+            bool horizontal,
             BoardState board,
-            in SimulationConfig config)
+            BombGrid bombs,
+            in SimulationConfig config,
+            in ExemptTiles exempt)
         {
-            var offset = direction.ToOffset();
-            var horizontal = offset.X != 0;
-            var sign = horizontal ? offset.X : offset.Y;
-
-            var remaining = config.MoveSpeedPerTick;
-
-            while (remaining > 0)
-            {
-                // Never advance more than half a tile at once, so the tile under the player cannot
-                // change by more than one step and a wall can never be skipped over.
-                var step = remaining < SubTilePoint.HalfTile ? remaining : SubTilePoint.HalfTile;
-                remaining -= step;
-
-                var tile = player.Position.Tile;
-                var blocked = !board.IsWalkable(tile.Neighbour(direction));
-
-                var current = horizontal ? player.Position.X : player.Position.Y;
-                var proposed = current + (step * sign);
-
-                if (blocked)
-                {
-                    var limit = SubTilePoint.CentreOf(horizontal ? tile.X : tile.Y);
-                    var overshoots = sign > 0 ? proposed > limit : proposed < limit;
-
-                    if (overshoots)
-                    {
-                        proposed = limit;
-                    }
-                }
-
-                player.Position = horizontal
-                    ? player.Position.WithX(proposed)
-                    : player.Position.WithY(proposed);
-
-                if (blocked && proposed == SubTilePoint.CentreOf(horizontal ? tile.X : tile.Y))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        /// <summary>Pulls the player towards the centre of the lane they are travelling along.</summary>
-        private static void ApplyLaneSnap(
-            ref PlayerState player,
-            Direction direction,
-            in SimulationConfig config)
-        {
-            if (config.LaneSnapPerTick <= 0)
+            if (delta == 0)
             {
                 return;
             }
 
-            var tile = player.Tile;
-            var offset = direction.ToOffset();
+            var radius = config.PlayerRadius;
+            var position = player.Position;
 
-            if (offset.X != 0)
+            var moved = horizontal
+                ? position.X + delta
+                : position.Y + delta;
+
+            // The span the box covers on the other axis decides which tiles it can touch.
+            var otherCentre = horizontal ? position.Y : position.X;
+            var minOther = SubTilePoint.ToTile(otherCentre - radius);
+            var maxOther = SubTilePoint.ToTile(otherCentre + radius);
+
+            var leadingEdge = delta > 0 ? moved + radius : moved - radius;
+            var edgeTile = SubTilePoint.ToTile(leadingEdge);
+
+            var lowBlocks = Blocks(board, bombs, Tile(horizontal, edgeTile, minOther), exempt);
+            var highBlocks = minOther == maxOther
+                ? lowBlocks
+                : Blocks(board, bombs, Tile(horizontal, edgeTile, maxOther), exempt);
+
+            if (lowBlocks || highBlocks)
             {
-                var centre = SubTilePoint.CentreOf(tile.Y);
-                player.Position = player.Position.WithY(
-                    MoveToward(player.Position.Y, centre, config.LaneSnapPerTick));
+                // Rest flush against the obstacle, one unit clear so the boxes never share an edge.
+                moved = delta > 0
+                    ? (edgeTile * SubTilePoint.UnitsPerTile) - radius - 1
+                    : ((edgeTile + 1) * SubTilePoint.UnitsPerTile) + radius;
+
+                // Only one of the two tiles blocking means the player is clipping a corner rather
+                // than facing a wall, so they can be helped around it.
+                if (lowBlocks != highBlocks && minOther != maxOther)
+                {
+                    TrySlipPastCorner(
+                        ref player, horizontal, otherCentre, radius,
+                        blockedByHigh: highBlocks, highTile: maxOther, lowTile: minOther, config);
+
+                    // The nudge changed the other axis, so re-read it before writing this one.
+                    position = player.Position;
+                }
             }
-            else
-            {
-                var centre = SubTilePoint.CentreOf(tile.X);
-                player.Position = player.Position.WithX(
-                    MoveToward(player.Position.X, centre, config.LaneSnapPerTick));
-            }
+
+            player.Position = horizontal ? position.WithX(moved) : position.WithY(moved);
         }
 
-        /// <summary>Steps <paramref name="value"/> towards <paramref name="target"/> without overshooting.</summary>
-        private static int MoveToward(int value, int target, int maxDelta)
-        {
-            var delta = target - value;
+        /// <summary>Builds a tile coordinate for whichever axis is being resolved.</summary>
+        private static GridCoord Tile(bool horizontal, int edge, int other) =>
+            horizontal ? new GridCoord(edge, other) : new GridCoord(other, edge);
 
-            if (delta > maxDelta)
+        /// <summary>
+        /// Nudges the player sideways so they clear a corner they are only just clipping.
+        /// </summary>
+        /// <remarks>
+        /// Applied a little at a time rather than teleporting them clear, so the correction reads as
+        /// the character rounding the corner rather than as the game snapping them somewhere.
+        /// </remarks>
+        private static void TrySlipPastCorner(
+            ref PlayerState player,
+            bool horizontal,
+            int otherCentre,
+            int radius,
+            bool blockedByHigh,
+            int highTile,
+            int lowTile,
+            in SimulationConfig config)
+        {
+            if (config.CornerSlipPerTick <= 0)
             {
-                return value + maxDelta;
+                return;
             }
 
-            return delta < -maxDelta ? value - maxDelta : target;
+            // How far the player would have to move to stop overlapping the offending tile.
+            var required = blockedByHigh
+                ? (otherCentre + radius) - (highTile * SubTilePoint.UnitsPerTile) + 1
+                : ((lowTile + 1) * SubTilePoint.UnitsPerTile) - (otherCentre - radius) + 1;
+
+            if (required <= 0 || required > config.CornerSlipTolerance)
+            {
+                return;
+            }
+
+            var step = required < config.CornerSlipPerTick ? required : config.CornerSlipPerTick;
+            var nudged = blockedByHigh ? otherCentre - step : otherCentre + step;
+
+            player.Position = horizontal
+                ? player.Position.WithY(nudged)
+                : player.Position.WithX(nudged);
+        }
+
+        /// <summary>Whether a tile stops the player.</summary>
+        private static bool Blocks(
+            BoardState board, BombGrid bombs, GridCoord tile, in ExemptTiles exempt)
+        {
+            if (!board.IsWalkable(tile))
+            {
+                return true;
+            }
+
+            return bombs.HasBomb(tile) && !exempt.Contains(tile);
+        }
+
+        /// <summary>Records the bomb tiles the player's box already overlaps.</summary>
+        private static ExemptTiles OverlappedBombs(SubTilePoint position, int radius, BombGrid bombs)
+        {
+            var exempt = default(ExemptTiles);
+
+            var minX = SubTilePoint.ToTile(position.X - radius);
+            var maxX = SubTilePoint.ToTile(position.X + radius);
+            var minY = SubTilePoint.ToTile(position.Y - radius);
+            var maxY = SubTilePoint.ToTile(position.Y + radius);
+
+            for (var y = minY; y <= maxY; y++)
+            {
+                for (var x = minX; x <= maxX; x++)
+                {
+                    var tile = new GridCoord(x, y);
+                    if (bombs.HasBomb(tile))
+                    {
+                        exempt.Add(tile);
+                    }
+                }
+            }
+
+            return exempt;
+        }
+
+        /// <summary>The cardinal direction that best describes a velocity, for facing and animation.</summary>
+        private static Direction DominantDirection(int velocityX, int velocityY)
+        {
+            if (IntMath.Abs(velocityX) >= IntMath.Abs(velocityY))
+            {
+                return velocityX > 0 ? Direction.East : velocityX < 0 ? Direction.West : Direction.None;
+            }
+
+            return velocityY > 0 ? Direction.North : Direction.South;
+        }
+
+        /// <summary>
+        /// The handful of bomb tiles that do not block the player this tick.
+        /// </summary>
+        /// <remarks>
+        /// A box smaller than a tile can overlap at most four of them, so four inline slots are
+        /// enough and nothing needs allocating.
+        /// </remarks>
+        private struct ExemptTiles
+        {
+            private GridCoord _a;
+            private GridCoord _b;
+            private GridCoord _c;
+            private GridCoord _d;
+            private int _count;
+
+            internal void Add(GridCoord tile)
+            {
+                switch (_count)
+                {
+                    case 0: _a = tile; break;
+                    case 1: _b = tile; break;
+                    case 2: _c = tile; break;
+                    case 3: _d = tile; break;
+                    default: return;
+                }
+
+                _count++;
+            }
+
+            internal readonly bool Contains(GridCoord tile) =>
+                (_count > 0 && _a.Equals(tile)) ||
+                (_count > 1 && _b.Equals(tile)) ||
+                (_count > 2 && _c.Equals(tile)) ||
+                (_count > 3 && _d.Equals(tile));
         }
     }
 }

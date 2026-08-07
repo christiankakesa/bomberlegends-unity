@@ -145,80 +145,88 @@ namespace BomberLegends.Tests.EditMode.Gameplay
         }
     }
 
-    /// <summary>Covers the isometric projection and the depth ordering derived from it.</summary>
-    public sealed class IsometricProjectorTests
+    /// <summary>Covers the board projection onto the ground plane.</summary>
+    public sealed class BoardProjectorTests
     {
-        private static readonly IsometricProjector Projector = new IsometricProjector();
+        private static readonly BoardProjector Projector = new BoardProjector();
 
         [Test]
-        public void GridDirections_ProjectToScreenDiagonals()
+        public void TheGridLiesFlatOnTheGroundPlane()
         {
             var origin = Projector.GridToWorld(0f, 0f);
-
             var east = Projector.GridToWorld(1f, 0f) - origin;
             var north = Projector.GridToWorld(0f, 1f) - origin;
 
-            Assert.That(east.x, Is.GreaterThan(0f).And.Not.EqualTo(0f));
-            Assert.That(east.y, Is.GreaterThan(0f), "east reads as up-and-right on screen");
-            Assert.That(north.x, Is.LessThan(0f), "north reads as up-and-left on screen");
-            Assert.That(north.y, Is.GreaterThan(0f));
+            Assert.That(east.x, Is.GreaterThan(0f), "grid east is world +X");
+            Assert.That(east.z, Is.EqualTo(0f));
+            Assert.That(north.z, Is.GreaterThan(0f), "grid north is world +Z");
+            Assert.That(north.x, Is.EqualTo(0f));
+            Assert.That(origin.y, Is.EqualTo(0f), "the board sits on the ground, with Y as height");
         }
 
         [Test]
-        public void ScreenToGrid_IsTheExactInverseOfGridToWorld()
+        public void HeightRaisesOnlyTheVerticalAxis()
         {
-            foreach (var grid in new[]
+            var flat = Projector.TileToWorld(new GridCoord(3, 4));
+            var raised = Projector.TileToWorld(new GridCoord(3, 4), 2.5f);
+
+            Assert.That(raised.x, Is.EqualTo(flat.x));
+            Assert.That(raised.z, Is.EqualTo(flat.z));
+            Assert.That(raised.y, Is.EqualTo(2.5f));
+        }
+
+        [Test]
+        public void TilesAreSpacedExactlyOneTileApart()
+        {
+            var a = Projector.TileToWorld(new GridCoord(2, 2));
+            var b = Projector.TileToWorld(new GridCoord(3, 2));
+
+            Assert.That(b.x - a.x, Is.EqualTo(Projector.TileSize).Within(0.0001f),
+                "neighbouring tiles must meet exactly, with no overlap and no gap");
+        }
+
+        [Test]
+        public void ScreenToGrid_LeavesTheStickUntouched()
+        {
+            // Identity: the camera looks down the board's axes, so pushing up the screen runs away
+            // from the camera, which is grid north.
+            foreach (var stick in new[]
                      {
                          new Vector2(1f, 0f), new Vector2(0f, 1f),
-                         new Vector2(-1f, 0f), new Vector2(0f, -1f),
-                         new Vector2(2.5f, -3.25f)
+                         new Vector2(-0.4f, 0.9f), new Vector2(0.7f, -0.7f)
                      })
             {
-                var screen = Projector.GridToWorld(grid.x, grid.y);
-                var roundTripped = Projector.ScreenToGrid(screen);
-
-                Assert.That(roundTripped.x, Is.EqualTo(grid.x).Within(0.0001f));
-                Assert.That(roundTripped.y, Is.EqualTo(grid.y).Within(0.0001f));
+                Assert.That(Projector.ScreenToGrid(stick), Is.EqualTo(stick));
             }
         }
 
         [Test]
-        public void ScreenToGrid_MapsPushingUpToEqualPartsOfBothAxes()
+        public void PushingDiagonally_RemainsAnExactTie()
         {
-            var grid = Projector.ScreenToGrid(new Vector2(0f, 1f));
+            var grid = Projector.ScreenToGrid(new Vector2(1f, 1f));
 
-            Assert.That(grid.x, Is.EqualTo(grid.y).Within(0.0001f),
-                "straight up the screen sits exactly between two grid directions");
+            Assert.That(Mathf.Abs(grid.x), Is.EqualTo(Mathf.Abs(grid.y)).Within(0.0001f),
+                "a symmetric stick input must not favour an axis");
         }
 
         [Test]
-        public void SortingOrder_PutsDistantTilesBehind()
+        public void SubTilePositions_ConvertToContinuousGridSpace()
         {
-            var near = IsometricProjector.SortingOrder(0f, 0f);
-            var far = IsometricProjector.SortingOrder(5f, 5f);
-
-            Assert.That(far, Is.LessThan(near), "greater grid depth must draw first");
+            // A tile's centre in sub-tile units must land on that tile's integer grid coordinate.
+            Assert.That(BoardProjector.ToGrid(SubTilePoint.CentreOf(0)), Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(BoardProjector.ToGrid(SubTilePoint.CentreOf(5)), Is.EqualTo(5f).Within(0.0001f));
         }
 
         [Test]
-        public void SortingOrder_HasSubTileResolution()
+        public void BoardBounds_CoverEveryTile()
         {
-            var atTile = IsometricProjector.SortingOrder(2f, 2f);
-            var partWay = IsometricProjector.SortingOrder(2.5f, 2f);
+            var bounds = Projector.BoardBounds(13, 9);
 
-            Assert.That(partWay, Is.Not.EqualTo(atTile),
-                "an actor between tiles must sort between them, not pop at the boundary");
-        }
-
-        [Test]
-        public void FloorTiles_AlwaysDrawBehindEverything()
-        {
-            // The nearest possible floor against the furthest possible actor on a large board.
-            var nearestFloor = IsometricProjector.FloorSortingOrder(GridCoord.Zero);
-            var furthestActor = IsometricProjector.SortingOrder(40f, 40f);
-
-            Assert.That(nearestFloor, Is.LessThan(furthestActor),
-                "floor must never occlude an actor or a block");
+            Assert.That(bounds.size.x, Is.EqualTo(13f * Projector.TileSize).Within(0.0001f));
+            Assert.That(bounds.size.z, Is.EqualTo(9f * Projector.TileSize).Within(0.0001f));
+            Assert.That(bounds.Contains(Projector.TileToWorld(new GridCoord(12, 8))), Is.True,
+                "the far corner tile must sit inside the arena bounds");
+            Assert.That(bounds.Contains(Projector.TileToWorld(GridCoord.Zero)), Is.True);
         }
     }
 

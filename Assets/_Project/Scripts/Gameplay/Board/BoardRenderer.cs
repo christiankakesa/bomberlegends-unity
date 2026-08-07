@@ -5,59 +5,55 @@ using UnityEngine;
 namespace BomberLegends.Gameplay.Board
 {
     /// <summary>
-    /// Draws the board once, from the simulation's tile grid.
+    /// Builds the arena geometry from the simulation's tile grid.
     /// </summary>
     /// <remarks>
-    /// Tiles are static for the whole of Milestone 1, so every renderer is created and sorted at
-    /// build time and nothing touches them per frame. When blocks start being destroyed in
-    /// Milestone 2, individual tiles are updated in response to simulation events rather than by
-    /// rebuilding the board.
+    /// Blocks are cubes standing on a flat floor, so depth reads from the geometry itself and no
+    /// sorting arithmetic is needed. Tiles are static, so every renderer is created once and nothing
+    /// touches them per frame; destruction is handled by hiding the block that a simulation event
+    /// names.
     /// </remarks>
     [DisallowMultipleComponent]
     public sealed class BoardRenderer : MonoBehaviour
     {
         [Header("Colours")]
-        [SerializeField]
-        [Tooltip("Walkable floor.")]
-        private Color _floorColour = new Color(0.16f, 0.14f, 0.28f);
+        [SerializeField] private Color _floorColour = new Color(0.20f, 0.19f, 0.30f);
+        [SerializeField] private Color _floorAlternateColour = new Color(0.24f, 0.23f, 0.36f);
+        [SerializeField] private Color _solidColour = new Color(0.13f, 0.52f, 0.60f);
+        [SerializeField] private Color _destructibleColour = new Color(0.85f, 0.45f, 0.16f);
 
-        [SerializeField]
-        [Tooltip("Alternating floor shade, so the grid is legible while moving.")]
-        private Color _floorAlternateColour = new Color(0.20f, 0.17f, 0.34f);
-
-        [SerializeField]
-        [Tooltip("Permanent structure.")]
-        private Color _solidColour = new Color(0.10f, 0.55f, 0.62f);
-
-        [SerializeField]
-        [Tooltip("Destructible block.")]
-        private Color _destructibleColour = new Color(0.85f, 0.45f, 0.16f);
-
-        [Header("Blocks")]
-        [SerializeField, Range(0f, 1f)]
-        [Tooltip("How far a block is lifted off the floor, in tile heights, to read as standing up.")]
-        private float _blockLift = 0.35f;
-
-        private SpriteRenderer[] _blockRenderers = System.Array.Empty<SpriteRenderer>();
-        private IsometricProjector _projector = null!;
+        private GameObject?[] _blocks = System.Array.Empty<GameObject>();
+        private Material?[] _materials = System.Array.Empty<Material>();
+        private BoardProjector _projector = null!;
         private int _width;
 
-        /// <summary>Builds the board's renderers. Safe to call again to rebuild for a new level.</summary>
-        public void Build(in BoardState board, IsometricProjector projector)
+        /// <summary>Builds the arena. Safe to call again for a new level.</summary>
+        public void Build(in BoardState board, BoardProjector projector)
         {
             Clear();
 
             _projector = projector;
             _width = board.Width;
-            _blockRenderers = new SpriteRenderer[board.Width * board.Height];
+            _blocks = new GameObject?[board.Width * board.Height];
+
+            var floorA = PlaceholderMeshes.CreateMaterial(_floorColour);
+            var floorB = PlaceholderMeshes.CreateMaterial(_floorAlternateColour);
+            var solid = PlaceholderMeshes.CreateMaterial(_solidColour);
+            var destructible = PlaceholderMeshes.CreateMaterial(_destructibleColour);
+            _materials = new[] { floorA, floorB, solid, destructible };
 
             for (var y = 0; y < board.Height; y++)
             {
                 for (var x = 0; x < board.Width; x++)
                 {
                     var tile = new GridCoord(x, y);
-                    CreateFloor(tile);
-                    CreateBlock(tile, board[tile]);
+                    CreateFloor(tile, (x + y) % 2 == 0 ? floorA : floorB);
+
+                    var type = board[tile];
+                    if (type != TileType.Empty)
+                    {
+                        CreateBlock(tile, type == TileType.Solid ? solid : destructible);
+                    }
                 }
             }
         }
@@ -66,19 +62,16 @@ namespace BomberLegends.Gameplay.Board
         public void SetTile(GridCoord tile, TileType type)
         {
             var index = tile.ToIndex(_width);
-            if (index < 0 || index >= _blockRenderers.Length)
+            if (index < 0 || index >= _blocks.Length)
             {
                 return;
             }
 
-            var renderer = _blockRenderers[index];
-            if (renderer == null)
+            var block = _blocks[index];
+            if (block != null)
             {
-                return;
+                block.SetActive(type != TileType.Empty);
             }
-
-            renderer.enabled = type != TileType.Empty;
-            renderer.color = type == TileType.Solid ? _solidColour : _destructibleColour;
         }
 
         private void OnDestroy() => Clear();
@@ -87,48 +80,55 @@ namespace BomberLegends.Gameplay.Board
         {
             for (var i = transform.childCount - 1; i >= 0; i--)
             {
-                var child = transform.GetChild(i).gameObject;
-                if (Application.isPlaying)
+                Destroy(transform.GetChild(i).gameObject);
+            }
+
+            for (var i = 0; i < _materials.Length; i++)
+            {
+                if (_materials[i] != null)
                 {
-                    Destroy(child);
-                }
-                else
-                {
-                    DestroyImmediate(child);
+                    Destroy(_materials[i]);
                 }
             }
 
-            _blockRenderers = System.Array.Empty<SpriteRenderer>();
+            _blocks = System.Array.Empty<GameObject>();
+            _materials = System.Array.Empty<Material>();
         }
 
-        private void CreateFloor(GridCoord tile)
+        private void CreateFloor(GridCoord tile, Material material)
         {
-            var renderer = CreateRenderer($"Floor {tile.X},{tile.Y}", tile, lift: 0f);
-            renderer.sprite = PlaceholderArt.Diamond;
-            renderer.color = (tile.X + tile.Y) % 2 == 0 ? _floorColour : _floorAlternateColour;
-            renderer.sortingOrder = IsometricProjector.FloorSortingOrder(tile);
+            var floor = CreateRenderer($"Floor {tile.X},{tile.Y}", PlaceholderMeshes.Quad, material);
+
+            floor.transform.localPosition = _projector.TileToWorld(tile);
+
+            // A quad faces the camera by default; rotate it flat so it becomes ground.
+            floor.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            floor.transform.localScale = Vector3.one * _projector.TileSize;
         }
 
-        private void CreateBlock(GridCoord tile, TileType type)
+        private void CreateBlock(GridCoord tile, Material material)
         {
-            var renderer = CreateRenderer($"Block {tile.X},{tile.Y}", tile, _blockLift);
-            renderer.sprite = PlaceholderArt.Diamond;
-            renderer.color = type == TileType.Solid ? _solidColour : _destructibleColour;
-            renderer.sortingOrder = IsometricProjector.SortingOrder(tile.X, tile.Y);
-            renderer.enabled = type != TileType.Empty;
+            var height = _projector.BlockHeight;
+            var block = CreateRenderer($"Block {tile.X},{tile.Y}", PlaceholderMeshes.Cube, material);
 
-            _blockRenderers[tile.ToIndex(_width)] = renderer;
+            block.transform.localPosition = _projector.TileToWorld(tile, height * 0.5f);
+            block.transform.localScale = new Vector3(_projector.TileSize, height, _projector.TileSize);
+
+            _blocks[tile.ToIndex(_width)] = block;
         }
 
-        private SpriteRenderer CreateRenderer(string name, GridCoord tile, float lift)
+        private GameObject CreateRenderer(string name, Mesh mesh, Material material)
         {
-            var child = new GameObject(name);
+            var child = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
             child.transform.SetParent(transform, false);
 
-            var world = _projector.TileToWorld(tile);
-            child.transform.localPosition = new Vector3(world.x, world.y + (lift * _projector.TileHeight), 0f);
+            child.GetComponent<MeshFilter>().sharedMesh = mesh;
 
-            return child.AddComponent<SpriteRenderer>();
+            var renderer = child.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+
+            return child;
         }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using BomberLegends.Core;
 using BomberLegends.Simulation.Actors;
 using BomberLegends.Simulation.Board;
+using BomberLegends.Simulation.Bombs;
 using BomberLegends.Simulation.Events;
 using BomberLegends.Simulation.Systems;
 
@@ -26,6 +27,7 @@ namespace BomberLegends.Simulation
     {
         private readonly SimulationConfig _config;
         private readonly SimEventBuffer _events;
+        private readonly int[] _detonationQueue;
         private SimulationState _state;
 
         /// <summary>Starts a match.</summary>
@@ -40,12 +42,20 @@ namespace BomberLegends.Simulation
             _config = config;
             _events = new SimEventBuffer();
 
+            // Sized to the bomb pool: a bomb can only enter the queue once, guarded by its queued
+            // flag, so this can never overflow however long a chain runs.
+            _detonationQueue = new int[config.MaxBombs];
+
             _state = new SimulationState
             {
                 Tick = 0,
                 Phase = MatchPhase.Playing,
                 Board = layout.CreateBoard(),
-                Player = PlayerState.SpawnedAt(layout.PlayerSpawn),
+                Player = PlayerState.SpawnedAt(
+                    layout.PlayerSpawn, config.StartingBombCapacity, config.StartingBlastRange),
+                Bombs = new BombBuffer(config.MaxBombs),
+                BombGrid = new BombGrid(layout.Width, layout.Height),
+                BlastGrid = new BlastGrid(layout.Width, layout.Height),
                 Random = new DeterministicRandom(seed)
             };
 
@@ -87,11 +97,20 @@ namespace BomberLegends.Simulation
                 return;
             }
 
-            // 1. Movement — soft-grid travel, turn rules, wall collision.
+            // 1. Movement — soft-grid travel, turn rules, wall and bomb collision.
             MovementSystem.Tick(ref _state, _config, intent, _events);
 
-            // Bombs, fuses, blasts, enemies, damage, pickups, objectives, timer and scoring
-            // slot in here in Milestones 2 to 4.
+            // 2. Placement — turn a button press into a bomb on the board.
+            BombPlacementSystem.Tick(ref _state, _config, intent, _events);
+
+            // 3. Fuses — burn down, and queue whatever is due.
+            var queued = FuseSystem.Tick(ref _state, _detonationQueue);
+
+            // 4. Blasts — age existing fire, then resolve detonations and everything they chain into.
+            BlastSystem.Tick(ref _state, _config, _detonationQueue, queued, _events);
+
+            // Enemies, damage, pickups, objectives, timer and scoring slot in here in Milestones 3
+            // and 4. Order matters: a blast must be resolved before anything asks what it killed.
 
             _state.Tick++;
         }
@@ -118,6 +137,24 @@ namespace BomberLegends.Simulation
                 hash = Fold(hash, (byte)_state.Player.MoveDirection);
                 hash = Fold(hash, (byte)_state.Player.Facing);
                 hash = Fold(hash, _state.Player.IsMoving ? 1UL : 0UL);
+                hash = Fold(hash, (ulong)_state.Player.ActiveBombs);
+                hash = Fold(hash, (ulong)_state.Player.BombCapacity);
+                hash = Fold(hash, (ulong)_state.Player.BlastRange);
+
+                for (var slot = 0; slot < _state.Bombs.Capacity; slot++)
+                {
+                    var bomb = _state.Bombs[slot];
+                    hash = Fold(hash, bomb.IsActive ? 1UL : 0UL);
+                    if (!bomb.IsActive)
+                    {
+                        continue;
+                    }
+
+                    hash = Fold(hash, (ulong)(uint)bomb.Tile.X);
+                    hash = Fold(hash, (ulong)(uint)bomb.Tile.Y);
+                    hash = Fold(hash, (ulong)(uint)bomb.FuseTicksRemaining);
+                }
+
                 hash = Fold(hash, _state.Random.State);
 
                 return hash;

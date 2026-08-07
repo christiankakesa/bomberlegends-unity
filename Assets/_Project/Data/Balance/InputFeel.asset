@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e565dcda62284294894bdb7be5306cb6, type: 3}
   m_Name: InputFeel
   m_EditorClassIdentifier: BomberLegends.Data::BomberLegends.Data.Balance.InputFeelConfig
-  _deadzone: 0.25
+  _deadzone: 0.5
   _switchRatio: 1.4
   _changeBufferSeconds: 0.12

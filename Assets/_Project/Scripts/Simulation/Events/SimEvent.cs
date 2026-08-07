@@ -21,7 +21,19 @@ namespace BomberLegends.Simulation.Events
         PlayerTileEntered = 2,
 
         /// <summary>The player pressed into something solid and stopped.</summary>
-        PlayerBlocked = 3
+        PlayerBlocked = 3,
+
+        /// <summary>A bomb was placed. <c>EntityId</c> is its slot, <c>Value</c> its blast range.</summary>
+        BombPlaced = 4,
+
+        /// <summary>A bomb went off. <c>EntityId</c> is its slot, <c>Value</c> its blast range.</summary>
+        BombDetonated = 5,
+
+        /// <summary>A tile caught fire. Raised once per tile, however many arms reach it.</summary>
+        BlastSpawned = 6,
+
+        /// <summary>A destructible block was destroyed.</summary>
+        BlockDestroyed = 7
     }
 
     /// <summary>

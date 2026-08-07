@@ -266,7 +266,7 @@ Ranked by risk × cost.
 | G3 | **Shield trivialises the core tension.** An auto-block that recharges *during* a level removes the "don't blow yourself up" stakes that the entire game is built on | **High** | Not a starting passive. Move to meta unlock, one charge per life, no in-level recharge. |
 | G4 | **Timer resets on death** (§5.3) — a player can farm the level by dying, which nullifies Pillar 4 | **High** | Timer persists across lives, or death costs a fixed time penalty. Pick one and state it. |
 | G5 | **Permanent stat upgrades break level balance** (§4) | **High** | Horizontal meta; keep range/slots as in-level pickups. |
-| G6 | **Isometric controls feel imprecise** | **High** | Dedicated feel milestone (M1) with explicit acceptance criteria before any content is authored. |
+| G6 | ~~**Isometric controls feel imprecise**~~ | ~~High~~ → **RETIRED 2026-08-06** | Resolved by switching to a three-quarter top-down **square** grid: the four grid directions now map to screen axes instead of diagonals, so the ambiguity no longer exists. Cost one view class and its tests — the simulation was untouched. See `GDD.md` v1.2. |
 | G7 | **"Lightning Chain" special destroys 3 blocks instantly** — bypasses the core verb; if it is ever the efficient play, the game stops being Bomberman | **Medium** | Specials must reshape tactics, not replace bombs. Cost them in a resource that competes with bombing. |
 | G8 | **Speed +25% permanent passive** interacts violently with grid alignment and dodge windows | **Medium** | Speed as a bounded in-level pickup with tuned tiers, not a permanent multiplier. |
 | G9 | **Time pressure + puzzle thinking are opposed motivations** | **Medium** | Generous timers as a failsafe/anti-camp, not as the difficulty source. |

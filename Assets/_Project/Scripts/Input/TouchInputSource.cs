@@ -33,6 +33,7 @@ namespace BomberLegends.Input
     {
         private readonly VirtualJoystick _joystick;
         private readonly InputFeelConfig _feel;
+        private readonly ActionButton[] _actionButtons;
         private readonly IGridProjection _projection;
 
         private Direction _direction = Direction.None;
@@ -43,15 +44,34 @@ namespace BomberLegends.Input
         public TouchInputSource(
             VirtualJoystick joystick,
             InputFeelConfig feel,
-            IGridProjection projection)
+            IGridProjection projection,
+            params ActionButton[] actionButtons)
         {
+            _actionButtons = actionButtons ?? System.Array.Empty<ActionButton>();
             _joystick = joystick != null ? joystick : throw new System.ArgumentNullException(nameof(joystick));
             _feel = feel != null ? feel : throw new System.ArgumentNullException(nameof(feel));
             _projection = projection ?? throw new System.ArgumentNullException(nameof(projection));
         }
 
-        /// <summary>Buttons to report alongside movement. Set by the on-screen action buttons.</summary>
-        public IntentButtons Buttons { get; set; }
+        /// <summary>Which actions the on-screen buttons are currently requesting.</summary>
+        private IntentButtons Buttons
+        {
+            get
+            {
+                var buttons = IntentButtons.None;
+
+                for (var i = 0; i < _actionButtons.Length; i++)
+                {
+                    var button = _actionButtons[i];
+                    if (button != null && button.IsHeld)
+                    {
+                        buttons = buttons.With(button.Action);
+                    }
+                }
+
+                return buttons;
+            }
+        }
 
         /// <inheritdoc />
         public PlayerIntent Sample(int tick)

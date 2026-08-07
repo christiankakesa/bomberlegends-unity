@@ -93,7 +93,9 @@ Applies to **every** task; per-task DoD lists only the additions.
 
 ### T-009 · Android build pipeline — 🟡 **CONFIGURED · device verification outstanding**
 **Outcome** `AndroidBuildTool` applies the player settings in code rather than trusting whatever the project was last saved with, so a build from a clean checkout matches a developer machine: IL2CPP, ARM64, ASTC, landscape-only (both ways up), min SDK 26, application id `com.christiankakesa.bomberlegends`. One command produces `Builds/Android/BomberLegends-dev.apk`. **Build verified: succeeded in 496 s, 84 MB APK**, containing `AndroidManifest.xml`, `classes.dex`, `libil2cpp.so` and `libunity.so` for `arm64-v8a` only, with the application id and landscape orientation confirmed in the manifest. Build output is git-ignored.
-**⚠️ Outstanding** No Android device or `adb` on this machine. Two criteria need a physical device: (1) the APK launches to the hub, (2) **the T-005 carry-over — the save survives a force-stop.** Milestone 0 is not closed until both are checked off.
+**✅ Device-verified 2026-08-06 (Samsung S21 Ultra):** APK installs via adb and manually, launches to the hub, hub→match→hub navigation works, the board renders and the player moves.
+**Root cause of the first device failure:** the URP 2D sprite shaders were absent from the always-included list, and nothing in any scene referenced them (every `SpriteRenderer` was created at runtime), so they were stripped from the build — UI drew, the world did not, and the Editor looked fine throughout. Fixed by including both shaders and serialising the player's renderer into the scene. A `DeviceLogOverlay` now prints errors on screen in development builds so device-only failures are diagnosable without a cable.
+**⚠️ Still outstanding** The T-005 carry-over — save survives a force-stop — is not yet testable, since no progress is persisted until the meta loop exists (M4/M5).
 **Goal** Android build target configured (IL2CPP, ARM64, ASTC, landscape-only, correct min SDK), a one-click build script, signing keystore.
 **Dependencies** T-007 · **Complexity** M
 **Test criteria** One command produces an installable .apk; it launches to the hub on the target device. **Plus the T-005 carry-over: force-stop the app mid-session and confirm the save survives and reloads.**
@@ -131,8 +133,8 @@ Applies to **every** task; per-task DoD lists only the additions.
 **Test criteria** ≥ 20 unit tests: walls block, lane centring is stable, no tunnelling at high speed, no drift over 10 000 ticks.
 **DoD** Movement fully deterministic; speed expressed in tiles/tick; zero float drift accumulation.
 
-### T-014 · Isometric projection, rendering and depth sorting — 🟡 **CODE COMPLETE · draw calls unmeasured**
-**Outcome** `IsometricProjector` with `ScreenToGrid` proven to be the exact inverse of `GridToWorld` by test — the controls and the picture cannot drift apart. Depth sorting derives from grid coordinates with sub-tile resolution, so an actor sorts correctly part-way between tiles instead of popping; floor tiles carry an offset that guarantees they never occlude. Placeholder art is generated procedurally, keeping the slice free of binary assets.
+### T-014 · Board projection, rendering and depth sorting — ✅ **DONE · device-verified 2026-08-06** *(draw calls still unmeasured)*
+**Outcome** `BoardProjector` (three-quarter top-down over a square grid, replacing the original isometric projection on 2026-08-06 — see `GDD.md` v1.2). Depth sorts by row with sub-tile resolution, so an actor sorts correctly part-way between rows instead of popping; floor tiles carry an offset guaranteeing they never occlude. `MatchCameraRig` computes framing from the board and the live aspect ratio, so the whole board fits a 20:9 phone and a 4:3 tablet alike. Placeholder art generated procedurally, keeping the slice free of binary assets. Verified rendering on a Samsung S21 Ultra.
 **⚠️ Outstanding** "< 20 draw calls" and the four-approach-direction sorting check need a device or the Frame Debugger. Deferred to the T-036 performance pass.
 **Goal** `IsometricProjector` (grid ↔ world ↔ screen), board renderer with placeholder tiles, deterministic depth key from grid coordinates.
 **Dependencies** T-013 · **Complexity** M
@@ -159,19 +161,25 @@ Applies to **every** task; per-task DoD lists only the additions.
 
 # MILESTONE 2 — Bombs & Blasts
 
-### T-017 · Bomb placement and fuse
+### T-017 · Bomb placement and fuse — ✅ **DONE 2026-08-06**
+**Outcome** `BombBuffer` (slot-based, fixed capacity), `BombGrid` (O(1) occupancy), `BombPlacementSystem`, `FuseSystem`. Classic capacity model: a bomb returns to the pool on detonation, so placement rate equals the fuse. Placement is **edge-triggered**, so holding the button does not drain the pool. `BombCooldownTicks` ships at **0** with a test proving the GDD's cooldown model works when enabled — the question is now settled by a device playtest, not by argument.
+**Design note** Walking off your own bomb needed no special case. A bomb blocks movement *into* its tile and the player is already standing on it, so leaving works and returning does not — the classic rule falls out of the occupancy check, with no ownership tracking.
 **Goal** `BombPlacementSystem` + `FuseSystem`: capacity model, tile occupancy, walk-off-own-bomb exception, fuse countdown in ticks, `bombCooldownSeconds` tunable defaulting to 0.
 **Dependencies** T-013 · **Complexity** M
 **Test criteria** Cannot exceed capacity · cannot double-place on one tile · the player can leave a freshly placed bomb but not re-enter it · a bomb blocks enemies · fuse fires on the exact tick · cooldown set to 5 s reproduces the GDD model exactly.
 **DoD** Fixed-capacity bomb buffer, no allocation; both economy models proven by test.
 
-### T-018 · `BlastSystem` with chain detonation  ⚑ *critical*
+### T-018 · `BlastSystem` with chain detonation  ⚑ *critical* — ✅ **DONE 2026-08-06**
+**Outcome** Cross propagation with range clipping, stop-at-solid, destroy-one-block-and-stop, and **chain detonation resolving within a single tick**. `BlastGrid` holds per-tile lethal countdowns, so "is this tile deadly" is one array read for M3's damage system, and overlapping blasts keep the longer duration. **21 tests**, including an 8-bomb chain resolving in one tick, a 4-bomb ring terminating, and 5 000 ticks of placing and detonating allocating **0 bytes**.
+**Implementation notes** Resolution is an explicit queue, not recursion — a long chain would otherwise grow the call stack in proportion to its length. Each bomb carries an `IsQueued` flag so several arms reaching the same bomb cannot enqueue it twice, which is also what makes a ring terminate. Blast decay runs *before* new blasts are painted, so a tile lit this tick keeps its full duration.
 **Goal** Cross-shaped BFS propagation: range clipping, stop at solid, damage-and-stop at destructible, **chain-detonate bombs**, lethal duration, blast tile lifetime.
 **Dependencies** T-017 · **Complexity** L
 **Test criteria** ≥ 30 unit tests including: range clipped by walls · exactly one destructible destroyed per arm · a 10-bomb chain resolves fully · a circular chain does not infinite-loop · chains do not recurse (iterative queue, no stack growth) · blast at board edge does not read out of bounds.
 **DoD** Iterative propagation with a preallocated queue; chain depth unbounded with zero allocation; timing of chain detonation (same tick vs. next tick) documented as an explicit design decision with the rationale.
 
-### T-019 · Bomb, blast and destruction views + pooling
+### T-019 · Bomb, blast and destruction views + pooling — ✅ **DONE 2026-08-06**
+**Outcome** `MatchViewSynchroniser` turns simulation events into pooled views: `BombView` (pulse rate driven by the actual fuse, so a bomb about to go off looks different from a fresh one), `BlastView` (duration taken from the simulation's lethal window, so what looks dangerous and what kills are the same thing) and `BlockDestructionView`. All three pools prewarm during the loading screen and log an error if they ever grow mid-match. `ActionButton` added so bombs can be placed on a touch device. **Verified on a Samsung S21 Ultra:** bombs render and pulse, blasts appear, blocks are destroyed, effects retire and the pools recycle, with no errors in the device log.
+**Note** Pool prewarming necessarily calls the create callback, which initially tripped the overflow error and failed two PlayMode tests on every match load. Reporting is now suppressed for the duration of the prewarm.
 **Goal** Pooled `BombView`, `BlastSegmentView`, `BlockDestructionVfx` driven by `SimEvent`s; prewarm at match load; full state reset in `OnGet`.
 **Dependencies** T-018, T-012 · **Complexity** M
 **Test criteria** A 12-block chain detonation allocates 0 B · pools never grow during `PLAYING` · no visual state leaks between pooled uses · 60 fps sustained during the heaviest chain.

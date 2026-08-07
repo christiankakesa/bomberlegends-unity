@@ -1,5 +1,6 @@
 using BomberLegends.Data.Balance;
 using BomberLegends.Gameplay.Board;
+using BomberLegends.Gameplay.Camera;
 using BomberLegends.Gameplay.Player;
 using BomberLegends.Input;
 using BomberLegends.Services;
@@ -35,8 +36,20 @@ namespace BomberLegends.Gameplay.Match
         private PlayerView? _playerView;
 
         [SerializeField]
+        [Tooltip("Frames the board so it fits whatever screen the game is running on.")]
+        private MatchCameraRig? _cameraRig;
+
+        [SerializeField]
+        [Tooltip("Turns simulation events into bombs, blasts and debris.")]
+        private MatchViewSynchroniser? _views;
+
+        [SerializeField]
         [Tooltip("On-screen thumbstick. Optional: keyboard and gamepad work without it.")]
         private VirtualJoystick? _joystick;
+
+        [SerializeField]
+        [Tooltip("On-screen bomb button. Optional; space bar and gamepad also place bombs.")]
+        private ActionButton? _bombButton;
 
         [SerializeField]
         [Tooltip("Abandons the match and returns to the hub.")]
@@ -51,20 +64,37 @@ namespace BomberLegends.Gameplay.Match
         [Tooltip("Player speed in tiles per second.")]
         private float _moveSpeedTilesPerSecond = 4f;
 
+        [Header("View")]
+        [SerializeField, Range(0.5f, 2f)]
+        [Tooltip("World units across one tile.")]
+        private float _tileSize = 1f;
+
+        [SerializeField, Range(0.3f, 2.5f)]
+        [Tooltip("How tall a standing block is, in world units.")]
+        private float _blockHeight = 1f;
+
         [Header("Level")]
         [SerializeField]
         [Tooltip("'#' solid, 'X' destructible, '.' floor, 'P' spawn. The first row is the top.")]
         [TextArea(6, 20)]
         private string _levelLayout =
-            "#############\n" +
-            "#P.....X....#\n" +
-            "#.#.#.#.#.#.#\n" +
-            "#..X.....X..#\n" +
-            "#.#.#.#.#.#.#\n" +
-            "#...X...X...#\n" +
-            "#.#.#.#.#.#.#\n" +
-            "#....X......#\n" +
-            "#############";
+            "#########################\n" +
+            "#P...X...X...X...X...X..#\n" +
+            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
+            "#..X...X...X...X...X...X#\n" +
+            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
+            "#X...X...X...X...X...X..#\n" +
+            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
+            "#..X...X...X...X...X...X#\n" +
+            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
+            "#X...X...X...X...X...X..#\n" +
+            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
+            "#..X...X...X...X...X...X#\n" +
+            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
+            "#....X...X...X...X...X..#\n" +
+            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
+            "#......X...X...X...X...X#\n" +
+            "#########################";
 
         [SerializeField]
         [Tooltip("Seed for every random decision the match makes. A fixed value makes runs repeatable.")]
@@ -96,16 +126,31 @@ namespace BomberLegends.Gameplay.Match
                 return;
             }
 
-            var projector = new IsometricProjector();
-            var simulation = new GameSimulation(
-                SimulationConfig.FromTilesPerSecond(_moveSpeedTilesPerSecond),
-                layout,
-                _seed);
+            var projector = new BoardProjector(_tileSize, _blockHeight);
+            var config = SimulationConfig.FromTilesPerSecond(_moveSpeedTilesPerSecond);
+            var simulation = new GameSimulation(config, layout, _seed);
 
             _boardRenderer.Build(simulation.State.Board, projector);
             _playerView.Initialise(projector);
 
-            _runner.Begin(simulation, CreateInputSource(projector), _playerView);
+            var spawn = simulation.State.Player.Position;
+            _playerView.Render(spawn, spawn, 0f);
+
+            if (_cameraRig != null)
+            {
+                _cameraRig.Begin(layout.Width, layout.Height, projector, _playerView.WorldPosition);
+            }
+            else
+            {
+                Debug.LogWarning("[Match] No camera rig assigned; the arena will not be framed.");
+            }
+
+            if (_views != null)
+            {
+                _views.Begin(_boardRenderer, projector, config);
+            }
+
+            _runner.Begin(simulation, CreateInputSource(projector), _playerView, _views, _cameraRig);
         }
 
         private void OnDestroy()
@@ -145,7 +190,9 @@ namespace BomberLegends.Gameplay.Match
                 return new CompositeInputSource(
                     new KeyboardInputSource(),
                     new GamepadInputSource(),
-                    new TouchInputSource(_joystick, _inputFeel, projection));
+                    _bombButton != null
+                        ? new TouchInputSource(_joystick, _inputFeel, projection, _bombButton)
+                        : new TouchInputSource(_joystick, _inputFeel, projection));
             }
 
             if (_joystick != null)

@@ -1,6 +1,7 @@
 using BomberLegends.Core;
 using BomberLegends.Simulation.Actors;
 using BomberLegends.Simulation.Board;
+using BomberLegends.Simulation.Bombs;
 
 namespace BomberLegends.Simulation
 {
@@ -25,6 +26,15 @@ namespace BomberLegends.Simulation
 
         /// <summary>The player.</summary>
         public PlayerState Player;
+
+        /// <summary>Every bomb on the board.</summary>
+        public BombBuffer Bombs;
+
+        /// <summary>Which tile each bomb occupies, for constant-time occupancy and chain lookups.</summary>
+        public BombGrid BombGrid;
+
+        /// <summary>How much longer each tile stays lethal.</summary>
+        public BlastGrid BlastGrid;
 
         /// <summary>
         /// The match's random source. Part of the state because reproducing a match means

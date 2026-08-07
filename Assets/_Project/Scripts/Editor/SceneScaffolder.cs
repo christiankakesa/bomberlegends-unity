@@ -3,6 +3,7 @@ using System.IO;
 using BomberLegends.Bootstrap;
 using BomberLegends.Data.Balance;
 using BomberLegends.Gameplay.Board;
+using BomberLegends.Gameplay.Camera;
 using BomberLegends.Gameplay.Match;
 using BomberLegends.Gameplay.Player;
 using BomberLegends.Input;
@@ -164,32 +165,43 @@ namespace BomberLegends.Editor
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            // Framed on the default level: thirteen tiles across and nine deep, projected 2:1.
-            CreateCamera(new Color(0.02f, 0.06f, 0.09f), new Vector3(1f, 2.5f, -10f), orthographicSize: 3.6f);
+            // The rig positions and orients this at runtime; the values here only make the scene
+            // view sensible to open.
+            var matchCamera = CreateCamera(new Color(0.05f, 0.07f, 0.11f), new Vector3(6f, 10f, -4f));
+            matchCamera.orthographic = false;
+            matchCamera.fieldOfView = 45f;
+            matchCamera.nearClipPlane = 0.3f;
+            matchCamera.farClipPlane = 120f;
+            CreateSunlight();
+            var cameraRig = matchCamera.gameObject.AddComponent<MatchCameraRig>();
+
+            var rigSerialized = new SerializedObject(cameraRig);
+            rigSerialized.FindProperty("_camera").objectReferenceValue = matchCamera;
+            rigSerialized.ApplyModifiedPropertiesWithoutUndo();
 
             var root = new GameObject("Match");
             var installer = root.AddComponent<MatchInstaller>();
             var runner = root.AddComponent<MatchRunner>();
 
+            var viewsObject = new GameObject("Views");
+            viewsObject.transform.SetParent(root.transform, false);
+            var views = viewsObject.AddComponent<MatchViewSynchroniser>();
+
             var boardObject = new GameObject("Board");
             boardObject.transform.SetParent(root.transform, false);
             var boardRenderer = boardObject.AddComponent<BoardRenderer>();
 
-            // The renderer is created here, in the scene, rather than at runtime. That is what
-            // makes the build reference the sprite material, so its shader is not stripped — a
-            // stripped sprite shader draws the interface and nothing else, and only on device.
-            var playerObject = new GameObject("Player", typeof(SpriteRenderer));
+            // The view builds its own mesh child at run time. Its shader survives the build because
+            // ShaderInclusionTool lists it explicitly — nothing in a scene references it, and a
+            // stripped shader draws the interface and nothing else, on device only.
+            var playerObject = new GameObject("Player");
             playerObject.transform.SetParent(root.transform, false);
             var playerView = playerObject.AddComponent<PlayerView>();
-
-            var playerSerialized = new SerializedObject(playerView);
-            playerSerialized.FindProperty("_renderer").objectReferenceValue =
-                playerObject.GetComponent<SpriteRenderer>();
-            playerSerialized.ApplyModifiedPropertiesWithoutUndo();
 
             var canvas = CreateScreenCanvas("MatchCanvas");
             var quit = CreateButton("QuitButton", canvas.transform, "QUIT", new Vector2(760f, 420f));
             var joystick = CreateJoystick(canvas.transform);
+            var bombButton = CreateActionButton(canvas.transform);
 
             var serialized = new SerializedObject(installer);
             serialized.FindProperty("_quitButton").objectReferenceValue = quit;
@@ -198,9 +210,26 @@ namespace BomberLegends.Editor
             serialized.FindProperty("_playerView").objectReferenceValue = playerView;
             serialized.FindProperty("_joystick").objectReferenceValue = joystick;
             serialized.FindProperty("_inputFeel").objectReferenceValue = LoadOrCreateInputFeel();
+            serialized.FindProperty("_cameraRig").objectReferenceValue = cameraRig;
+            serialized.FindProperty("_views").objectReferenceValue = views;
+            serialized.FindProperty("_bombButton").objectReferenceValue = bombButton;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             return SaveScene(scene, SceneService.NameOf(SceneId.Match));
+        }
+
+        /// <summary>Adds a single directional light, so the greybox geometry reads as solid.</summary>
+        private static void CreateSunlight()
+        {
+            var sun = new GameObject("Sunlight", typeof(Light));
+            var light = sun.GetComponent<Light>();
+
+            light.type = LightType.Directional;
+            light.color = new Color(1f, 0.96f, 0.9f);
+            light.intensity = 1.15f;
+            light.shadows = LightShadows.Soft;
+
+            sun.transform.rotation = Quaternion.Euler(52f, 138f, 0f);
         }
 
         /// <summary>Creates the tuning asset if it does not exist yet, so the scene has one to point at.</summary>
@@ -219,6 +248,27 @@ namespace BomberLegends.Editor
             var asset = ScriptableObject.CreateInstance<InputFeelConfig>();
             AssetDatabase.CreateAsset(asset, path);
             return asset;
+        }
+
+        /// <summary>Builds the bomb button in the bottom-right thumb zone.</summary>
+        private static ActionButton CreateActionButton(Transform parent)
+        {
+            var buttonObject = new GameObject("BombButton", typeof(Image), typeof(ActionButton));
+            buttonObject.transform.SetParent(parent, false);
+
+            var rect = buttonObject.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(1f, 0f);
+            rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(240f, 240f);
+
+            // Mirrored from the stick, within comfortable reach of the right thumb.
+            rect.anchoredPosition = new Vector2(-240f, 240f);
+
+            buttonObject.GetComponent<Image>().color = new Color(0.95f, 0.35f, 0.25f, 0.75f);
+            AddLabel(buttonObject.transform, "BOMB");
+
+            return buttonObject.GetComponent<ActionButton>();
         }
 
         /// <summary>
@@ -254,7 +304,7 @@ namespace BomberLegends.Editor
             return joystick;
         }
 
-        private static void CreateCamera(
+        private static UnityEngine.Camera CreateCamera(
             Color background, Vector3? position = null, float orthographicSize = 5f)
         {
             var cameraObject = new GameObject("MainCamera", typeof(Camera));
@@ -266,6 +316,7 @@ namespace BomberLegends.Editor
             camera.orthographic = true;
             camera.orthographicSize = orthographicSize;
             cameraObject.transform.position = position ?? new Vector3(0f, 0f, -10f);
+            return camera;
         }
 
         private static Canvas CreateScreenCanvas(string name)

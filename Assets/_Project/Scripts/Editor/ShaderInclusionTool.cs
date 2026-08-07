@@ -18,9 +18,22 @@ namespace BomberLegends.Editor
     /// </remarks>
     public static class ShaderInclusionTool
     {
+        /// <summary>Shaders only ever referenced by runtime-created materials.</summary>
         private static readonly string[] RequiredShaders =
         {
-            "Sprites/Default",
+            "Universal Render Pipeline/Lit",
+            "Universal Render Pipeline/Unlit"
+        };
+
+        /// <summary>
+        /// Shaders that were required by the 2D renderer and are dead weight now.
+        /// </summary>
+        /// <remarks>
+        /// An always-included shader is compiled with every one of its variants, so leaving the 2D
+        /// sprite shaders in the list carried tens of megabytes of unused permutations.
+        /// </remarks>
+        private static readonly string[] ObsoleteShaders =
+        {
             "Universal Render Pipeline/2D/Sprite-Unlit-Default",
             "Universal Render Pipeline/2D/Sprite-Lit-Default"
         };
@@ -51,6 +64,21 @@ namespace BomberLegends.Editor
                 }
             }
 
+            var removed = 0;
+            for (var i = included.arraySize - 1; i >= 0; i--)
+            {
+                var shader = included.GetArrayElementAtIndex(i).objectReferenceValue as Shader;
+                if (shader == null || System.Array.IndexOf(ObsoleteShaders, shader.name) < 0)
+                {
+                    continue;
+                }
+
+                included.DeleteArrayElementAtIndex(i);
+                existing.Remove(shader.name);
+                removed++;
+                Debug.Log($"[Shaders] Removed '{shader.name}'; the 2D renderer is no longer used.");
+            }
+
             var added = 0;
             foreach (var name in RequiredShaders)
             {
@@ -72,13 +100,13 @@ namespace BomberLegends.Editor
                 Debug.Log($"[Shaders] Added '{name}' to the always-included list.");
             }
 
-            if (added > 0)
+            if (added > 0 || removed > 0)
             {
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 AssetDatabase.SaveAssets();
             }
 
-            Debug.Log($"[Shaders] Done. {added} shader(s) added, {existing.Count} already present.");
+            Debug.Log($"[Shaders] Done. {added} added, {removed} removed, {existing.Count} already present.");
         }
     }
 }

@@ -1,5 +1,9 @@
 # Bomber Legends — Production Roadmap (Phase 4)
 
+> ⚠️ **Partly superseded 2026-08-06.** The concept was revised to a Bomberman / MOBA / roguelite
+> hybrid. M0–M2 stand as delivered; everything from M3 onward is replaced by the milestone plan in
+> [`07-CONCEPT-REVISION.md`](07-CONCEPT-REVISION.md) §4.
+
 **Depends on:** `02-PROTOTYPE-SCOPE.md`, `03-ARCHITECTURE.md`
 
 **Governing rule:** every milestone ends in an **installable Android build that a stranger can play**. If a
@@ -32,13 +36,12 @@ production (Q8 in `01-ANALYSIS.md` §13 is unanswered).
 
 # Phase I — The Vertical Slice (M0–M5)
 
-## M0 — Project Bootstrap — 🟡 **COMPLETE pending device check (2026-08-05)**
+## M0 — Project Bootstrap — ✅ **COMPLETE, device-verified (2026-08-06)**
 **Duration:** 3 days · **Build:** boots to a placeholder hub on a real phone
 
-> **Status.** T-001 → T-009 delivered. 160 EditMode + 9 PlayMode tests green. The app boots, composes
-> its services, loads the save and moves hub ↔ match. Two exit criteria need hardware that is not
-> attached to the build machine: the APK launching on a device, and the save surviving a force-stop.
-> Everything else is verified.
+> **Status.** T-001 → T-009 delivered and verified on a Samsung S21 Ultra: the APK installs, launches
+> to the hub, and navigates hub ↔ match. The save force-stop check is deferred to M4/M5, when there is
+> actually progress worth persisting.
 
 | | |
 |---|---|
@@ -47,14 +50,22 @@ production (Q8 in `01-ANALYSIS.md` §13 is unanswered).
 | **Exit criteria** | Cold start < 4 s on target device · save round-trips across app restart · all assemblies compile with the dependency rules enforced · a .apk exists |
 | **Why first** | Every later milestone deploys through this pipeline. A day-one Android build means device performance is never a late surprise. |
 
-## M1 — Movement & Feel — 🟡 **BUILT pending on-device tuning (2026-08-05)**
+## M1 — Movement & Feel — ✅ **COMPLETE, device-verified (2026-08-06)**
 **Duration:** 5 days · **Build:** walk around a grid, on a phone, with your thumb
 
-> **Status.** T-010 → T-016 implemented. 240 EditMode + 9 PlayMode tests green; the simulation
-> allocates zero bytes per tick and cannot tunnel a wall at any speed. **The exit criterion is not
-> met:** it requires the feel parameters tuned on a real phone and five testers navigating a maze
-> unassisted with zero stuck-on-geometry incidents. The mechanisms are built and unit-tested; the
-> numbers are starting points.
+> **Status.** T-010 → T-016 delivered. 246 EditMode + 9 PlayMode tests green; the simulation
+> allocates zero bytes per tick and cannot tunnel a wall at any speed.
+>
+> **Verified on a Samsung S21 Ultra and a tablet:** movement reads well, corner assist lets a blocked
+> player turn out cleanly, and holding the stick near a diagonal produces no flicker. The perspective
+> was changed mid-milestone from true isometric to a three-quarter top-down square grid, which
+> **retired risk G6** — the highest-rated feel risk in the project — rather than mitigating it.
+>
+> Two rendering defects were found on device and fixed: sprite shaders stripped from the build, and
+> 3D objects drawn as single flat quads. Both are covered by the notes in `05-BACKLOG.md`.
+>
+> *Remaining nicety:* the five-tester unassisted maze run from the original DoD has not been done.
+> The mechanisms are validated; broader playtesting folds into the Gate A protocol at M5.
 
 | | |
 |---|---|

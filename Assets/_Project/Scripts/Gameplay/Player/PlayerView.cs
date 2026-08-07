@@ -8,67 +8,65 @@ namespace BomberLegends.Gameplay.Player
     /// Draws the player at an interpolated position between two simulation ticks.
     /// </summary>
     /// <remarks>
-    /// The simulation runs at a fixed rate well below the display rate, so drawing the raw tick
-    /// position would visibly step. Interpolating between the previous and current tick is what
-    /// makes movement look smooth without the rules having to run any faster.
+    /// The simulation runs well below the display rate, so drawing the raw tick position would step
+    /// visibly. Interpolating is what makes movement look smooth without the rules running faster.
     /// </remarks>
     [DisallowMultipleComponent]
     public sealed class PlayerView : MonoBehaviour
     {
-        [SerializeField]
-        [Tooltip("Renderer drawn at the interpolated position.")]
-        private SpriteRenderer? _renderer;
+        [SerializeField] private Color _colour = new Color(0.95f, 0.82f, 0.25f);
+        [SerializeField, Range(0.2f, 1.5f)] private float _diameter = 0.7f;
+        [SerializeField, Range(0.2f, 2f)] private float _height = 0.9f;
 
-        [SerializeField]
-        [Tooltip("Placeholder tint until the character art exists.")]
-        private Color _colour = new Color(0.95f, 0.85f, 0.25f);
+        private BoardProjector _projector = null!;
+        private Transform? _body;
+        private Material? _material;
 
-        [SerializeField, Range(0.1f, 2f)]
-        [Tooltip("Size relative to one tile width.")]
-        private float _scale = 0.55f;
-
-        private IsometricProjector _projector = null!;
+        /// <summary>The player's current world position, for the camera to follow.</summary>
+        public Vector3 WorldPosition { get; private set; }
 
         /// <summary>Prepares the view for a match.</summary>
-        public void Initialise(IsometricProjector projector)
+        public void Initialise(BoardProjector projector)
         {
             _projector = projector;
 
-            if (_renderer == null)
-            {
-                _renderer = gameObject.AddComponent<SpriteRenderer>();
-            }
-
-            _renderer.sprite = PlaceholderArt.Disc;
-            _renderer.color = _colour;
-            _renderer.transform.localScale = Vector3.one * _scale;
-        }
-
-        /// <summary>
-        /// Places the view between two tick positions.
-        /// </summary>
-        /// <param name="previous">Position at the previous tick.</param>
-        /// <param name="current">Position at the current tick.</param>
-        /// <param name="alpha">How far through the current tick the frame is, from zero to one.</param>
-        public void Render(SubTilePoint previous, SubTilePoint current, float alpha)
-        {
-            if (_renderer == null)
+            if (_body != null)
             {
                 return;
             }
 
-            var gridX = Mathf.LerpUnclamped(ToGrid(previous.X), ToGrid(current.X), alpha);
-            var gridY = Mathf.LerpUnclamped(ToGrid(previous.Y), ToGrid(current.Y), alpha);
+            _material = PlaceholderMeshes.CreateMaterial(_colour);
 
-            var world = _projector.GridToWorld(gridX, gridY);
-            transform.localPosition = new Vector3(world.x, world.y, 0f);
+            var body = new GameObject("Body", typeof(MeshFilter), typeof(MeshRenderer));
+            body.transform.SetParent(transform, false);
+            body.GetComponent<MeshFilter>().sharedMesh = PlaceholderMeshes.Sphere;
+            body.GetComponent<MeshRenderer>().sharedMaterial = _material;
+            body.transform.localScale = new Vector3(_diameter, _height, _diameter);
 
-            // Sorted from the interpolated grid depth, so the player passes behind and in front of
-            // blocks at exactly the right moment rather than popping at tile boundaries.
-            _renderer.sortingOrder = IsometricProjector.SortingOrder(gridX, gridY);
+            // Raised so the body rests on the floor rather than sinking half-way through it.
+            body.transform.localPosition = new Vector3(0f, _height * 0.5f, 0f);
+
+            _body = body.transform;
         }
 
-        private static float ToGrid(int subTileUnits) =>
-            ((float)subTileUnits / SubTilePoint.UnitsPerTile) - 0.5f;
+        /// <summary>Places the view between two tick positions.</summary>
+        public void Render(SubTilePoint previous, SubTilePoint current, float alpha)
+        {
+            var gridX = Mathf.LerpUnclamped(
+                BoardProjector.ToGrid(previous.X), BoardProjector.ToGrid(current.X), alpha);
+            var gridY = Mathf.LerpUnclamped(
+                BoardProjector.ToGrid(previous.Y), BoardProjector.ToGrid(current.Y), alpha);
+
+            WorldPosition = _projector.GridToWorld(gridX, gridY);
+            transform.localPosition = WorldPosition;
+        }
+
+        private void OnDestroy()
+        {
+            if (_material != null)
+            {
+                Destroy(_material);
+            }
+        }
     }
 }

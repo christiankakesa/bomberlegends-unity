@@ -19,37 +19,39 @@ namespace BomberLegends.Gameplay.Board
     /// </remarks>
     public static class PlaceholderArt
     {
-        private const int DiamondWidth = 64;
-        private const int DiamondHeight = 32;
+        private const int TileSize = 64;
+        private const int TileBorder = 3;
         private const int DiscSize = 48;
 
-        private static Sprite? _diamond;
+        private static Sprite? _tile;
         private static Sprite? _disc;
 
-        /// <summary>A 2:1 diamond matching one projected tile.</summary>
-        public static Sprite Diamond => _diamond ??= CreateDiamond();
+        /// <summary>A square tile with an inset border, so the grid reads while moving.</summary>
+        public static Sprite Tile => _tile ??= CreateTile();
 
         /// <summary>A filled circle, used for actors.</summary>
         public static Sprite Disc => _disc ??= CreateDisc();
 
-        private static Sprite CreateDiamond()
+        private static Sprite CreateTile()
         {
-            var pixels = new Color32[DiamondWidth * DiamondHeight];
-            var halfWidth = DiamondWidth * 0.5f;
-            var halfHeight = DiamondHeight * 0.5f;
+            var pixels = new Color32[TileSize * TileSize];
 
-            for (var y = 0; y < DiamondHeight; y++)
+            for (var y = 0; y < TileSize; y++)
             {
-                for (var x = 0; x < DiamondWidth; x++)
+                for (var x = 0; x < TileSize; x++)
                 {
-                    var dx = Mathf.Abs(x + 0.5f - halfWidth) / halfWidth;
-                    var dy = Mathf.Abs(y + 0.5f - halfHeight) / halfHeight;
-                    var inside = dx + dy <= 1f;
-                    pixels[(y * DiamondWidth) + x] = inside ? new Color32(255, 255, 255, 255) : default;
+                    var onEdge = x < TileBorder || y < TileBorder ||
+                                 x >= TileSize - TileBorder || y >= TileSize - TileBorder;
+
+                    // The darker rim is what separates one tile from the next without needing a
+                    // second sprite or a second draw call.
+                    pixels[(y * TileSize) + x] = onEdge
+                        ? new Color32(255, 255, 255, 90)
+                        : new Color32(255, 255, 255, 255);
                 }
             }
 
-            return CreateSprite(pixels, DiamondWidth, DiamondHeight, DiamondWidth, "PlaceholderDiamond");
+            return CreateSprite(pixels, TileSize, TileSize, TileSize, "PlaceholderTile");
         }
 
         private static Sprite CreateDisc()

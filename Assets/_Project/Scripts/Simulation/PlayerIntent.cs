@@ -31,16 +31,38 @@ namespace BomberLegends.Simulation
         /// <summary>Vertical stick position, from -100 to 100.</summary>
         public readonly sbyte MoveY;
 
+        /// <summary>Horizontal aim, from -100 to 100.</summary>
+        /// <remarks>
+        /// Separate from movement because skillshots are aimed independently of where the player is
+        /// running. Added to the intent now rather than later: this struct is the replay format and
+        /// the future network packet, so widening it costs nothing today and invalidates every
+        /// recorded run once there are any.
+        /// </remarks>
+        public readonly sbyte AimX;
+
+        /// <summary>Vertical aim, from -100 to 100.</summary>
+        public readonly sbyte AimY;
+
         /// <summary>Action buttons held this tick.</summary>
         public readonly IntentButtons Buttons;
 
         /// <summary>Creates an intent.</summary>
-        public PlayerIntent(sbyte moveX, sbyte moveY, IntentButtons buttons = IntentButtons.None)
+        public PlayerIntent(
+            sbyte moveX,
+            sbyte moveY,
+            IntentButtons buttons = IntentButtons.None,
+            sbyte aimX = 0,
+            sbyte aimY = 0)
         {
             MoveX = moveX;
             MoveY = moveY;
             Buttons = buttons;
+            AimX = aimX;
+            AimY = aimY;
         }
+
+        /// <summary>Whether an aim direction is being supplied this tick.</summary>
+        public bool HasAim => AimX != 0 || AimY != 0;
 
         /// <summary>No movement and no buttons.</summary>
         public static PlayerIntent None => default;
