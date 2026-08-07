@@ -522,6 +522,83 @@ and a different decision. The catalog-walking test still enforces it.
 
 ---
 
+## 4g. Play feedback and disposition (2026-08-07)
+
+Six items raised after playing the widened pool. **374 EditMode + 10 PlayMode green.**
+
+### Fixed now
+
+**Item descriptions on the choice and swap screens.** Cards now carry a sentence saying what changes
+about how you play, with any cost stated in the same breath. This was not polish:
+
+> *"I'm mainly swapping just to try every skill."*
+>
+> That is the gate metric **"deliberately picks a different item on run 2"** failing for a user
+> interface reason rather than a design one. A player who cannot read what an item does picks at
+> random, and random picks read in the data as the synergy pillar failing. Descriptions had to land
+> before any playtest, or the test would have measured the wrong thing.
+
+A test now requires every catalogued item to carry a description of real length, so a new item cannot
+reach a choice screen nameless.
+
+**On-screen controls no longer appear on desktop.** The stick and BOMB button are gated on an actual
+touchscreen being present rather than on the platform name, so a Windows tablet still gets them and a
+desktop build does not. A hidden stick is also no longer sampled — an invisible control feeding the
+simulation whatever it was last left holding is a bug waiting to happen. Inspector override for
+testing from the Editor.
+
+### Sequencing note, deliberately recorded
+
+The report that swapping felt exploratory rather than deliberate arrived **before** descriptions
+existed. That observation should be re-taken now, not designed around. Building enemy variety to fix
+a problem that a sentence of text may already have fixed would be the expensive way to learn that.
+
+### Accepted, not yet built
+
+| Item | Disposition |
+|---|---|
+| **More arenas via simple PCG** | Accepted. Deterministic generation from the run seed, engine-free, in `Simulation`. Must guarantee a safe spawn pocket and a connected board — an arena that walls the player in is worse than a repeated layout. |
+| **Attacking towers / statues** | Accepted in principle, as an *arena feature* rather than a mob. See below. |
+| **Squash-and-stretch on the arena border** | Accepted, view layer only. |
+| **Skill-ready and recharge indication** | Accepted. Currently only the numeric charge count in the readout. |
+
+### On towers: the argument for them is specific to this game
+
+The generic case ("MOBAs have them") is weak. The strong case is that **a tower is the only threat
+that would make destructible blocks matter defensively.**
+
+Today the maze matters for skillshots, which it blocks, and for movement. Nothing makes a player
+*want* cover. A tower that shoots on sight turns every destructible block into protection — and the
+player's primary verb is a bomb that destroys protection. **Your main tool eats your own cover.**
+That is a real tension the design does not currently have anywhere, and it costs one new entity type
+to get.
+
+It also answers the concern behind the swapping report in the right shape: a static zoning threat
+changes *what a build has to answer*, without needing new mob AI at all.
+
+Two constraints if it is built:
+
+- **Chip damage, not lethality.** With a 34-damage own-bomb and an immunity window, a hard-hitting
+  static threat would be punishing in a way the design has carefully avoided.
+- **It must telegraph.** A wind-up the player can read and dodge, or it becomes an unfair tax on
+  standing still.
+
+Mechanically it is close to free: a tower fires a projectile, and `ProjectileSystem` already flies,
+collides and damages. Placement is a natural fit for the PCG work.
+
+### On "changes direction or stops after a long run"
+
+Two readings, and they are very different jobs:
+
+- **A visual flourish** — lean, skid, dust on a hard stop. View only, no simulation change, safe.
+- **Real momentum** — acceleration and slide in the movement rules. That is a simulation change: it
+  alters the 360° feel already validated at M2b/M4, and it invalidates any recorded run.
+
+Worth settling which is meant before either is built. The first is polish; the second is a change to
+the thing that has already been signed off.
+
+---
+
 ## 5. Open questions
 
 1. **Does the third active skill earn its slot?** Three actives plus movement plus aim is a lot of

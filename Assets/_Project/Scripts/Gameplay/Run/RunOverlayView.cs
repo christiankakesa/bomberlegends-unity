@@ -21,6 +21,7 @@ namespace BomberLegends.Gameplay.Run
 
         private readonly Button[] _choices = new Button[Simulation.Run.GameRun.OfferCount];
         private readonly Text[] _choiceLabels = new Text[Simulation.Run.GameRun.OfferCount];
+        private readonly Text[] _choiceBlurbs = new Text[Simulation.Run.GameRun.OfferCount];
         private readonly ItemId[] _choiceIds = new ItemId[Simulation.Run.GameRun.OfferCount];
 
         private GameObject? _panel;
@@ -59,17 +60,19 @@ namespace BomberLegends.Gameplay.Run
 
             for (var i = 0; i < _choices.Length; i++)
             {
-                var offset = new Vector2((i - 1) * 260f, 20f);
-                var button = CreateButton(_panel.transform, offset, new Vector2(240f, 90f));
+                var offset = new Vector2((i - 1) * 320f, 30f);
+                var button = CreateCard(_panel.transform, offset, new Vector2(300f, 230f),
+                    out var name, out var blurb);
 
                 var index = i;
                 button.onClick.AddListener(() => OnPressed(index));
 
                 _choices[i] = button;
-                _choiceLabels[i] = button.GetComponentInChildren<Text>();
+                _choiceLabels[i] = name;
+                _choiceBlurbs[i] = blurb;
             }
 
-            _skip = CreateButton(_panel.transform, new Vector2(0f, -110f), new Vector2(220f, 64f));
+            _skip = CreateButton(_panel.transform, new Vector2(0f, -170f), new Vector2(220f, 60f));
             _skip.GetComponentInChildren<Text>().text = "SKIP";
             _skip.onClick.AddListener(() => Skipped?.Invoke());
 
@@ -128,6 +131,7 @@ namespace BomberLegends.Gameplay.Run
                 {
                     _choiceIds[i] = ids[i];
                     _choiceLabels[i].text = ItemCatalog.Name(ids[i]);
+                    _choiceBlurbs[i].text = ItemCatalog.Description(ids[i]);
                 }
             }
         }
@@ -205,6 +209,31 @@ namespace BomberLegends.Gameplay.Run
             label.raycastTarget = false;
 
             return label;
+        }
+
+        /// <summary>
+        /// Builds a choice card: a name you can scan and a sentence explaining what it changes.
+        /// </summary>
+        /// <remarks>
+        /// The sentence is the point. A name alone tells a player nothing, and the slice measures
+        /// whether they choose deliberately — which they cannot do from "BOMB TRAIL".
+        /// </remarks>
+        private static Button CreateCard(
+            Transform parent, Vector2 position, Vector2 size, out Text name, out Text blurb)
+        {
+            var button = CreateButton(parent, position, size);
+
+            name = CreateLabel(button.transform, string.Empty, 22, new Vector2(0f, size.y * 0.34f));
+            name.rectTransform.sizeDelta = new Vector2(size.x - 24f, 56f);
+
+            blurb = CreateLabel(button.transform, string.Empty, 15, new Vector2(0f, -size.y * 0.10f));
+            blurb.rectTransform.sizeDelta = new Vector2(size.x - 32f, size.y * 0.62f);
+            blurb.alignment = TextAnchor.UpperCenter;
+            blurb.horizontalOverflow = HorizontalWrapMode.Wrap;
+            blurb.verticalOverflow = VerticalWrapMode.Truncate;
+            blurb.color = new Color(0.85f, 0.90f, 0.95f);
+
+            return button;
         }
 
         private static Button CreateButton(Transform parent, Vector2 position, Vector2 size)

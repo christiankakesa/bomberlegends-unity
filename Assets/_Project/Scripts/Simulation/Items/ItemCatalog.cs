@@ -97,6 +97,53 @@ namespace BomberLegends.Simulation.Items
             _ => default
         };
 
+        /// <summary>
+        /// What the item does, in the player's terms.
+        /// </summary>
+        /// <remarks>
+        /// Written as <i>what changes about how you play</i> rather than as a stat line, and it
+        /// carries real weight: the vertical slice measures whether players deliberately pick a
+        /// different item on their second run. A player who cannot tell what an item does picks at
+        /// random, which reads in the data as the synergy pillar failing when the truth is only that
+        /// the screen said nothing. Any cost is stated in the same breath as the benefit.
+        /// </remarks>
+        public static string Description(ItemId id) => id switch
+        {
+            ItemId.Overcharge =>
+                "Your skillshot sets off any bomb it flies over. Bombs become triggers you hold, " +
+                "not timers you plan around.",
+
+            ItemId.Momentum =>
+                "Your dash injures enemies it passes through. It still gives no protection — " +
+                "charging through a mob is a trade.",
+
+            ItemId.KineticCore =>
+                "Every skill travels half again as far and as fast. Your dash and your shot both " +
+                "reach further.",
+
+            ItemId.PiercingRounds =>
+                "Your skillshot passes through enemies instead of stopping at the first one.",
+
+            ItemId.BombTrail =>
+                "Dashing lays a bomb where you left. Uses one of your bombs, so you can carry no " +
+                "more than before.",
+
+            ItemId.Quickstep =>
+                "Your dash comes back 40% sooner. You are committed for less of the fight.",
+
+            ItemId.FocusingLens =>
+                "Your skillshot hits far harder but travels noticeably slower. You will have to " +
+                "lead moving targets.",
+
+            ItemId.Overclock =>
+                "Every skill comes back 25% sooner.",
+
+            ItemId.TwinShot =>
+                "Bank a second skillshot for back-to-back firing. Each one recharges more slowly.",
+
+            _ => string.Empty
+        };
+
         /// <summary>A short name, for readouts.</summary>
         public static string Name(ItemId id) => id switch
         {

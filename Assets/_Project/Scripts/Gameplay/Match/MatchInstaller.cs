@@ -60,6 +60,12 @@ namespace BomberLegends.Gameplay.Match
 
         [Header("Configuration")]
         [SerializeField]
+        [Tooltip(
+            "When the on-screen stick and bomb button appear. Auto shows them only where there is " +
+            "a touchscreen, so a desktop build is not cluttered with controls it cannot use.")]
+        private TouchControlMode _touchControls = TouchControlMode.Auto;
+
+        [SerializeField]
         [Tooltip("Stick handling. Tuned on device; see T-015.")]
         private InputFeelConfig? _inputFeel;
 
@@ -147,6 +153,19 @@ namespace BomberLegends.Gameplay.Match
 
         private GameContext? _context;
 
+        /// <summary>When the on-screen controls are shown.</summary>
+        private enum TouchControlMode
+        {
+            /// <summary>Only where the device actually has a touchscreen.</summary>
+            Auto = 0,
+
+            /// <summary>Always, which is how they get tested from the Editor.</summary>
+            AlwaysShow = 1,
+
+            /// <summary>Never.</summary>
+            AlwaysHide = 2
+        }
+
         /// <inheritdoc />
         public override SceneId Scene => SceneId.Match;
 
@@ -170,6 +189,8 @@ namespace BomberLegends.Gameplay.Match
             {
                 return;
             }
+
+            ApplyTouchControlVisibility();
 
             var projector = new BoardProjector(_tileSize, _blockHeight);
             var config = SimulationConfig.FromTilesPerSecond(_moveSpeedTilesPerSecond);
@@ -285,13 +306,44 @@ namespace BomberLegends.Gameplay.Match
             }
         }
 
+        /// <summary>
+        /// Shows the on-screen stick and bomb button only where they can actually be used.
+        /// </summary>
+        /// <remarks>
+        /// A desktop build was drawing a thumbstick and a BOMB button over the arena, neither of
+        /// which does anything with a mouse and keyboard. Touch presence is the honest test rather
+        /// than the platform name, so a Windows tablet or a device plugged into the Editor still
+        /// gets them.
+        /// </remarks>
+        private void ApplyTouchControlVisibility()
+        {
+            if (_joystick != null)
+            {
+                _joystick.gameObject.SetActive(ShowTouchControls);
+            }
+
+            if (_bombButton != null)
+            {
+                _bombButton.gameObject.SetActive(ShowTouchControls);
+            }
+        }
+
+        private bool ShowTouchControls => _touchControls switch
+        {
+            TouchControlMode.AlwaysShow => true,
+            TouchControlMode.AlwaysHide => false,
+            _ => UnityEngine.InputSystem.Touchscreen.current != null || Application.isMobilePlatform
+        };
+
         private IInputSource CreateInputSource(IGridProjection projection)
         {
             // A developer can pick up whichever control surface is to hand without changing a
             // setting, which matters a great deal while feel is being tuned.
             var keyboard = new KeyboardInputSource(CreateAimSource());
 
-            if (_joystick != null && _inputFeel != null)
+            // A hidden stick must not still be sampled, or an invisible control would keep feeding
+            // the simulation whatever it was last left holding.
+            if (_joystick != null && _inputFeel != null && ShowTouchControls)
             {
                 return new CompositeInputSource(
                     keyboard,
@@ -301,7 +353,7 @@ namespace BomberLegends.Gameplay.Match
                         : new TouchInputSource(_joystick, _inputFeel, projection));
             }
 
-            if (_joystick != null)
+            if (_joystick != null && _inputFeel == null && ShowTouchControls)
             {
                 Debug.LogWarning(
                     "[Match] No input feel config is assigned, so the on-screen stick is disabled.");

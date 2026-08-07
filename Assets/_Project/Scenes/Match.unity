@@ -301,7 +301,7 @@ MonoBehaviour:
 
     ###########################'
   _seed: 1
-  _startingItems: 010203
+  _startingItems: 0105
 --- !u!4 &62270303
 Transform:
   m_ObjectHideFlags: 0

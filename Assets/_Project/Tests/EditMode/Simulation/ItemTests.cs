@@ -259,6 +259,23 @@ namespace BomberLegends.Tests.EditMode.Simulation
         }
 
         [Test]
+        public void EveryItemExplainsItselfToThePlayer()
+        {
+            // The slice measures whether players choose deliberately. An item with no description
+            // gets picked at random, which reads in the data as the synergy pillar failing when the
+            // truth is only that the screen said nothing.
+            foreach (var id in ItemCatalog.All)
+            {
+                var description = ItemCatalog.Description(id);
+
+                Assert.That(description, Is.Not.Empty, $"{ItemCatalog.Name(id)} has no description");
+                Assert.That(description.Length, Is.GreaterThan(25),
+                    $"{ItemCatalog.Name(id)}'s description is too terse to decide from");
+                Assert.That(description, Is.Not.EqualTo(ItemCatalog.Name(id)));
+            }
+        }
+
+        [Test]
         public void NoStartingItemGrantsADashCharge()
         {
             // Recorded design decision: a second dash charge converts "dash in *or* out" into
