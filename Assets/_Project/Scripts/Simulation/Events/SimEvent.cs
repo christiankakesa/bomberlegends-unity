@@ -33,7 +33,19 @@ namespace BomberLegends.Simulation.Events
         BlastSpawned = 6,
 
         /// <summary>A destructible block was destroyed.</summary>
-        BlockDestroyed = 7
+        BlockDestroyed = 7,
+
+        /// <summary>
+        /// Something took damage. <c>EntityId</c> is zero for the player or the enemy slot plus one;
+        /// <c>Value</c> is the amount.
+        /// </summary>
+        DamageTaken = 8,
+
+        /// <summary>An enemy ran out of health. <c>EntityId</c> is its slot plus one.</summary>
+        EnemyKilled = 9,
+
+        /// <summary>The player ran out of health.</summary>
+        PlayerDied = 10
     }
 
     /// <summary>

@@ -25,6 +25,9 @@ namespace BomberLegends.Simulation.Actors
         /// <summary>Whether the player actually moved on the last tick.</summary>
         public bool IsMoving;
 
+        /// <summary>Health and immunity.</summary>
+        public HealthState Health;
+
         /// <summary>How many bombs the player may have on the board at once.</summary>
         public int BombCapacity;
 
@@ -47,7 +50,8 @@ namespace BomberLegends.Simulation.Actors
         public readonly GridCoord Tile => Position.Tile;
 
         /// <summary>Creates a player standing at the centre of a tile.</summary>
-        public static PlayerState SpawnedAt(GridCoord tile, int bombCapacity, int blastRange) =>
+        public static PlayerState SpawnedAt(
+            GridCoord tile, int bombCapacity, int blastRange, int maxHealth) =>
             new PlayerState
             {
                 Position = SubTilePoint.AtCentreOf(tile),
@@ -58,7 +62,8 @@ namespace BomberLegends.Simulation.Actors
                 ActiveBombs = 0,
                 BlastRange = blastRange,
                 BombCooldownTicksRemaining = 0,
-                BombHeldLastTick = false
+                BombHeldLastTick = false,
+                Health = HealthState.Full(maxHealth)
             };
     }
 }

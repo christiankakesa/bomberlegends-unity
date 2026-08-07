@@ -26,7 +26,16 @@ namespace BomberLegends.Simulation
             int maxBombs = 16,
             int playerRadius = 340,
             int cornerSlipPerTick = 120,
-            int cornerSlipTolerance = 320)
+            int cornerSlipTolerance = 320,
+            int playerMaxHealth = 100,
+            int blastDamageToPlayer = 34,
+            int enemyContactDamage = 10,
+            int invulnerabilityTicks = 30,
+            int enemyMaxHealth = 100,
+            int blastDamageToEnemy = 100,
+            int enemySpeedPerTick = 80,
+            int enemyRadius = 320,
+            int maxEnemies = 32)
         {
             MoveSpeedPerTick = moveSpeedPerTick;
             LaneSnapPerTick = laneSnapPerTick;
@@ -42,6 +51,15 @@ namespace BomberLegends.Simulation
             PlayerRadius = playerRadius;
             CornerSlipPerTick = cornerSlipPerTick;
             CornerSlipTolerance = cornerSlipTolerance;
+            PlayerMaxHealth = playerMaxHealth;
+            BlastDamageToPlayer = blastDamageToPlayer;
+            EnemyContactDamage = enemyContactDamage;
+            InvulnerabilityTicks = invulnerabilityTicks;
+            EnemyMaxHealth = enemyMaxHealth;
+            BlastDamageToEnemy = blastDamageToEnemy;
+            EnemySpeedPerTick = enemySpeedPerTick;
+            EnemyRadius = enemyRadius;
+            MaxEnemies = maxEnemies;
         }
 
         /// <summary>Sub-tile units the player advances each tick while moving.</summary>
@@ -125,6 +143,46 @@ namespace BomberLegends.Simulation
         /// </remarks>
         public int CornerSlipTolerance { get; }
 
+        /// <summary>Health the player starts a run with.</summary>
+        public int PlayerMaxHealth { get; }
+
+        /// <summary>
+        /// Damage a blast deals to the player.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately a large share of maximum health. Health plus a dash would otherwise remove
+        /// the reason the Bomberman layer exists: if blowing yourself up is a minor inconvenience,
+        /// there is no tension in laying a trap and standing near it.
+        /// </remarks>
+        public int BlastDamageToPlayer { get; }
+
+        /// <summary>Damage an enemy deals by touching the player. Small, by design: enemies chip.</summary>
+        public int EnemyContactDamage { get; }
+
+        /// <summary>
+        /// Ticks of immunity after any hit.
+        /// </summary>
+        /// <remarks>
+        /// Required, not optional. A blast tile stays lethal for several ticks, so without this,
+        /// standing in one would deal a hit every tick and delete anything instantly.
+        /// </remarks>
+        public int InvulnerabilityTicks { get; }
+
+        /// <summary>Health a basic enemy spawns with.</summary>
+        public int EnemyMaxHealth { get; }
+
+        /// <summary>Damage a blast deals to an enemy. Enough to kill a basic one outright.</summary>
+        public int BlastDamageToEnemy { get; }
+
+        /// <summary>Sub-tile units an enemy advances each tick.</summary>
+        public int EnemySpeedPerTick { get; }
+
+        /// <summary>Half the width of an enemy's collision box.</summary>
+        public int EnemyRadius { get; }
+
+        /// <summary>The most enemies that can exist at once.</summary>
+        public int MaxEnemies { get; }
+
         /// <summary>Starting values for the vertical slice, tuned on device during T-015.</summary>
         public static SimulationConfig Default => FromTilesPerSecond(4f);
 
@@ -207,6 +265,33 @@ namespace BomberLegends.Simulation
             if (StartingBlastRange <= 0)
             {
                 throw new ArgumentException("Blast range must be at least one tile.");
+            }
+
+            if (PlayerMaxHealth <= 0 || EnemyMaxHealth <= 0)
+            {
+                throw new ArgumentException("Health totals must be positive.");
+            }
+
+            if (InvulnerabilityTicks <= 0)
+            {
+                throw new ArgumentException(
+                    "Immunity must last at least one tick, or a lingering blast would deal a hit " +
+                    "every tick and kill instantly.");
+            }
+
+            if (EnemySpeedPerTick <= 0)
+            {
+                throw new ArgumentException("Enemy speed must be positive.");
+            }
+
+            if (EnemyRadius <= 0 || EnemyRadius >= Core.SubTilePoint.HalfTile)
+            {
+                throw new ArgumentException("Enemy radius must be smaller than half a tile.");
+            }
+
+            if (MaxEnemies <= 0)
+            {
+                throw new ArgumentException("There must be room for at least one enemy.");
             }
 
             if (PlayerRadius <= 0 || PlayerRadius >= Core.SubTilePoint.HalfTile)

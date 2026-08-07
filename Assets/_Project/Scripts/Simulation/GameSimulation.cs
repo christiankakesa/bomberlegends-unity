@@ -52,12 +52,22 @@ namespace BomberLegends.Simulation
                 Phase = MatchPhase.Playing,
                 Board = layout.CreateBoard(),
                 Player = PlayerState.SpawnedAt(
-                    layout.PlayerSpawn, config.StartingBombCapacity, config.StartingBlastRange),
+                    layout.PlayerSpawn,
+                    config.StartingBombCapacity,
+                    config.StartingBlastRange,
+                    config.PlayerMaxHealth),
+                Enemies = new EnemyBuffer(config.MaxEnemies),
                 Bombs = new BombBuffer(config.MaxBombs),
                 BombGrid = new BombGrid(layout.Width, layout.Height),
                 BlastGrid = new BlastGrid(layout.Width, layout.Height),
                 Random = new DeterministicRandom(seed)
             };
+
+            var spawns = layout.EnemySpawns;
+            for (var i = 0; i < spawns.Length; i++)
+            {
+                _state.Enemies.Spawn(spawns[i], config.EnemyMaxHealth);
+            }
 
             _events.Add(new SimEvent(SimEventType.PlayerSpawned, layout.PlayerSpawn));
         }
@@ -109,8 +119,14 @@ namespace BomberLegends.Simulation
             // 4. Blasts — age existing fire, then resolve detonations and everything they chain into.
             BlastSystem.Tick(ref _state, _config, _detonationQueue, queued, _events);
 
-            // Enemies, damage, pickups, objectives, timer and scoring slot in here in Milestones 3
-            // and 4. Order matters: a blast must be resolved before anything asks what it killed.
+            // 5. Enemies — pursue, colliding with the world exactly as the player does.
+            EnemySystem.Tick(ref _state, _config, _events);
+
+            // 6. Damage — read a finished picture of what is on fire and who is touching whom.
+            //    Must follow the blast, or it would judge a half-resolved explosion.
+            DamageSystem.Tick(ref _state, _config, _events);
+
+            // Pickups, objectives, timer and scoring slot in here in Milestone 4.
 
             _state.Tick++;
         }
@@ -153,6 +169,24 @@ namespace BomberLegends.Simulation
                     hash = Fold(hash, (ulong)(uint)bomb.Tile.X);
                     hash = Fold(hash, (ulong)(uint)bomb.Tile.Y);
                     hash = Fold(hash, (ulong)(uint)bomb.FuseTicksRemaining);
+                }
+
+                hash = Fold(hash, (ulong)(uint)_state.Player.Health.Current);
+                hash = Fold(hash, (ulong)(uint)_state.Player.Health.InvulnerableTicks);
+
+                for (var slot = 0; slot < _state.Enemies.Capacity; slot++)
+                {
+                    var enemy = _state.Enemies[slot];
+                    hash = Fold(hash, enemy.IsActive ? 1UL : 0UL);
+                    if (!enemy.IsActive)
+                    {
+                        continue;
+                    }
+
+                    hash = Fold(hash, (ulong)(uint)enemy.Position.X);
+                    hash = Fold(hash, (ulong)(uint)enemy.Position.Y);
+                    hash = Fold(hash, (ulong)(uint)enemy.Health.Current);
+                    hash = Fold(hash, (byte)enemy.MoveDirection);
                 }
 
                 hash = Fold(hash, _state.Random.State);

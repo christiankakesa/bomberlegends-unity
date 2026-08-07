@@ -27,6 +27,9 @@ namespace BomberLegends.Simulation
         /// <summary>The player.</summary>
         public PlayerState Player;
 
+        /// <summary>Every enemy in the arena.</summary>
+        public Actors.EnemyBuffer Enemies;
+
         /// <summary>Every bomb on the board.</summary>
         public BombBuffer Bombs;
 

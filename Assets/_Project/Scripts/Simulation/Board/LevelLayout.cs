@@ -25,11 +25,24 @@ namespace BomberLegends.Simulation.Board
         /// <summary>Character marking the player's starting tile in a text layout.</summary>
         public const char SpawnGlyph = 'P';
 
+        /// <summary>Character marking an enemy's starting tile in a text layout.</summary>
+        public const char EnemyGlyph = 'E';
+
+        /// <summary>The most enemies a single layout may place.</summary>
+        public const int MaxEnemySpawns = 32;
+
+        private readonly GridCoord[] _enemySpawns;
+
         private readonly TileType[] _tiles;
 
         /// <summary>Creates a layout from tiles in row-major order, bottom row first.</summary>
         /// <exception cref="ArgumentException">The tile count does not match the dimensions.</exception>
-        public LevelLayout(int width, int height, TileType[] tiles, GridCoord playerSpawn)
+        public LevelLayout(
+            int width,
+            int height,
+            TileType[] tiles,
+            GridCoord playerSpawn,
+            GridCoord[]? enemySpawns = null)
         {
             if (tiles == null)
             {
@@ -58,6 +71,7 @@ namespace BomberLegends.Simulation.Board
             Height = height;
             _tiles = tiles;
             PlayerSpawn = playerSpawn;
+            _enemySpawns = enemySpawns ?? System.Array.Empty<GridCoord>();
         }
 
         /// <summary>Tiles across.</summary>
@@ -68,6 +82,9 @@ namespace BomberLegends.Simulation.Board
 
         /// <summary>Where the player begins, and returns to after losing a life.</summary>
         public GridCoord PlayerSpawn { get; }
+
+        /// <summary>Where each enemy begins.</summary>
+        public System.ReadOnlySpan<GridCoord> EnemySpawns => _enemySpawns;
 
         /// <summary>Writes this layout into a board of matching size.</summary>
         /// <exception cref="ArgumentException">The board is a different size.</exception>
@@ -126,6 +143,8 @@ namespace BomberLegends.Simulation.Board
             var tiles = new TileType[width * height];
             var spawn = default(GridCoord);
             var spawnCount = 0;
+            var enemies = new GridCoord[MaxEnemySpawns];
+            var enemyCount = 0;
 
             for (var row = 0; row < height; row++)
             {
@@ -159,6 +178,17 @@ namespace BomberLegends.Simulation.Board
                             spawn = new GridCoord(x, y);
                             spawnCount++;
                             break;
+                        case EnemyGlyph:
+                            tiles[index] = TileType.Empty;
+
+                            if (enemyCount >= MaxEnemySpawns)
+                            {
+                                throw new ArgumentException(
+                                    $"A level may place at most {MaxEnemySpawns} enemies.", nameof(rows));
+                            }
+
+                            enemies[enemyCount++] = new GridCoord(x, y);
+                            break;
                         default:
                             throw new ArgumentException(
                                 $"Unknown glyph '{glyph}' at row {row}, column {x}.", nameof(rows));
@@ -173,7 +203,10 @@ namespace BomberLegends.Simulation.Board
                     nameof(rows));
             }
 
-            return new LevelLayout(width, height, tiles, spawn);
+            var placed = new GridCoord[enemyCount];
+            Array.Copy(enemies, placed, enemyCount);
+
+            return new LevelLayout(width, height, tiles, spawn, placed);
         }
     }
 }
