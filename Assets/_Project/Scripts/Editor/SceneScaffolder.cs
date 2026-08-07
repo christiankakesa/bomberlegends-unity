@@ -202,6 +202,7 @@ namespace BomberLegends.Editor
             var quit = CreateButton("QuitButton", canvas.transform, "QUIT", new Vector2(760f, 420f));
             var joystick = CreateJoystick(canvas.transform);
             var bombButton = CreateActionButton(canvas.transform);
+            var hud = CreateHud(canvas.transform, root.transform);
 
             var serialized = new SerializedObject(installer);
             serialized.FindProperty("_quitButton").objectReferenceValue = quit;
@@ -214,6 +215,10 @@ namespace BomberLegends.Editor
             serialized.FindProperty("_views").objectReferenceValue = views;
             serialized.FindProperty("_bombButton").objectReferenceValue = bombButton;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            var viewsSerialized = new SerializedObject(views);
+            viewsSerialized.FindProperty("_hud").objectReferenceValue = hud;
+            viewsSerialized.ApplyModifiedPropertiesWithoutUndo();
 
             return SaveScene(scene, SceneService.NameOf(SceneId.Match));
         }
@@ -248,6 +253,39 @@ namespace BomberLegends.Editor
             var asset = ScriptableObject.CreateInstance<InputFeelConfig>();
             AssetDatabase.CreateAsset(asset, path);
             return asset;
+        }
+
+        /// <summary>Builds the health and enemy-count readout.</summary>
+        private static MatchHudView CreateHud(Transform canvas, Transform matchRoot)
+        {
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            var textObject = new GameObject("Readout", typeof(Text));
+            textObject.transform.SetParent(canvas, false);
+
+            var rect = textObject.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(40f, -30f);
+            rect.sizeDelta = new Vector2(700f, 70f);
+
+            var text = textObject.GetComponent<Text>();
+            text.font = font;
+            text.fontSize = 42;
+            text.alignment = TextAnchor.UpperLeft;
+            text.color = new Color(0.95f, 0.95f, 1f);
+            text.raycastTarget = false;
+            text.text = "HP --";
+
+            var hudObject = new GameObject("Hud", typeof(MatchHudView));
+            hudObject.transform.SetParent(matchRoot, false);
+
+            var serialized = new SerializedObject(hudObject.GetComponent<MatchHudView>());
+            serialized.FindProperty("_output").objectReferenceValue = text;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            return hudObject.GetComponent<MatchHudView>();
         }
 
         /// <summary>Builds the bomb button in the bottom-right thumb zone.</summary>

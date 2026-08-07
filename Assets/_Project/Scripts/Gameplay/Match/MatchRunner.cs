@@ -97,6 +97,7 @@ namespace BomberLegends.Gameplay.Match
             for (var i = 0; i < TicksLastFrame; i++)
             {
                 _previousPlayerPosition = _simulation.State.Player.Position;
+                _views?.BeforeTick(_simulation);
 
                 _simulation.Tick(_input.Sample(_simulation.CurrentTick));
 
@@ -110,7 +111,7 @@ namespace BomberLegends.Gameplay.Match
 
             InterpolationAlpha = _accumulator.Alpha;
             _playerView.Render(_previousPlayerPosition, _currentPlayerPosition, InterpolationAlpha);
-            _views?.Render(_simulation, Time.deltaTime);
+            _views?.Render(_simulation, Time.deltaTime, InterpolationAlpha);
         }
 
         private void LateUpdate()

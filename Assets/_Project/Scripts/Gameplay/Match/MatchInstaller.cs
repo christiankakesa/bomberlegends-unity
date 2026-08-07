@@ -81,19 +81,19 @@ namespace BomberLegends.Gameplay.Match
             "#########################\n" +
             "#P...X...X...X...X...X..#\n" +
             "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
-            "#..X...X...X...X...X...X#\n" +
+            "#..X...XE..X...X...X...X#\n" +
             "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
-            "#X...X...X...X...X...X..#\n" +
-            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
-            "#..X...X...X...X...X...X#\n" +
-            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
-            "#X...X...X...X...X...X..#\n" +
+            "#X...X...X...X..EX...X..#\n" +
             "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
             "#..X...X...X...X...X...X#\n" +
+            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
+            "#X...XE..X...X...X...X..#\n" +
+            "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
+            "#..X...X...X...X..EX...X#\n" +
             "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
             "#....X...X...X...X...X..#\n" +
             "#.#.#.#.#.#.#.#.#.#.#.#.#\n" +
-            "#......X...X...X...X...X#\n" +
+            "#......X...XE..X...X...X#\n" +
             "#########################";
 
         [SerializeField]
@@ -148,6 +148,7 @@ namespace BomberLegends.Gameplay.Match
             if (_views != null)
             {
                 _views.Begin(_boardRenderer, projector, config);
+                _views.SpawnEnemies(simulation);
             }
 
             _runner.Begin(simulation, CreateInputSource(projector), _playerView, _views, _cameraRig);

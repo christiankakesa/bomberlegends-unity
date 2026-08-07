@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using BomberLegends.Core;
 using BomberLegends.Gameplay.Board;
 using BomberLegends.Gameplay.Bombs;
+using BomberLegends.Gameplay.Enemies;
 using BomberLegends.Gameplay.Vfx;
 using BomberLegends.Simulation;
 using BomberLegends.Simulation.Board;
@@ -45,6 +46,10 @@ namespace BomberLegends.Gameplay.Match
 
         [Header("Appearance")]
         [SerializeField]
+        [Tooltip("Readout of health and enemies remaining. Optional.")]
+        private MatchHudView? _hud;
+
+        [SerializeField]
         [Tooltip("Colour of a blast tile.")]
         private Color _blastColour = new Color(1f, 0.72f, 0.25f);
 
@@ -63,6 +68,9 @@ namespace BomberLegends.Gameplay.Match
         private ObjectPool<BlockDestructionView>? _debrisPool;
 
         private BombView?[] _bombsBySlot = System.Array.Empty<BombView>();
+        private EnemyView?[] _enemiesBySlot = System.Array.Empty<EnemyView>();
+        private SubTilePoint[] _enemyPrevious = System.Array.Empty<SubTilePoint>();
+        private SubTilePoint[] _enemyCurrent = System.Array.Empty<SubTilePoint>();
         private BoardRenderer? _boardRenderer;
         private BoardProjector _projector = null!;
 
@@ -85,6 +93,9 @@ namespace BomberLegends.Gameplay.Match
             _blastSeconds = (float)config.BlastLingerTicks / SimulationConstants.TicksPerSecond;
 
             _bombsBySlot = new BombView?[config.MaxBombs];
+            _enemiesBySlot = new EnemyView?[config.MaxEnemies];
+            _enemyPrevious = new SubTilePoint[config.MaxEnemies];
+            _enemyCurrent = new SubTilePoint[config.MaxEnemies];
 
             // One shared material per surface type; instances vary only by property block, so the
             // whole effect layer stays batchable and nothing leaks a material per pooled object.
@@ -98,6 +109,46 @@ namespace BomberLegends.Gameplay.Match
                 view => view.ResetView());
 
             Prewarm();
+        }
+
+        /// <summary>
+        /// Spawns a view for every enemy the level placed. Called once the simulation exists.
+        /// </summary>
+        public void SpawnEnemies(GameSimulation simulation)
+        {
+            for (var slot = 0; slot < _enemiesBySlot.Length && slot < simulation.State.Enemies.Capacity;
+                 slot++)
+            {
+                var enemy = simulation.State.Enemies[slot];
+                if (!enemy.IsActive)
+                {
+                    continue;
+                }
+
+                var view = CreateEnemyView();
+                view.Begin(_projector.PositionToWorld(enemy.Position));
+
+                _enemiesBySlot[slot] = view;
+                _enemyPrevious[slot] = enemy.Position;
+                _enemyCurrent[slot] = enemy.Position;
+            }
+        }
+
+        /// <summary>
+        /// Records where every enemy was before the coming tick, so the view can interpolate.
+        /// </summary>
+        /// <remarks>
+        /// Enemies are continuous state rather than discrete events, so like the player they need a
+        /// before and an after. Without this they would step at the simulation rate while everything
+        /// around them moved smoothly.
+        /// </remarks>
+        public void BeforeTick(GameSimulation simulation)
+        {
+            for (var slot = 0; slot < _enemyCurrent.Length && slot < simulation.State.Enemies.Capacity;
+                 slot++)
+            {
+                _enemyPrevious[slot] = _enemyCurrent[slot];
+            }
         }
 
         /// <summary>Reacts to everything the simulation announced this tick.</summary>
@@ -126,13 +177,20 @@ namespace BomberLegends.Gameplay.Match
                     case SimEventType.BlockDestroyed:
                         DestroyBlock(simEvent.Coord);
                         break;
+
+                    case SimEventType.EnemyKilled:
+                        ReleaseEnemy(simEvent.EntityId - 1);
+                        break;
                 }
             }
         }
 
         /// <summary>Advances every live effect and retires the ones that have finished.</summary>
-        public void Render(GameSimulation simulation, float deltaSeconds)
+        public void Render(GameSimulation simulation, float deltaSeconds, float alpha)
         {
+            RenderEnemies(simulation, alpha);
+            _hud?.Render(simulation);
+
             for (var i = _activeEffects.Count - 1; i >= 0; i--)
             {
                 var effect = _activeEffects[i];
@@ -163,10 +221,76 @@ namespace BomberLegends.Gameplay.Match
             {
                 ReleaseBomb(slot);
             }
+
+            for (var slot = 0; slot < _enemiesBySlot.Length; slot++)
+            {
+                ReleaseEnemy(slot);
+            }
+        }
+
+        private void RenderEnemies(GameSimulation simulation, float alpha)
+        {
+            for (var slot = 0; slot < _enemiesBySlot.Length; slot++)
+            {
+                var view = _enemiesBySlot[slot];
+                if (view == null)
+                {
+                    continue;
+                }
+
+                var enemy = simulation.State.Enemies[slot];
+                if (!enemy.IsActive)
+                {
+                    continue;
+                }
+
+                var gridX = Mathf.LerpUnclamped(
+                    BoardProjector.ToGrid(_enemyPrevious[slot].X),
+                    BoardProjector.ToGrid(_enemyCurrent[slot].X),
+                    alpha);
+                var gridY = Mathf.LerpUnclamped(
+                    BoardProjector.ToGrid(_enemyPrevious[slot].Y),
+                    BoardProjector.ToGrid(_enemyCurrent[slot].Y),
+                    alpha);
+
+                view.Render(_projector.GridToWorld(gridX, gridY), enemy.Health.IsInvulnerable);
+            }
+        }
+
+        private void ReleaseEnemy(int slot)
+        {
+            if (slot < 0 || slot >= _enemiesBySlot.Length)
+            {
+                return;
+            }
+
+            var view = _enemiesBySlot[slot];
+            if (view == null)
+            {
+                return;
+            }
+
+            _enemiesBySlot[slot] = null;
+            Destroy(view.gameObject);
+        }
+
+        private EnemyView CreateEnemyView()
+        {
+            var body = CreateEffectObject("Enemy", PlaceholderMeshes.Sphere, _opaqueMaterial);
+            body.GetComponent<MeshRenderer>().shadowCastingMode =
+                UnityEngine.Rendering.ShadowCastingMode.On;
+
+            return body.AddComponent<EnemyView>();
         }
 
         private void AdvanceBombs(GameSimulation simulation, float deltaSeconds)
         {
+            for (var slot = 0; slot < _enemyCurrent.Length && slot < simulation.State.Enemies.Capacity;
+                 slot++)
+            {
+                _enemyCurrent[slot] = simulation.State.Enemies[slot].Position;
+            }
+
             for (var slot = 0; slot < _bombsBySlot.Length; slot++)
             {
                 var view = _bombsBySlot[slot];

@@ -108,7 +108,7 @@ their build does, the synergy pillar has not landed and no amount of content wil
 | M1 | Movement & feel (4-directional) | ✅ complete — superseded by M2b |
 | M2 | Bombs, blasts, chain detonation, views | ✅ T-017 → T-019 done; T-020/T-021 deferred |
 | **M2b** | 3D migration + 360° movement + wall sliding + corner slip | ✅ complete, verified in editor |
-| **M3** | Health, damage, one enemy that fights back | 🟡 **simulation done and tested; enemies have no view yet** |
+| **M3** | Health, damage, one enemy that fights back | ✅ **complete, verified in editor** |
 | M4 | Skill framework + dash + skillshot | |
 | M5 | Item framework + three items + two passive slots | |
 | M6 | Run loop: arenas, item choice, death, restart | |
@@ -135,12 +135,29 @@ wall sliding, sub-stepping, corner slip and the bomb-exemption rule. Two impleme
 meant two sets of bugs, and an enemy catching on a corner the player rounds would have been felt long
 before it could be described. The refactor was validated by the 274 pre-existing tests.
 
-**Outstanding**
-- Enemies render nothing yet; they exist only in the simulation.
-- The chaser commits to a heading until its tile changes. Distance-closing is tested, but *looking*
-  good while doing it is not the same question — watch for jitter at junctions when the player is
-  diagonal. The fix, if needed, is to bias towards the previous heading on ties rather than sampling
-  the random source afresh.
+**Views.** Enemies render as pooled meshes, interpolated between ticks like the player, and flash
+white while immune — the immunity window is a rule the player has to be able to read, or hits that
+land on nothing look like the game ignoring them. A minimal readout shows health and enemies left.
+
+**Play verdict (2026-08-06).** All three design goals met on first play:
+- Enemies read as *hunting*, not twitching. The predicted junction jitter did not materialise.
+- **34 damage from your own bomb is right** — it produces real caution when placing. Number locked.
+- **Enemies cannot be simply walked past.** They reroute and close in, so they clear the
+  "must be fought, not merely avoided" bar the slice sets.
+
+**Enemies avoid bombs but not blasts — and that is worth knowing.** Nothing in the AI reasons about
+danger; bombs are simply solid, exactly as they are for the player, so a bomb between an enemy and its
+target forces a reroute. An enemy will walk straight into a burning tile and die. That is correct for
+a basic mob and it is why trapping works.
+
+> **Design opening.** Danger-awareness is the natural axis for higher enemy tiers: a mob that reads
+> `BlastGrid` and refuses to enter tiles about to catch fire is a genuinely different opponent, and
+> the query is already a single array read. Cheap to build, and a far better difficulty lever than
+> raising health or speed.
+
+**Deviation on record.** `MatchHudView` lives in Gameplay rather than UI because it reads the live
+simulation, and UI may not reference Gameplay. Acceptable for a greybox readout; the real HUD should
+sit behind a Data event channel so UI can react without seeing gameplay at all.
 
 ---
 
