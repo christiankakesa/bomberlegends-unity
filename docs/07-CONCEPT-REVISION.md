@@ -107,8 +107,8 @@ their build does, the synergy pillar has not landed and no amount of content wil
 | M0 | Bootstrap | ✅ complete, device-verified |
 | M1 | Movement & feel (4-directional) | ✅ complete — superseded by M2b |
 | M2 | Bombs, blasts, chain detonation, views | ✅ T-017 → T-019 done; T-020/T-021 deferred |
-| **M2b** | **3D migration + 360° movement + wall sliding** | **next** |
-| M3 | Health, damage, one enemy that fights back | |
+| **M2b** | 3D migration + 360° movement + wall sliding + corner slip | ✅ complete, verified in editor |
+| **M3** | Health, damage, one enemy that fights back | 🟡 **simulation done and tested; enemies have no view yet** |
 | M4 | Skill framework + dash + skillshot | |
 | M5 | Item framework + three items + two passive slots | |
 | M6 | Run loop: arenas, item choice, death, restart | |
@@ -117,6 +117,30 @@ their build does, the synergy pillar has not landed and no amount of content wil
 
 Audio (T-020) and screen shake (T-021) move behind the hybrid work. They add polish to a loop whose
 shape is about to change.
+
+---
+
+## 4b. M3 notes (2026-08-06)
+
+**Delivered.** `HealthState` with an immunity window, `EnemyState`/`EnemyBuffer`, a pursuing
+`EnemySystem`, and a `DamageSystem` that runs after the blast so it reads a finished picture of what
+is on fire. `'E'` places an enemy in a text layout. Death ends the match. The state hash covers health
+and every enemy, so determinism survives their addition. **288 EditMode + 10 PlayMode tests green.**
+
+**Tuning, all Inspector-visible:** player 100 health, own blast **34**, enemy contact **10**, immunity
+30 ticks, blast kills a basic enemy outright.
+
+**`GridMotion` extracted.** The player and every enemy now collide through one implementation —
+wall sliding, sub-stepping, corner slip and the bomb-exemption rule. Two implementations would have
+meant two sets of bugs, and an enemy catching on a corner the player rounds would have been felt long
+before it could be described. The refactor was validated by the 274 pre-existing tests.
+
+**Outstanding**
+- Enemies render nothing yet; they exist only in the simulation.
+- The chaser commits to a heading until its tile changes. Distance-closing is tested, but *looking*
+  good while doing it is not the same question — watch for jitter at junctions when the player is
+  diagonal. The fix, if needed, is to bias towards the previous heading on ties rather than sampling
+  the random source afresh.
 
 ---
 
