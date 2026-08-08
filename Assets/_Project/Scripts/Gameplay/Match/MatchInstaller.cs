@@ -10,6 +10,7 @@ using BomberLegends.Simulation.Board;
 using BomberLegends.Simulation.Items;
 using BomberLegends.Simulation.Run;
 using BomberLegends.Gameplay.Run;
+using BomberLegends.Gameplay.Ui;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -90,6 +91,28 @@ namespace BomberLegends.Gameplay.Match
         private float _blockHeight = 1f;
 
         [Header("Level")]
+        [SerializeField]
+        [Tooltip(
+            "Roll a fresh arena for every stage instead of cycling the authored layouts below. " +
+            "The authored ones stay useful for tuning a specific board.")]
+        private bool _generateArenas = true;
+
+        [SerializeField, Range(15, 31)]
+        [Tooltip("Width of the first generated arena. Grows as the run goes on.")]
+        private int _arenaWidth = 21;
+
+        [SerializeField, Range(11, 21)]
+        [Tooltip("Height of the first generated arena. Grows as the run goes on.")]
+        private int _arenaHeight = 15;
+
+        [SerializeField, Range(0, 90)]
+        [Tooltip("Chance a free tile becomes a destructible block.")]
+        private int _destructiblePercent = 55;
+
+        [SerializeField, Range(1, 12)]
+        [Tooltip("Enemies in the first generated arena. One more is added per arena cleared.")]
+        private int _startingEnemies = 4;
+
         [SerializeField]
         [Tooltip("'#' solid, 'X' destructible, '.' floor, 'P' spawn. The first row is the top.")]
         [TextArea(6, 20)]
@@ -203,7 +226,7 @@ namespace BomberLegends.Gameplay.Match
             var projector = new BoardProjector(_tileSize, _blockHeight);
             var config = SimulationConfig.FromTilesPerSecond(
                 _moveSpeedTilesPerSecond, laneAssistStrength: _laneAssist);
-            var run = new GameRun(config, arenas, _seed, _startingItems);
+            var run = new GameRun(config, CreateArenaSource(arenas), _seed, _startingItems);
 
             _playerView.Initialise(projector);
 
@@ -225,7 +248,7 @@ namespace BomberLegends.Gameplay.Match
                 _boardRenderer,
                 _playerView,
                 projector,
-                CreateInputSource(projector),
+                CreateInputSource(projector, run.Current.State.Player.Skills),
                 _views,
                 _cameraRig,
                 overlay);
@@ -271,13 +294,50 @@ namespace BomberLegends.Gameplay.Match
 
             _quitButton.onClick.AddListener(OpenPause);
 
-            var label = _quitButton.GetComponentInChildren<Text>();
-            if (label != null)
-            {
-                label.text = "PAUSE";
-            }
+            ShrinkToPauseControl(_quitButton);
 
             _pause = pause;
+        }
+
+        /// <summary>
+        /// Turns the shared menu-sized button into a compact in-match pause control.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The scene builds every button at the size the hub's PLAY needs, which is far too large
+        /// sitting over the arena — it crowds the readout and eats play area on a phone.
+        /// </para>
+        /// <para>
+        /// It keeps the word rather than a pause glyph. The greybox draws with Unity's built-in
+        /// legacy font, which has no coverage for symbols like U+23F8, and a missing glyph renders
+        /// as an empty box — worse than the word it replaced. An icon belongs with the UI pass,
+        /// alongside a real font or sprite atlas.
+        /// </para>
+        /// </remarks>
+        private static void ShrinkToPauseControl(Button button)
+        {
+            var rect = button.GetComponent<RectTransform>();
+
+            if (rect != null)
+            {
+                rect.sizeDelta = new Vector2(170f, 84f);
+            }
+
+            var label = button.GetComponentInChildren<Text>();
+
+            if (label == null)
+            {
+                return;
+            }
+
+            label.text = "PAUSE";
+            label.fontSize = 26;
+
+            var labelRect = label.rectTransform;
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
         }
 
         private void OpenPause()
@@ -319,6 +379,28 @@ namespace BomberLegends.Gameplay.Match
             {
                 _quitButton.onClick.RemoveListener(OpenPause);
             }
+        }
+
+        /// <summary>
+        /// Chooses between rolled arenas and the authored list.
+        /// </summary>
+        /// <remarks>
+        /// The authored layouts are kept rather than deleted. Generated variety is what a run wants,
+        /// but tuning anything — a blast radius, an enemy count, a corridor width — needs the same
+        /// board twice, and a seed is a clumsier way to ask for that than a list.
+        /// </remarks>
+        private IArenaSource CreateArenaSource(LevelLayout[] authored)
+        {
+            if (!_generateArenas)
+            {
+                return new AuthoredArenaSource(authored);
+            }
+
+            return new GeneratedArenaSource(new ArenaSettings(
+                baseWidth: _arenaWidth,
+                baseHeight: _arenaHeight,
+                destructiblePercent: _destructiblePercent,
+                baseEnemies: _startingEnemies));
         }
 
         /// <summary>Parses every authored arena, in the order a run visits them.</summary>
@@ -403,7 +485,8 @@ namespace BomberLegends.Gameplay.Match
             _ => UnityEngine.InputSystem.Touchscreen.current != null || Application.isMobilePlatform
         };
 
-        private IInputSource CreateInputSource(IGridProjection projection)
+        private IInputSource CreateInputSource(
+            IGridProjection projection, in Simulation.Skills.SkillLoadout loadout)
         {
             // A developer can pick up whichever control surface is to hand without changing a
             // setting, which matters a great deal while feel is being tuned.
@@ -416,9 +499,12 @@ namespace BomberLegends.Gameplay.Match
                 return new CompositeInputSource(
                     keyboard,
                     new GamepadInputSource(),
-                    _bombButton != null
-                        ? new TouchInputSource(_joystick, _inputFeel, projection, _bombButton)
-                        : new TouchInputSource(_joystick, _inputFeel, projection));
+                    new TouchInputSource(
+                        _joystick,
+                        _inputFeel,
+                        projection,
+                        _bombButton != null ? new[] { _bombButton } : null,
+                        BuildSkillButtons(loadout)));
             }
 
             if (_joystick != null && _inputFeel == null && ShowTouchControls)
@@ -428,6 +514,29 @@ namespace BomberLegends.Gameplay.Match
             }
 
             return new CompositeInputSource(keyboard, new GamepadInputSource());
+        }
+
+        /// <summary>
+        /// Builds the on-screen skill cluster, when there is a bomb button to anchor it to.
+        /// </summary>
+        /// <remarks>
+        /// Anchored to the bomb button so the whole right-hand cluster stays together whatever the
+        /// screen size, rather than being positioned against a corner and drifting apart on a
+        /// different aspect ratio.
+        /// </remarks>
+        private SkillTouchButton[]? BuildSkillButtons(in Simulation.Skills.SkillLoadout loadout)
+        {
+            if (_bombButton == null)
+            {
+                Debug.LogWarning(
+                    "[Match] No bomb button to anchor the skill cluster to, so touch play has no " +
+                    "way to use skills.");
+                return null;
+            }
+
+            var anchor = _bombButton.GetComponent<RectTransform>();
+
+            return anchor != null ? TouchControlsBuilder.Build(anchor, loadout) : null;
         }
 
         /// <summary>

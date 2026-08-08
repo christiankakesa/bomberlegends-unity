@@ -22,6 +22,14 @@ namespace BomberLegends.Gameplay.Board
         [SerializeField] private Color _solidColour = new Color(0.13f, 0.52f, 0.60f);
         [SerializeField] private Color _destructibleColour = new Color(0.85f, 0.45f, 0.16f);
 
+        [Header("Shape")]
+        [SerializeField, Range(0.6f, 1f)]
+        [Tooltip(
+            "How much of its tile a block fills. Below one, floor shows between neighbouring " +
+            "blocks so the maze reads as separate pieces rather than one mass. Purely visual: " +
+            "collision is resolved on whole tiles in the simulation and does not change.")]
+        private float _blockFootprint = 0.88f;
+
         private GameObject?[] _blocks = System.Array.Empty<GameObject>();
         private Material?[] _materials = System.Array.Empty<Material>();
         private BoardProjector _projector = null!;
@@ -106,13 +114,31 @@ namespace BomberLegends.Gameplay.Board
             floor.transform.localScale = Vector3.one * _projector.TileSize;
         }
 
+        /// <summary>
+        /// Draws a block slightly inside its tile, so neighbours do not merge into one mass.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Visual only. The simulation resolves collision against whole tiles and knows nothing
+        /// about this, so a block still blocks exactly the square it sits on.
+        /// </para>
+        /// <para>
+        /// Which is also the reason to keep the inset modest. A wide gap between two solid pillars
+        /// looks like somewhere a player could squeeze through, and being stopped by an opening you
+        /// can see is far more frustrating than being stopped by an obvious wall. Small enough to
+        /// read as separation, never as a route.
+        /// </para>
+        /// </remarks>
         private void CreateBlock(GridCoord tile, Material material)
         {
             var height = _projector.BlockHeight;
             var block = CreateRenderer($"Block {tile.X},{tile.Y}", PlaceholderMeshes.Cube, material);
 
+            var footprint = _projector.TileSize * _blockFootprint;
+
+            // Centred on the tile, so the gap is shared evenly with every neighbour.
             block.transform.localPosition = _projector.TileToWorld(tile, height * 0.5f);
-            block.transform.localScale = new Vector3(_projector.TileSize, height, _projector.TileSize);
+            block.transform.localScale = new Vector3(footprint, height, footprint);
 
             _blocks[tile.ToIndex(_width)] = block;
         }

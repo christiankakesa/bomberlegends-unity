@@ -47,6 +47,8 @@ namespace BomberLegends.Gameplay.Match
                 return;
             }
 
+            EnsureSingleLine();
+
             var health = simulation.State.Player.Health.Current;
             var enemies = simulation.State.Enemies.AliveCount;
 
@@ -127,6 +129,26 @@ namespace BomberLegends.Gameplay.Match
                     _text.Append("    ").Append(ItemCatalog.Name(id));
                 }
             }
+        }
+
+        /// <summary>
+        /// Forces the readout onto one line that may run past its box.
+        /// </summary>
+        /// <remarks>
+        /// The line grew as skills and the build were added to it, and the authored box did not.
+        /// With the default wrapping it folded onto a second line which the box then clipped, so on
+        /// device the charges and the whole build were being drawn off-screen. Enforced here rather
+        /// than in the scene so it holds however the text was authored.
+        /// </remarks>
+        private void EnsureSingleLine()
+        {
+            if (_output == null || _output.horizontalOverflow == HorizontalWrapMode.Overflow)
+            {
+                return;
+            }
+
+            _output.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _output.verticalOverflow = VerticalWrapMode.Overflow;
         }
 
         private bool ChargesUnchanged(GameSimulation simulation)

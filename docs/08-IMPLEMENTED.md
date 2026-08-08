@@ -1,6 +1,6 @@
 # What is actually built
 
-**Updated 2026-08-08 · 380 EditMode + 14 PlayMode tests green, zero warnings**
+**Updated 2026-08-08 · 412 EditMode + 14 PlayMode tests green, zero warnings · device-verified on a Galaxy S21 Ultra**
 
 A plain inventory of what exists in the project right now, so proposals can be validated against
 reality rather than against memory. Design rationale lives in
@@ -57,14 +57,15 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 
 | Feature | State | Notes |
 |---|---|---|
-| Arena sequence | ✅ | Three authored layouts, cycled |
+| Arena sequence | ✅ | Generated per run, or authored layouts when pinned |
+| Procedural arenas | ✅ | Three styles, seeded, connectivity and safe spawn guaranteed |
 | Item offer after each clear | ✅ | Three drawn from the run's own RNG |
 | Swap when slots are full | ✅ | Two-step: take, then give up |
 | Decline an offer | ✅ | |
 | Health carries between arenas | ✅ | +25 restored per clear — **the number most likely wrong** |
 | Death ends the run | ✅ | |
 | Clean restart, in place | ✅ | No scene load; 200 restarts well under a second |
-| Item descriptions on cards | 🧪 | Added 2026-08-07, font raised to 20 |
+| Item descriptions on cards | ✅ | Added 2026-08-07, font raised to 20 |
 
 ## Presentation and platform
 
@@ -75,12 +76,16 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | HUD: arena, health, enemies, charges, build | ✅ | |
 | Keyboard + mouse aim | ✅ | `Shift` dash · `Q`/LMB shot · `E`/RMB slot 3 |
 | Gamepad + right-stick aim | 🧪 | `B` dash · `X` shot · `Y` slot 3 — **never played** |
-| Touch controls hidden off touch devices | 🧪 | Added 2026-08-07 |
-| Quit the application | 🧪 | Hub QUIT; stops play mode in the Editor |
-| Gamepad / keyboard menu navigation | 🧪 | Focus set on arrival, kept when lost, visibly highlighted |
+| Touch controls hidden off touch devices | ✅ | Added 2026-08-07 |
+| Quit the application | ✅ | Hub QUIT; stops play mode in the Editor |
+| Gamepad / keyboard menu navigation | ✅ | Focus set on arrival, kept when lost, visibly highlighted |
+| Active-device arbitration | 🧪 | Last device *deliberately used* owns the whole tick, aim included |
+| Touch: analogue 360° movement | ✅ | Replaced the v1.0 four-way snapping |
+| Touch: drag-to-aim skill buttons | ✅ | Tap casts, drag aims, release fires, cancel zone aborts |
 | No UI selection during a match | ✅ | Enforced by test — Submit and Bomb share a button on a pad |
-| Pause menu | 🧪 | Start / Escape / on-screen button; resume and quit to hub |
-| Android build pipeline | ✅ | Device-verified at M0/M1 |
+| Pause menu | ✅ | Start / Escape / on-screen button; resume and quit to hub |
+| Android build pipeline | ✅ | Device-verified again 2026-08-08; 86 MB dev APK |
+| Block inset for readability | ✅ | Blocks fill 88% of their tile; collision unchanged |
 
 ---
 
@@ -88,14 +93,12 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 
 | Gap | Note |
 |---|---|
-| **Touch aiming** | Mobile has a move stick and BOMB only — no aim, no skill buttons. Blocks any mobile play of the hybrid. |
 | **Skill-ready / recharge indicator** | Only the numeric charge count in the HUD |
 | Audio | T-020, deferred since M2 |
 | Screen shake, hit feedback | T-021, deferred since M2 |
 | Dash visual | Movement alone currently carries it |
 | Squash-and-stretch on arena border | Agreed, view layer only |
-| Procedural arenas | Agreed; three authored layouts today |
-| Level assets | T-025; layouts are authored text in the installer |
+| Level assets | T-025; the authored fallback layouts are still text in the installer |
 | Meta progression, save of a run in progress | Excluded from the slice by design |
 
 ---

@@ -19,13 +19,13 @@ namespace BomberLegends.Gameplay.Board
         private static Shader? _shader;
 
         /// <summary>A unit cube.</summary>
-        public static Mesh Cube => _cube ??= Extract(PrimitiveType.Cube);
+        public static Mesh Cube => _cube ??= Load("Cube.fbx");
 
         /// <summary>A unit sphere.</summary>
-        public static Mesh Sphere => _sphere ??= Extract(PrimitiveType.Sphere);
+        public static Mesh Sphere => _sphere ??= Load("Sphere.fbx");
 
         /// <summary>A unit quad, used for anything that lies flat on the ground.</summary>
-        public static Mesh Quad => _quad ??= Extract(PrimitiveType.Quad);
+        public static Mesh Quad => _quad ??= Load("Quad.fbx");
 
         /// <summary>Creates an opaque lit material in the given colour.</summary>
         public static Material CreateMaterial(Color colour)
@@ -61,27 +61,34 @@ namespace BomberLegends.Gameplay.Board
         }
 
         /// <summary>
-        /// Pulls the mesh out of a temporary primitive.
+        /// Loads one of the engine's built-in meshes by name.
         /// </summary>
         /// <remarks>
-        /// The primitive itself is discarded immediately. It also arrives with a collider, which is
-        /// removed: this project resolves every collision on the grid and uses no physics at all.
+        /// <para>
+        /// Deliberately not <see cref="GameObject.CreatePrimitive"/>, which was used here until it
+        /// failed on device. That call attaches a collider, and <b>the Physics module is stripped
+        /// from a player build</b> because this project resolves every collision on the grid and
+        /// references physics nowhere else. The result was
+        /// <c>Can't add component because class 'MeshCollider' doesn't exist!</c> for every mesh,
+        /// on every arena build — invisible in the Editor, where nothing is ever stripped.
+        /// </para>
+        /// <para>
+        /// The meshes it produced were fine, so the game still rendered. It simply filled the log
+        /// and forced the development console over the play area. Loading the built-in mesh
+        /// directly asks for the one thing actually wanted and pulls in no module at all.
+        /// </para>
         /// </remarks>
-        private static Mesh Extract(PrimitiveType type)
+        /// <exception cref="System.InvalidOperationException">The engine has no such mesh.</exception>
+        private static Mesh Load(string name)
         {
-            var temporary = GameObject.CreatePrimitive(type);
-            var mesh = temporary.GetComponent<MeshFilter>().sharedMesh;
+            var mesh = Resources.GetBuiltinResource<Mesh>(name);
 
-            if (Application.isPlaying)
-            {
-                Object.Destroy(temporary);
-            }
-            else
-            {
-                Object.DestroyImmediate(temporary);
-            }
-
-            return mesh;
+            // Nothing downstream can proceed without it, and every caller would otherwise fail with
+            // a null reference several frames later and nowhere near the cause.
+            return mesh != null
+                ? mesh
+                : throw new System.InvalidOperationException(
+                    $"The built-in mesh '{name}' could not be loaded, so the greybox cannot draw.");
         }
     }
 }

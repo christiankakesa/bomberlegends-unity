@@ -27,7 +27,7 @@ namespace BomberLegends.Simulation.Run
         public const int OfferCount = 3;
 
         private readonly SimulationConfig _config;
-        private readonly LevelLayout[] _arenas;
+        private readonly IArenaSource _arenas;
         private readonly ItemId[] _held;
         private readonly ItemId[] _offers = new ItemId[OfferCount];
         private readonly ItemId[] _startingItems;
@@ -51,10 +51,21 @@ namespace BomberLegends.Simulation.Run
             LevelLayout[] arenas,
             uint seed,
             ItemId[]? startingItems = null)
+            : this(config, new AuthoredArenaSource(arenas), seed, startingItems)
         {
-            if (arenas == null || arenas.Length == 0)
+        }
+
+        /// <summary>Starts a run drawing its arenas from the given source.</summary>
+        /// <exception cref="ArgumentNullException">No source was supplied.</exception>
+        public GameRun(
+            in SimulationConfig config,
+            IArenaSource arenas,
+            uint seed,
+            ItemId[]? startingItems = null)
+        {
+            if (arenas == null)
             {
-                throw new ArgumentException("A run needs at least one arena.", nameof(arenas));
+                throw new ArgumentNullException(nameof(arenas));
             }
 
             config.Validate();
@@ -262,8 +273,13 @@ namespace BomberLegends.Simulation.Run
             // while no two arenas roll the same sequence.
             var seed = _seed ^ (uint)((_arenaIndex + 1) * 2654435761u);
 
-            Current = new GameSimulation(
-                _config, _arenas[_arenaIndex % _arenas.Length], seed, carriedHealth);
+            // The arena gets its own generator rather than sharing the run's. Otherwise the board
+            // would be reshaped by anything else that happened to draw a random number first —
+            // an extra item offer would silently change every layout after it.
+            var layoutRandom = new DeterministicRandom(seed);
+            var layout = _arenas.Create(_arenaIndex, ref layoutRandom);
+
+            Current = new GameSimulation(_config, layout, seed, carriedHealth);
 
             // Re-granted in acquisition order. Items apply once and mutate, so replaying the same
             // grants onto a fresh loadout reproduces the build exactly.

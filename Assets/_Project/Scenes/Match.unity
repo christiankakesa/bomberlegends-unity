@@ -216,8 +216,10 @@ MonoBehaviour:
   _joystick: {fileID: 1930042258}
   _bombButton: {fileID: 232088177}
   _quitButton: {fileID: 1129431652}
+  _touchControls: 0
   _inputFeel: {fileID: 11400000, guid: 6d10296967492b043a32b80caf5ca075, type: 2}
   _moveSpeedTilesPerSecond: 4
+  _laneAssist: 1
   _tileSize: 1
   _blockHeight: 1
   _levelLayout: '#########################
@@ -301,7 +303,7 @@ MonoBehaviour:
 
     ###########################'
   _seed: 1
-  _startingItems: 0105
+  _startingItems: 
 --- !u!4 &62270303
 Transform:
   m_ObjectHideFlags: 0

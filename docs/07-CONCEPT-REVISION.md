@@ -633,6 +633,153 @@ diagonal case is the one no test currently isolates.
 
 ---
 
+## 4i. Touch controls (2026-08-08)
+
+**Delivered.** Analogue touch movement and MLBB-style drag-to-aim skill buttons.
+**397 EditMode + 14 PlayMode green, zero warnings.**
+
+### Found on the way in: touch was still playing v1.0
+
+`TouchInputSource` was snapping the stick to one of four grid directions with hysteresis and a
+change buffer, and its documentation still described "the isometric control problem" — a concern
+retired at M2b. Correct for the lane-based v1.0 game; **wrong from the moment the player gained free
+360° travel.** A phone was playing a different game from a keyboard, and adding aiming on top of
+cardinal movement would have built precision onto a control that could not express it.
+
+Movement is now analogue and quantised exactly as every other source does it. `InputFeelConfig`'s
+`SwitchRatio` and `ChangeBufferSeconds` are consequently unused; they belong to a movement model
+that no longer exists.
+
+### The control: each skill button is its own stick
+
+Tap to cast with no aim — the simulation falls back to the direction of travel. Press and drag to
+aim, release to fire, drag into the cancel zone to abandon it.
+
+> **Why this rather than a second thumbstick.** With three skills, one shared aim stick cannot know
+> which skill you meant, so aiming and choosing would take two gestures. Making each button its own
+> stick collapses them into one. The tap path matters as much as the drag: most casts do not need
+> precision, and requiring a drag for all of them would make the game feel slow.
+
+A cast is **latched on release and held until the simulation reads it**. Ticks run at 30 Hz and
+fingers do not; a press resolving between two ticks would otherwise be lost. It is delivered exactly
+once, because skills trigger on the press edge and a repeat would waste a charge.
+
+### A bug only a test could have found
+
+`OnPointerUp` hid the aim indicator *and the cancel zone* before asking whether the release had
+landed in the cancel zone — so the zone was always inactive by the time it was tested and
+**cancelling could never work**. On device this would have read as "cancel is broken" with no clue
+why. Ten gesture tests now drive the pointer events directly.
+
+### Still missing on touch
+
+No pause control on screen — Escape maps to the Android back button, so hardware back pauses, but
+there is no on-screen equivalent. Skill cooldown state is also invisible, which matters more on a
+touch screen than anywhere else, since there is no controller rumble or key feel to fall back on.
+
+---
+
+## 4j. Device build (2026-08-08)
+
+Built, installed and confirmed on a Galaxy S21 Ultra. Touch controls, pause, the run HUD and the
+readability changes all verified running. **397 EditMode + 14 PlayMode green, zero warnings.**
+
+### Two bugs that only a device could show
+
+Both passed every test and looked perfect in the Editor.
+
+**The Physics module is stripped from a player build.** `PlaceholderMeshes` built its meshes with
+`GameObject.CreatePrimitive`, which attaches a collider — and nothing else in this project references
+physics, because every collision is resolved on the grid. So the module was stripped and every mesh
+logged `Can't add component because class 'MeshCollider' doesn't exist!`, which forced the
+development console over the play area. The meshes themselves were fine, so it presented as log
+noise rather than as a bug. Now loads the built-in meshes directly and pulls in no module at all.
+
+> **The general lesson: the Editor never strips anything.** Any code that reaches for an engine
+> feature the game does not otherwise use will work in the Editor and fail in a build. View-layer
+> code written entirely against the Editor is exactly where this hides.
+
+**The HUD was drawing the build off-screen.** The readout box is authored at 700×70 and the line had
+quietly grown to carry arena, health, enemies, skill charges *and* the item list. It wrapped to a
+second line the box then clipped, so on device the charges and the whole build were invisible —
+which would have silently broken the "can describe their build" gate metric at the first playtest.
+
+### Also on device
+
+- The skill cluster overlapped the bomb button, because its offsets were fixed pixels against an
+  anchor that is larger on a phone. Now derived from the anchor's own size.
+- `PAUSE` reused the hub's 420×120 menu button size; reduced to 170×84. It keeps the word rather
+  than a glyph: the greybox draws with Unity's built-in legacy font, which has no coverage for
+  symbols like U+23F8, and a missing glyph renders as an empty box.
+- **Blocks now fill 88% of their tile**, so floor shows between them and the maze reads as separate
+  pieces rather than one mass. Purely visual — collision is still resolved on whole tiles. The inset
+  is kept modest on purpose: a wide gap between two solid pillars looks like a route, and being
+  stopped by an opening you can see is worse than being stopped by an obvious wall.
+
+### Not yet reported
+
+The layout is confirmed to *look* right. How drag-to-aim actually *feels* — button reach, drag
+radius, the tap-versus-drag threshold — is still unmeasured, and only a thumb can answer it.
+
+---
+
+## 4k. Procedural arenas (2026-08-08)
+
+**Delivered.** Seeded arena generation in three styles, wired into the run and verified on device.
+**412 EditMode + 14 PlayMode green, zero warnings.**
+
+### Three styles, because density alone is not variety
+
+`Lattice` is classic Bomberman — a pillar every second tile, open and connected by construction.
+`Scattered` places loose pillars, never adjacent to another, reading as open ground with cover.
+`Chambers` runs long walls with at least two doorways each, making rooms and sightlines.
+
+> Re-rolling block density produces the same room with more clutter in it. Changing the *structure*
+> is what makes an arena feel like somewhere else.
+
+Two rules are load-bearing rather than decorative. Scattered pillars are **never placed adjacent**,
+because two neighbouring random pillars start closing corridors and four close a room. Chamber walls
+get **at least two doors**, because a room with one exit can be sealed by a single bomb — that is a
+trap, not a space.
+
+### Guarantees, enforced rather than hoped for
+
+- **No unreachable ground.** The board is walked from spawn and anything it cannot reach becomes
+  solid rock. Sealing rather than carving: a corridor cut to an isolated pocket is a dead end nobody
+  asked for, whereas making it wall simply means the arena is slightly smaller than the rectangle it
+  was rolled in, which no one can perceive.
+- **A clear pocket at spawn**, never refilled with blocks. A spawn with one exit is a death sentence
+  dressed as a layout: the first bomb placed has nowhere to run to.
+- **Enemies start at a distance**, on open ground, each with at least one free neighbour — an enemy
+  sealed in by blocks turns clearing the arena into excavation.
+- **Something to blow up.** A board without destructibles is a corridor crawl.
+
+Every one of these is asserted **across 120 seeds**. A generator that produces a good board most of
+the time is not a working generator: the one run that walls a player in is the run they remember,
+and it will never be the seed a single-seed test happened to pick.
+
+### Arenas get their own generator
+
+Each arena is rolled from a generator seeded for that arena alone, not from the run's shared stream.
+Otherwise the board would be reshaped by anything else that drew a random number first — one extra
+item offer would silently change every layout after it.
+
+### A C# trap worth remembering
+
+`ArenaSettings.Default` was written as `new ArenaSettings()`. A struct always exposes an implicit
+parameterless constructor that zeroes every field and **ignores the defaults declared on the real
+one**, so it produced an arena of size zero. `Validate` caught it immediately, which is the argument
+for having written `Validate` at all.
+
+### Tuning
+
+Generation is on by default and Inspector-exposed on `MatchInstaller`: size, destructible density
+and starting enemy count. The authored layouts are kept rather than deleted — variety is what a run
+wants, but tuning anything needs the *same* board twice, and a seed is a clumsier way to ask for
+that than a list.
+
+---
+
 ## 5. Open questions
 
 1. **Does the third active skill earn its slot?** Three actives plus movement plus aim is a lot of

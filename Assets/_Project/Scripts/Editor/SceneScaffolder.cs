@@ -268,12 +268,16 @@ namespace BomberLegends.Editor
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(40f, -30f);
-            rect.sizeDelta = new Vector2(700f, 70f);
+            rect.sizeDelta = new Vector2(1700f, 70f);
 
             var text = textObject.GetComponent<Text>();
             text.font = font;
             text.fontSize = 42;
             text.alignment = TextAnchor.UpperLeft;
+
+            // The readout grew to carry arena, health, enemies, skill charges and the build. Wrapped
+            // and clipped, everything past "enemies" was drawn off-screen on device.
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
             text.color = new Color(0.95f, 0.95f, 1f);
             text.raycastTarget = false;
             text.text = "HP --";
