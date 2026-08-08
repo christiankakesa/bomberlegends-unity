@@ -21,6 +21,13 @@ namespace BomberLegends.Gameplay.Camera
     [DisallowMultipleComponent]
     public sealed class MatchCameraRig : MonoBehaviour
     {
+        /// <summary>World units a full-strength shake displaces the camera by.</summary>
+        /// <remarks>
+        /// Small on purpose. A blast tile is lethal and the player has to be able to read the board
+        /// through the shake; anything that obscures which tile is on fire costs a life.
+        /// </remarks>
+        private const float MaxShakeUnits = 0.34f;
+
         [SerializeField]
         [Tooltip("Camera to drive. Falls back to the camera on this object.")]
         private UnityEngine.Camera? _camera;
@@ -59,11 +66,43 @@ namespace BomberLegends.Gameplay.Camera
         private Vector3 _focus;
         private float _appliedDistance;
         private Vector3 _velocity;
+        private float _shakeStrength;
+        private float _shakeRemaining;
+        private float _shakeDuration;
+        private uint _shakeSeed = 0x6D2B79F5u;
         private Bounds _limits;
         private bool _hasLimits;
 
         /// <summary>The camera being driven, for anything that needs to unproject the pointer.</summary>
         public UnityEngine.Camera? Camera => Resolve();
+
+        /// <summary>
+        /// Knocks the camera, settling back over the given time.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Applied to the camera alone and never to the rig's focus, so a shake cannot drag the
+        /// framing off the player or feed back into the follow. The simulation is not touched at
+        /// all — a shake that moved anything the rules read would be a physics bug that only
+        /// appeared on impact.
+        /// </para>
+        /// <para>
+        /// A stronger knock overrides a weaker one still settling. Adding them together lets a
+        /// chain reaction stack into something unreadable at exactly the moment the player most
+        /// needs to see the board.
+        /// </para>
+        /// </remarks>
+        public void Shake(float strength, float seconds)
+        {
+            if (strength <= 0f || seconds <= 0f || strength < _shakeStrength * (_shakeRemaining / Mathf.Max(0.0001f, _shakeDuration)))
+            {
+                return;
+            }
+
+            _shakeStrength = Mathf.Clamp01(strength);
+            _shakeDuration = seconds;
+            _shakeRemaining = seconds;
+        }
 
         /// <summary>Sets up the rig for an arena and snaps straight to the starting point.</summary>
         public void Begin(int boardWidth, int boardHeight, BoardProjector projector, Vector3 target)
@@ -87,6 +126,11 @@ namespace BomberLegends.Gameplay.Camera
 
             _focus = Vector3.SmoothDamp(_focus, Clamp(target), ref _velocity, _smoothing, Mathf.Infinity,
                 deltaSeconds);
+
+            if (_shakeRemaining > 0f)
+            {
+                _shakeRemaining -= deltaSeconds;
+            }
 
             Apply();
         }
@@ -124,8 +168,42 @@ namespace BomberLegends.Gameplay.Camera
             var rotation = Quaternion.Euler(_pitch, 0f, 0f);
 
             camera.transform.SetPositionAndRotation(
-                _focus - (rotation * Vector3.forward * _appliedDistance),
+                _focus - (rotation * Vector3.forward * _appliedDistance) + ShakeOffset(),
                 rotation);
+        }
+
+        /// <summary>
+        /// The camera's displacement from the shake still settling, if any.
+        /// </summary>
+        /// <remarks>
+        /// Faded out with the square of what remains rather than linearly, so a knock lands hard and
+        /// then gets out of the way. A linear fade reads as the camera being loose.
+        /// </remarks>
+        private Vector3 ShakeOffset()
+        {
+            if (_shakeRemaining <= 0f || _shakeDuration <= 0f)
+            {
+                return Vector3.zero;
+            }
+
+            var progress = Mathf.Clamp01(_shakeRemaining / _shakeDuration);
+            var amount = _shakeStrength * progress * progress * MaxShakeUnits;
+
+            return new Vector3(NextOffset(), NextOffset(), 0f) * amount;
+        }
+
+        /// <summary>A value between minus one and one, from the rig's own generator.</summary>
+        /// <remarks>
+        /// Never the simulation's generator. Drawing from that would let the camera change the
+        /// outcome of a match, and would make a replay depend on how many frames were drawn.
+        /// </remarks>
+        private float NextOffset()
+        {
+            _shakeSeed ^= _shakeSeed << 13;
+            _shakeSeed ^= _shakeSeed >> 17;
+            _shakeSeed ^= _shakeSeed << 5;
+
+            return ((_shakeSeed & 0xFFFF) / 32768f) - 1f;
         }
 
         /// <summary>

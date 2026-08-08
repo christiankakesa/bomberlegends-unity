@@ -1,12 +1,17 @@
 # Game feel — the juice plan
 
-**Status 2026-08-08 · nothing here is built.** `IAudioService` is designed and only
-`SilentAudioService` implements it; `PlaySfx` has no callers anywhere in the project. The game is
-silent, and its only visual feedback is the greybox effects listed in
-[08-IMPLEMENTED.md](08-IMPLEMENTED.md).
+**Status 2026-08-08 · steps 1–4 built.** `AudioService` is live with pooled voices and per-effect
+voice limiting; a `FeedbackTable` binds events to sound and camera shake; the five moments that
+carry the loop all play; the camera is knocked in proportion to what happened.
 
-This document exists so that when it *is* built, it is built once and by a designer rather than
-piecemeal and by an engineer.
+**Sounds are generated, not authored.** The slice ships no audio assets for the same reason it ships
+no art, but silence is not a neutral placeholder — a player who cannot hear that they were hurt
+reports that the controls killed them. `ProceduralClips` synthesises a crude, distinguishable cue
+for every moment. Each one is wrapped in the same `SfxDefinition` a real clip would use, so
+replacing them is an authoring job.
+
+Remaining: chain pitch escalation, debris direction, squash-and-stretch, and the UI theme work in
+§4.
 
 ---
 

@@ -53,6 +53,11 @@ namespace BomberLegends.Gameplay.Match
         public int TicksLastFrame { get; private set; }
 
         /// <summary>
+        /// Turns events into sound and camera knocks. Optional; the match runs silently without it.
+        /// </summary>
+        public MatchFeedback? Feedback { get; set; }
+
+        /// <summary>
         /// Whether the match is held still.
         /// </summary>
         /// <remarks>
@@ -122,6 +127,7 @@ namespace BomberLegends.Gameplay.Match
                 // Events are consumed inside the tick loop: they last exactly one tick, and a frame
                 // that runs several ticks would otherwise see only the last one's effects.
                 _views?.Consume(_simulation);
+                Feedback?.Consume(_simulation);
                 DrainEvents();
             }
 

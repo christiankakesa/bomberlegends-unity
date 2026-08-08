@@ -60,5 +60,29 @@ namespace BomberLegends.Data.Audio
 
         /// <summary>Minimum seconds between two instances of this effect.</summary>
         public float MinRetriggerInterval => _minRetriggerInterval;
+
+        /// <summary>
+        /// Fills in a definition built at run time.
+        /// </summary>
+        /// <remarks>
+        /// The greybox generates its sounds rather than shipping clips, so the definitions wrapping
+        /// them cannot be authored in the Inspector. Authored assets are untouched by this — it only
+        /// exists so a generated effect passes through exactly the same limiting as a real one.
+        /// </remarks>
+        public void Configure(
+            AudioClip[] clips,
+            AudioBus bus,
+            float volume,
+            float pitchVariation,
+            int maxConcurrent,
+            float minRetriggerInterval)
+        {
+            _clips = clips ?? System.Array.Empty<AudioClip>();
+            _bus = bus;
+            _volume = volume;
+            _pitchVariation = pitchVariation;
+            _maxConcurrent = System.Math.Max(1, maxConcurrent);
+            _minRetriggerInterval = System.Math.Max(0f, minRetriggerInterval);
+        }
     }
 }

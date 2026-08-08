@@ -1,6 +1,6 @@
 # What is actually built
 
-**Updated 2026-08-08 · 412 EditMode + 14 PlayMode tests green, zero warnings · device-verified on a Galaxy S21 Ultra**
+**Updated 2026-08-08 · 421 EditMode + 14 PlayMode tests green, zero warnings · device-verified on a Galaxy S21 Ultra**
 
 A plain inventory of what exists in the project right now, so proposals can be validated against
 reality rather than against memory. Design rationale lives in
@@ -84,6 +84,9 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Touch: drag-to-aim skill buttons | ✅ | Tap casts, drag aims, release fires, cancel zone aborts |
 | No UI selection during a match | ✅ | Enforced by test — Submit and Bomb share a button on a pad |
 | Pause menu | ✅ | Start / Escape / on-screen button; resume and quit to hub |
+| Audio: pooled service, voice limiting, pitch variation | ✅ | Generated placeholder sounds; no assets needed |
+| Feedback table (event → sound + shake) | ✅ | Designer-editable asset; falls back to placeholders |
+| Camera kick scaled to the event | ✅ | View-only; never touches simulation state |
 | Android build pipeline | ✅ | Device-verified again 2026-08-08; 86 MB dev APK |
 | Block inset for readability | ✅ | Blocks fill 88% of their tile; collision unchanged |
 
@@ -94,8 +97,8 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Gap | Note |
 |---|---|
 | **Skill-ready / recharge indicator** | Only the numeric charge count in the HUD |
-| Audio | T-020, deferred since M2 |
-| Screen shake, hit feedback | T-021, deferred since M2 |
+| Authored audio | Sounds are generated placeholders; real clips drop into the same slots |
+| Chain pitch escalation | §3 of the feel plan; the cheapest remaining win |
 | Dash visual | Movement alone currently carries it |
 | Squash-and-stretch on arena border | Agreed, view layer only |
 | Level assets | T-025; the authored fallback layouts are still text in the installer |

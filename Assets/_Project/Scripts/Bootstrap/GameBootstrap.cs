@@ -66,7 +66,9 @@ namespace BomberLegends.Bootstrap
             // Constructed in dependency order. Settings needs both save and audio, so it comes last.
             var repository = CreateSaveRepository();
             var save = new SaveService(repository);
-            var audio = new SilentAudioService();
+            // Hosted beneath the bootstrap object, which survives every scene change, so voices are
+            // pooled once for the whole session rather than rebuilt per match.
+            var audio = new AudioService(transform);
             var assets = new UnavailableAssetService();
             var analytics = new NullAnalyticsService();
             var scenes = new SceneService(_loadingScreen);

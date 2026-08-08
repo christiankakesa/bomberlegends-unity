@@ -3,6 +3,7 @@ using BomberLegends.Gameplay.Board;
 using BomberLegends.Gameplay.Camera;
 using BomberLegends.Gameplay.Player;
 using BomberLegends.Input;
+using BomberLegends.Data.Audio;
 using BomberLegends.Services;
 using BomberLegends.Services.Scenes;
 using BomberLegends.Simulation;
@@ -80,6 +81,13 @@ namespace BomberLegends.Gameplay.Match
             "Applied only when the stick is near-aligned to an axis, so diagonals are untouched. " +
             "Zero disables it; raise it if a gamepad still catches on pillars.")]
         private float _laneAssist = 1f;
+
+        [Header("Feedback")]
+        [SerializeField]
+        [Tooltip(
+            "Binds simulation events to sound and camera shake. Leave empty to use generated " +
+            "placeholder sounds, so the game is never silent by default.")]
+        private FeedbackTable? _feedback;
 
         [Header("View")]
         [SerializeField, Range(0.5f, 2f)]
@@ -254,6 +262,30 @@ namespace BomberLegends.Gameplay.Match
                 overlay);
 
             InstallPauseMenu(overlay);
+            InstallFeedback(context, projector);
+        }
+
+        /// <summary>
+        /// Wires sound and camera shake to the simulation's events.
+        /// </summary>
+        /// <remarks>
+        /// Falls back to generated placeholder sounds when no table is assigned. Silence is not a
+        /// neutral default: a player who cannot hear that they were hurt reports that the controls
+        /// killed them, which corrupts the measurement the slice exists to take.
+        /// </remarks>
+        private void InstallFeedback(GameContext context, BoardProjector projector)
+        {
+            if (_runner == null)
+            {
+                return;
+            }
+
+            var table = _feedback != null ? _feedback : PlaceholderFeedback.CreateTable();
+            var feedback = _runner.gameObject.AddComponent<MatchFeedback>();
+
+            feedback.Begin(context.Audio, table, projector, _cameraRig);
+
+            _runner.Feedback = feedback;
         }
 
         /// <summary>
