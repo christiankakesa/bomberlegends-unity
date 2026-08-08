@@ -52,6 +52,16 @@ namespace BomberLegends.Gameplay.Match
         /// <summary>How many ticks the most recent frame advanced.</summary>
         public int TicksLastFrame { get; private set; }
 
+        /// <summary>
+        /// Whether the match is held still.
+        /// </summary>
+        /// <remarks>
+        /// Pausing skips the accumulator entirely rather than zeroing the timescale. Nothing
+        /// accumulates while it is set, so resuming cannot produce a burst of catch-up ticks — which
+        /// would appear as the world lurching forward the instant the menu closes.
+        /// </remarks>
+        public bool IsPaused { get; set; }
+
         /// <summary>How many ticks have been discarded because the frame budget was exceeded.</summary>
         public int DiscardedTicks { get; private set; }
 
@@ -88,6 +98,12 @@ namespace BomberLegends.Gameplay.Match
         {
             if (_simulation == null || _input == null || _playerView == null)
             {
+                return;
+            }
+
+            if (IsPaused)
+            {
+                TicksLastFrame = 0;
                 return;
             }
 

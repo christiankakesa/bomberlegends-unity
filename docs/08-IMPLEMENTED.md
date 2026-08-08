@@ -1,6 +1,6 @@
 # What is actually built
 
-**Updated 2026-08-07 · 377 EditMode + 10 PlayMode tests green, zero warnings**
+**Updated 2026-08-08 · 380 EditMode + 14 PlayMode tests green, zero warnings**
 
 A plain inventory of what exists in the project right now, so proposals can be validated against
 reality rather than against memory. Design rationale lives in
@@ -19,6 +19,7 @@ Legend — ✅ built and played · 🧪 built, not yet played · ⬜ not built
 | Zero allocation per tick | ✅ | Asserted by test on every subsystem |
 | 360° continuous movement, wall sliding | ✅ | Per-axis resolution, sub-stepped |
 | Corner slip | ✅ | Player only; enemies use lane centring instead |
+| Player lane assist | 🧪 | Scales with axis alignment; Inspector-tunable 0–1 |
 | Bombs, fuses, blasts, chain detonation | ✅ | Shared detonation queue, loop-guarded |
 | Destructible blocks | ✅ | Cleared by blasts only |
 | Health, immunity window | ✅ | Own blast 34, enemy contact 10, 30-tick immunity |
@@ -63,7 +64,7 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Health carries between arenas | ✅ | +25 restored per clear — **the number most likely wrong** |
 | Death ends the run | ✅ | |
 | Clean restart, in place | ✅ | No scene load; 200 restarts well under a second |
-| Item descriptions on cards | 🧪 | Added 2026-08-07 |
+| Item descriptions on cards | 🧪 | Added 2026-08-07, font raised to 20 |
 
 ## Presentation and platform
 
@@ -76,6 +77,9 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Gamepad + right-stick aim | 🧪 | `B` dash · `X` shot · `Y` slot 3 — **never played** |
 | Touch controls hidden off touch devices | 🧪 | Added 2026-08-07 |
 | Quit the application | 🧪 | Hub QUIT; stops play mode in the Editor |
+| Gamepad / keyboard menu navigation | 🧪 | Focus set on arrival, kept when lost, visibly highlighted |
+| No UI selection during a match | ✅ | Enforced by test — Submit and Bomb share a button on a pad |
+| Pause menu | 🧪 | Start / Escape / on-screen button; resume and quit to hub |
 | Android build pipeline | ✅ | Device-verified at M0/M1 |
 
 ---

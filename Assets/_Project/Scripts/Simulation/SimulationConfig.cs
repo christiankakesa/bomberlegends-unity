@@ -46,7 +46,8 @@ namespace BomberLegends.Simulation
             int skillshotDamage = 50,
             int maxProjectiles = 16,
             int itemSlots = 2,
-            int arenaClearHealing = 25)
+            int arenaClearHealing = 25,
+            int playerLaneAssistPerTick = 130)
         {
             MoveSpeedPerTick = moveSpeedPerTick;
             LaneSnapPerTick = laneSnapPerTick;
@@ -82,6 +83,7 @@ namespace BomberLegends.Simulation
             MaxProjectiles = maxProjectiles;
             ItemSlots = itemSlots;
             ArenaClearHealing = arenaClearHealing;
+            PlayerLaneAssistPerTick = playerLaneAssistPerTick;
         }
 
         /// <summary>Sub-tile units the player advances each tick while moving.</summary>
@@ -265,6 +267,24 @@ namespace BomberLegends.Simulation
         /// </remarks>
         public int ArenaClearHealing { get; }
 
+        /// <summary>
+        /// How hard the player is drawn to the middle of a corridor while travelling along it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Applied only in proportion to how axis-aligned the stick is, and fading to nothing well
+        /// before a diagonal, so free 360° movement is untouched. This is what closes the gap
+        /// between a keyboard and a pad: keys produce perfectly aligned input and keep the player
+        /// centred for free, while a stick is a degree or two off and drifts the box into every
+        /// pillar corner it passes, scrubbing off speed at each one.
+        /// </para>
+        /// <para>
+        /// Zero disables it. Too high and the player is railed onto lanes, which would quietly undo
+        /// the continuous movement the whole hybrid rests on.
+        /// </para>
+        /// </remarks>
+        public int PlayerLaneAssistPerTick { get; }
+
         /// <summary>The loadout a player starts a run with, before any item touches it.</summary>
         public Skills.SkillLoadout CreateStartingLoadout() =>
             Skills.SkillLoadout.Of(
@@ -286,9 +306,14 @@ namespace BomberLegends.Simulation
 
         /// <summary>Builds a configuration from a speed expressed in tiles per second.</summary>
         /// <exception cref="ArgumentOutOfRangeException">The speed is not positive.</exception>
+        /// <param name="laneAssistStrength">
+        /// How strongly the player is drawn to the middle of a corridor, from zero to one. Scales
+        /// with movement speed so the feel survives a speed change.
+        /// </param>
         public static SimulationConfig FromTilesPerSecond(
             float tilesPerSecond,
-            int ticksPerSecond = SimulationConstants.TicksPerSecond)
+            int ticksPerSecond = SimulationConstants.TicksPerSecond,
+            float laneAssistStrength = 1f)
         {
             if (tilesPerSecond <= 0f)
             {
@@ -306,12 +331,16 @@ namespace BomberLegends.Simulation
                 tilesPerSecond * Core.SubTilePoint.UnitsPerTile / ticksPerSecond,
                 MidpointRounding.AwayFromZero);
 
+            var assist = (int)Math.Round(
+                perTick * Math.Clamp(laneAssistStrength, 0f, 1f), MidpointRounding.AwayFromZero);
+
             return new SimulationConfig(
                 moveSpeedPerTick: Math.Max(1, perTick),
                 laneSnapPerTick: Math.Max(1, perTick * 3 / 2),
                 turnTolerance: Core.SubTilePoint.UnitsPerTile * 3 / 10,
                 directionDeadzone: PlayerIntent.DefaultDeadzone,
-                cornerAssistEnabled: true);
+                cornerAssistEnabled: true,
+                playerLaneAssistPerTick: assist);
         }
 
         /// <summary>Throws if any value would produce broken movement.</summary>
@@ -425,6 +454,11 @@ namespace BomberLegends.Simulation
             if (ArenaClearHealing < 0)
             {
                 throw new ArgumentException("Clearing an arena must not cost health.");
+            }
+
+            if (PlayerLaneAssistPerTick < 0)
+            {
+                throw new ArgumentException("Lane assist must not be negative.");
             }
 
             if (PlayerRadius <= 0 || PlayerRadius >= Core.SubTilePoint.HalfTile)

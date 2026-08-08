@@ -55,7 +55,7 @@ namespace BomberLegends.Gameplay.Match
         private ActionButton? _bombButton;
 
         [SerializeField]
-        [Tooltip("Abandons the match and returns to the hub.")]
+        [Tooltip("Opens the pause menu. Relabelled at run time; the menu offers resume and quit.")]
         private Button? _quitButton;
 
         [Header("Configuration")]
@@ -72,6 +72,13 @@ namespace BomberLegends.Gameplay.Match
         [SerializeField, Range(1f, 12f)]
         [Tooltip("Player speed in tiles per second.")]
         private float _moveSpeedTilesPerSecond = 4f;
+
+        [SerializeField, Range(0f, 1f)]
+        [Tooltip(
+            "How strongly the player is drawn to the middle of a corridor while running along it. " +
+            "Applied only when the stick is near-aligned to an axis, so diagonals are untouched. " +
+            "Zero disables it; raise it if a gamepad still catches on pillars.")]
+        private float _laneAssist = 1f;
 
         [Header("View")]
         [SerializeField, Range(0.5f, 2f)]
@@ -152,6 +159,7 @@ namespace BomberLegends.Gameplay.Match
         private ItemId[] _startingItems = System.Array.Empty<ItemId>();
 
         private GameContext? _context;
+        private PauseController? _pause;
 
         /// <summary>When the on-screen controls are shown.</summary>
         private enum TouchControlMode
@@ -174,10 +182,6 @@ namespace BomberLegends.Gameplay.Match
         {
             _context = context;
 
-            if (_quitButton != null)
-            {
-                _quitButton.onClick.AddListener(ReturnToHub);
-            }
 
             if (_runner == null || _boardRenderer == null || _playerView == null)
             {
@@ -192,8 +196,13 @@ namespace BomberLegends.Gameplay.Match
 
             ApplyTouchControlVisibility();
 
+            // Nothing may stay selected during a match. On a pad, Submit and Bomb are the same
+            // button, so a selected control would be clicked every time the player throws a bomb.
+            UiFocus.Clear();
+
             var projector = new BoardProjector(_tileSize, _blockHeight);
-            var config = SimulationConfig.FromTilesPerSecond(_moveSpeedTilesPerSecond);
+            var config = SimulationConfig.FromTilesPerSecond(
+                _moveSpeedTilesPerSecond, laneAssistStrength: _laneAssist);
             var run = new GameRun(config, arenas, _seed, _startingItems);
 
             _playerView.Initialise(projector);
@@ -207,6 +216,7 @@ namespace BomberLegends.Gameplay.Match
             // why moving between arenas costs nothing.
             _views?.Begin(_boardRenderer, projector, config);
 
+            var overlay = CreateOverlay();
             var controller = _runner.gameObject.AddComponent<RunController>();
 
             controller.Begin(
@@ -218,15 +228,73 @@ namespace BomberLegends.Gameplay.Match
                 CreateInputSource(projector),
                 _views,
                 _cameraRig,
-                CreateOverlay());
+                overlay);
+
+            InstallPauseMenu(overlay);
+        }
+
+        /// <summary>
+        /// Builds the pause menu and gives the on-screen button its real job.
+        /// </summary>
+        /// <remarks>
+        /// The button used to abandon the match outright. It now opens a menu instead, which is what
+        /// lets a pad leave a match at all: selection has to stay clear while playing, because
+        /// Submit and Bomb are the same button on a pad, so no in-world control can be reachable.
+        /// </remarks>
+        private void InstallPauseMenu(RunOverlayView? overlay)
+        {
+            if (_runner == null)
+            {
+                return;
+            }
+
+            var canvas = ResolveCanvas();
+            if (canvas == null)
+            {
+                Debug.LogWarning("[Match] No canvas found, so the match cannot be paused.");
+                return;
+            }
+
+            var host = new GameObject("Pause Menu");
+            host.transform.SetParent(canvas.transform, false);
+
+            var menu = host.AddComponent<PauseMenuView>();
+            menu.Build(canvas);
+
+            var pause = _runner.gameObject.AddComponent<PauseController>();
+            pause.Begin(_runner, menu, ReturnToHub, () => overlay != null && overlay.IsShowing);
+
+            if (_quitButton == null)
+            {
+                return;
+            }
+
+            _quitButton.onClick.AddListener(OpenPause);
+
+            var label = _quitButton.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.text = "PAUSE";
+            }
+
+            _pause = pause;
+        }
+
+        private void OpenPause()
+        {
+            // Routed through the same key handling, so the button and the Start button cannot drift
+            // into behaving differently.
+            _pause?.TogglePause();
         }
 
         /// <summary>Builds the between-arena screen, or none when there is no canvas to host it.</summary>
+        private Canvas? ResolveCanvas() => _quitButton != null
+            ? _quitButton.GetComponentInParent<Canvas>()
+            : FindFirstObjectByType<Canvas>();
+
         private RunOverlayView? CreateOverlay()
         {
-            var canvas = _quitButton != null
-                ? _quitButton.GetComponentInParent<Canvas>()
-                : FindFirstObjectByType<Canvas>();
+            var canvas = ResolveCanvas();
 
             if (canvas == null)
             {
@@ -249,7 +317,7 @@ namespace BomberLegends.Gameplay.Match
         {
             if (_quitButton != null)
             {
-                _quitButton.onClick.RemoveListener(ReturnToHub);
+                _quitButton.onClick.RemoveListener(OpenPause);
             }
         }
 

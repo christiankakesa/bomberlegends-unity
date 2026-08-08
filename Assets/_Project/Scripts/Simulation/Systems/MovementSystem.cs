@@ -1,4 +1,5 @@
 using BomberLegends.Core;
+using BomberLegends.Simulation.Actors;
 using BomberLegends.Simulation.Events;
 
 namespace BomberLegends.Simulation.Systems
@@ -66,6 +67,13 @@ namespace BomberLegends.Simulation.Systems
             {
                 player.MoveDirection = DominantDirection(velocityX, velocityY);
                 player.Facing = player.MoveDirection;
+
+                // Only while steering. A dash has committed to a heading and must not be quietly
+                // curved onto a lane part-way through it.
+                if (!dashing)
+                {
+                    ApplyLaneAssist(player, config, ref velocityX, ref velocityY);
+                }
 
                 // Bombs the player is already standing on cannot block them this tick. That is the
                 // whole of the classic "walk off your own bomb" rule, with no ownership tracking:
@@ -141,6 +149,70 @@ namespace BomberLegends.Simulation.Systems
 
             velocityX = x * speed / length;
             velocityY = y * speed / length;
+        }
+
+        /// <summary>
+        /// Draws the player toward the middle of the corridor they are running along.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The board is made of whole tiles but the player is a box, and the two disagree the moment
+        /// the box sits off-centre: a one-tile gap leaves only a fraction of a tile of slack, so a
+        /// player pressed against one side clips the corner of every pillar they pass and is stopped
+        /// dead for a few ticks at each one. It reads as the world dragging on you.
+        /// </para>
+        /// <para>
+        /// It is felt far more on a pad than on a keyboard, and that is the tell. Keys produce
+        /// perfectly axis-aligned input, so a keyboard player never drifts off-lane and never pays
+        /// the toll. A stick is a degree or two off almost always, and pays it at every junction.
+        /// </para>
+        /// <para>
+        /// So the help is proportional to how axis-aligned the request is, and gone entirely well
+        /// before a diagonal. Running a corridor gets centred; cutting across open ground is left
+        /// completely alone, which is what keeps the movement continuous rather than railed.
+        /// </para>
+        /// </remarks>
+        private static void ApplyLaneAssist(
+            in PlayerState player, in SimulationConfig config, ref int velocityX, ref int velocityY)
+        {
+            var assist = config.PlayerLaneAssistPerTick;
+            if (assist <= 0)
+            {
+                return;
+            }
+
+            var absX = IntMath.Abs(velocityX);
+            var absY = IntMath.Abs(velocityY);
+
+            var horizontal = absX >= absY;
+            var major = horizontal ? absX : absY;
+            var minor = horizontal ? absY : absX;
+
+            if (major <= 0)
+            {
+                return;
+            }
+
+            // Full help when travelling straight, nothing once the minor axis reaches half the
+            // major — around 27°, comfortably short of a deliberate diagonal.
+            var weight = 100 - (minor * 200 / major);
+            if (weight <= 0)
+            {
+                return;
+            }
+
+            var centre = SubTilePoint.CentreOf(horizontal ? player.Tile.Y : player.Tile.X);
+            var current = horizontal ? player.Position.Y : player.Position.X;
+
+            var pull = IntMath.Clamp(centre - current, -assist, assist) * weight / 100;
+
+            if (horizontal)
+            {
+                velocityY += pull;
+                return;
+            }
+
+            velocityX += pull;
         }
 
         /// <summary>The cardinal direction that best describes a velocity, for facing and animation.</summary>

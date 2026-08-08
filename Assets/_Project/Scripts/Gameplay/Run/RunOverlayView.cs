@@ -1,4 +1,6 @@
 using System;
+using BomberLegends.Gameplay.Ui;
+using BomberLegends.Services;
 using BomberLegends.Simulation.Items;
 using UnityEngine;
 using UnityEngine.UI;
@@ -53,8 +55,7 @@ namespace BomberLegends.Gameplay.Run
                 return;
             }
 
-            _panel = CreateStretched("RunOverlay", canvas.transform);
-            AddImage(_panel, PanelColour);
+            _panel = GreyboxUi.CreateFullScreenPanel("RunOverlay", canvas.transform, PanelColour);
 
             _title = CreateLabel(_panel.transform, "ARENA CLEARED", 34, new Vector2(0f, 150f));
 
@@ -80,7 +81,13 @@ namespace BomberLegends.Gameplay.Run
             _restart.GetComponentInChildren<Text>().text = "RESTART";
             _restart.onClick.AddListener(() => Restarted?.Invoke());
 
+            // Hidden first, then given its keeper. Attaching it to a live object would fire
+            // OnEnable and grab focus before the overlay is ever shown.
             _panel.SetActive(false);
+
+            // Lives on the panel, so it runs only while the overlay is up. Selection must be gone
+            // during a match: on a pad, Submit and Bomb are the same button.
+            _panel.AddComponent<UiFocusKeeper>();
         }
 
         /// <summary>Shows the item choice.</summary>
@@ -99,6 +106,8 @@ namespace BomberLegends.Gameplay.Run
             _skip?.gameObject.SetActive(true);
             _restart?.gameObject.SetActive(false);
             _panel.SetActive(true);
+
+            FocusFirstChoice();
         }
 
         /// <summary>Shows which held item to give up for the one being taken.</summary>
@@ -117,6 +126,8 @@ namespace BomberLegends.Gameplay.Run
             _skip?.gameObject.SetActive(true);
             _restart?.gameObject.SetActive(false);
             _panel.SetActive(true);
+
+            FocusFirstChoice();
         }
 
         private void FillButtons(ReadOnlySpan<ItemId> ids)
@@ -166,49 +177,52 @@ namespace BomberLegends.Gameplay.Run
             _skip?.gameObject.SetActive(false);
             _restart?.gameObject.SetActive(true);
             _panel.SetActive(true);
+
+            SetKeeperFallback(_restart != null ? _restart.gameObject : null);
+            UiFocus.Select(_restart != null ? _restart.gameObject : null);
         }
 
         /// <summary>Hides the overlay and returns control to the match.</summary>
-        public void Hide() => _panel?.SetActive(false);
-
-        private static GameObject CreateStretched(string name, Transform parent)
+        /// <remarks>
+        /// Selection is given up as well as hidden. Leaving a control selected would let the bomb
+        /// button press it, because on a pad they are the same button.
+        /// </remarks>
+        public void Hide()
         {
-            var child = new GameObject(name, typeof(RectTransform));
-            child.transform.SetParent(parent, false);
-
-            var rect = child.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            return child;
+            _panel?.SetActive(false);
+            UiFocus.Clear();
         }
 
-        private static void AddImage(GameObject target, Color colour)
+        private void FocusFirstChoice()
         {
-            var image = target.AddComponent<Image>();
-            image.color = colour;
+            for (var i = 0; i < _choices.Length; i++)
+            {
+                if (!_choices[i].gameObject.activeSelf)
+                {
+                    continue;
+                }
+
+                SetKeeperFallback(_choices[i].gameObject);
+                UiFocus.Select(_choices[i].gameObject);
+                return;
+            }
+
+            SetKeeperFallback(_skip != null ? _skip.gameObject : null);
+            UiFocus.Select(_skip != null ? _skip.gameObject : null);
         }
 
-        private static Text CreateLabel(Transform parent, string text, int size, Vector2 position)
+        private void SetKeeperFallback(GameObject? target)
         {
-            var child = new GameObject("Label", typeof(RectTransform));
-            child.transform.SetParent(parent, false);
+            if (_panel == null)
+            {
+                return;
+            }
 
-            var rect = child.GetComponent<RectTransform>();
-            rect.anchoredPosition = position;
-            rect.sizeDelta = new Vector2(900f, 90f);
-
-            var label = child.AddComponent<Text>();
-            label.text = text;
-            label.font = PlaceholderFont();
-            label.fontSize = size;
-            label.alignment = TextAnchor.MiddleCenter;
-            label.color = Color.white;
-            label.raycastTarget = false;
-
-            return label;
+            var keeper = _panel.GetComponent<UiFocusKeeper>();
+            if (keeper != null)
+            {
+                keeper.Fallback = target;
+            }
         }
 
         /// <summary>
@@ -228,7 +242,7 @@ namespace BomberLegends.Gameplay.Run
 
             // Large enough to read at a glance from a normal sitting distance. A description nobody
             // reads is the same as no description, which was the whole problem being fixed.
-            blurb = CreateLabel(button.transform, string.Empty, 19, new Vector2(0f, -size.y * 0.08f));
+            blurb = CreateLabel(button.transform, string.Empty, 20, new Vector2(0f, -size.y * 0.08f));
             blurb.rectTransform.sizeDelta = new Vector2(size.x - 32f, size.y * 0.62f);
             blurb.alignment = TextAnchor.UpperCenter;
             blurb.horizontalOverflow = HorizontalWrapMode.Wrap;
@@ -238,24 +252,11 @@ namespace BomberLegends.Gameplay.Run
             return button;
         }
 
-        private static Button CreateButton(Transform parent, Vector2 position, Vector2 size)
-        {
-            var child = new GameObject("Button", typeof(RectTransform));
-            child.transform.SetParent(parent, false);
+        private static Text CreateLabel(Transform parent, string text, int size, Vector2 position) =>
+            GreyboxUi.CreateLabel(parent, text, size, position);
 
-            var rect = child.GetComponent<RectTransform>();
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
+        private static Button CreateButton(Transform parent, Vector2 position, Vector2 size) =>
+            GreyboxUi.CreateButton(parent, string.Empty, position, size, ButtonColour, fontSize: 22);
 
-            AddImage(child, ButtonColour);
-
-            var button = child.AddComponent<Button>();
-            CreateLabel(child.transform, string.Empty, 22, Vector2.zero).rectTransform.sizeDelta = size;
-
-            return button;
-        }
-
-        private static Font PlaceholderFont() =>
-            Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
     }
 }

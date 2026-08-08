@@ -41,6 +41,39 @@ namespace BomberLegends.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator TheHubIsNavigableWithoutAMouse()
+        {
+            // Unity's navigation moves from whatever is selected. With nothing selected a d-pad
+            // does nothing at all, which is what made the menus look broken on a gamepad — the
+            // input module was correct the whole time.
+            yield return LoadBootstrap();
+
+            Assert.That(EventSystem.current, Is.Not.Null);
+            Assert.That(EventSystem.current!.currentSelectedGameObject, Is.Not.Null,
+                "the hub must select a control on arrival or a pad has nowhere to start");
+        }
+
+        [UnityTest]
+        public IEnumerator AMatchLeavesNothingSelected()
+        {
+            // On a pad, Submit and Bomb are the same physical button. Anything left selected during
+            // a match would be clicked every time the player throws a bomb — including QUIT.
+            yield return LoadBootstrap();
+
+            var context = GetContext()!;
+            yield return TransitionTo(context, SceneId.Match);
+
+            var selected = EventSystem.current!.currentSelectedGameObject;
+
+            // Compared with Unity's null semantics, and allowing an inactive object. Leaving the
+            // hub destroys whatever it had selected, and the EventSystem keeps that dead reference
+            // rather than clearing it. A destroyed or hidden control cannot be clicked, so what
+            // actually matters is that nothing *live* is focused.
+            Assert.That(selected == null || !selected.activeInHierarchy, Is.True,
+                $"a match must hold no live UI selection, but '{selected}' is focused");
+        }
+
+        [UnityTest]
         public IEnumerator SceneFlow_HubToMatchToHub_RestoresTheStartingObjectCount()
         {
             yield return LoadBootstrap();

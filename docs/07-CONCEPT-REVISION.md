@@ -599,6 +599,40 @@ the thing that has already been signed off.
 
 ---
 
+## 4h. Movement: the gamepad toll (2026-08-08)
+
+**Reported.** *"The player is slowed down by the obstacle when playing, it happens more when playing
+with a gamepad; with the keyboard I have better precision so I don't feel that."*
+
+**That comparison is the diagnosis.** It is the same tile-versus-box mismatch that was wedging
+enemies, and the input device is what decides who pays for it:
+
+> A one-tile corridor leaves a fraction of a tile of slack around the player's box. Pressed against
+> one side, they clip the corner of every pillar they pass and stop dead for a few ticks at each.
+> **Keys are perfectly axis-aligned, so a keyboard player never drifts off-lane and never pays the
+> toll.** A stick is a degree or two off almost always, and pays it at every junction.
+
+**Fix: lane assist proportional to axis alignment.** Full help running straight down a corridor,
+fading to nothing by roughly 27° off-axis. A deliberate diagonal is untouched, so movement stays
+continuous rather than railed — the thing the whole hybrid rests on. Inspector-tunable 0–1, because
+this is feel work and the dial belongs in the designer's hands.
+
+**Dash is deliberately excluded.** It has committed to a heading, and curving it onto a lane
+mid-flight would undo the commitment that makes it read as a dash rather than a speed boost.
+
+### Corner slip may now be partly redundant
+
+`CornerSlip_CanBeDisabled` failed when assist landed — not because assist broke anything, but because
+**assist recentres the player before a corner is ever clipped**, so corner slip was never asked to do
+anything. The test now pins assist to zero so it measures the helper it names.
+
+That is worth knowing rather than acting on. The two cover different cases: assist only engages when
+travelling near-axis-aligned, so corner slip still owns everything diagonal, where assist is zero by
+design. If a later pass wants to simplify, this is the pair to look at — with the warning that the
+diagonal case is the one no test currently isolates.
+
+---
+
 ## 5. Open questions
 
 1. **Does the third active skill earn its slot?** Three actives plus movement plus aim is a lot of

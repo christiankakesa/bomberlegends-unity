@@ -17,6 +17,9 @@ namespace BomberLegends.Input
         private const float StickDeadzone = 0.3f;
 
         /// <inheritdoc />
+        public ControlScheme Scheme => ControlScheme.Gamepad;
+
+        /// <inheritdoc />
         public PlayerIntent Sample(int tick)
         {
             var gamepad = Gamepad.current;

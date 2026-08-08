@@ -74,6 +74,9 @@ namespace BomberLegends.Input
         }
 
         /// <inheritdoc />
+        public ControlScheme Scheme => ControlScheme.Touch;
+
+        /// <inheritdoc />
         public PlayerIntent Sample(int tick)
         {
             var stick = _joystick.Value;

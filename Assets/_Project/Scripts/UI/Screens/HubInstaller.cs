@@ -40,6 +40,43 @@ namespace BomberLegends.UI.Screens
 
             _quitButton ??= CreateQuitButton();
             _quitButton?.onClick.AddListener(Quit);
+
+            EnableNavigation();
+        }
+
+        /// <summary>
+        /// Makes the hub reachable without a mouse.
+        /// </summary>
+        /// <remarks>
+        /// The input module was always correct; nothing was ever selected. Unity's navigation moves
+        /// from the current selection, so with none a d-pad does nothing and the screen looks
+        /// broken to anyone not holding a mouse.
+        /// </remarks>
+        private void EnableNavigation()
+        {
+            if (_playButton == null)
+            {
+                return;
+            }
+
+            UiFocus.ApplyNavigationColours(_playButton, _playButton.image != null
+                ? _playButton.image.color
+                : Color.white);
+
+            if (_quitButton != null)
+            {
+                UiFocus.ApplyNavigationColours(_quitButton, _quitButton.image != null
+                    ? _quitButton.image.color
+                    : Color.white);
+            }
+
+            var keeper = _playButton.transform.parent != null
+                ? _playButton.transform.parent.gameObject.AddComponent<UiFocusKeeper>()
+                : gameObject.AddComponent<UiFocusKeeper>();
+
+            keeper.Fallback = _playButton.gameObject;
+
+            UiFocus.Select(_playButton.gameObject);
         }
 
         private void OnDestroy()

@@ -21,6 +21,9 @@
 .vs/
 .idea/
 .vscode/
+.claude/
+.zcode/
+.utmp/
 .gradle/
 ExportedObj/
 .consulo/

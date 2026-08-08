@@ -308,13 +308,17 @@ namespace BomberLegends.Tests.EditMode.Simulation
         [Test]
         public void CornerSlip_CanBeDisabled()
         {
+            // Lane assist is switched off as well, or this measures the wrong helper: assist
+            // recentres the player before a corner is ever clipped, so corner slip would never be
+            // asked to do anything and the test would pass without proving it exists.
             var withoutAssist = new SimulationConfig(
                 moveSpeedPerTick: 133,
                 laneSnapPerTick: 0,
                 turnTolerance: 0,
                 directionDeadzone: PlayerIntent.DefaultDeadzone,
                 cornerAssistEnabled: false,
-                cornerSlipPerTick: 0);
+                cornerSlipPerTick: 0,
+                playerLaneAssistPerTick: 0);
 
             var simulation = new GameSimulation(
                 withoutAssist,
@@ -402,5 +406,119 @@ namespace BomberLegends.Tests.EditMode.Simulation
             Assert.That(IntMath.Clamp(-10, 0, 5), Is.EqualTo(0));
             Assert.That(IntMath.Clamp(3, 0, 5), Is.EqualTo(3));
         }
+        // ---------- lane assist ----------
+
+        /// <summary>
+        /// A corridor flanked by pillars, which is the shape every arena is built from.
+        /// </summary>
+        private static GameSimulation PillarCorridor(int laneAssist)
+        {
+            var config = new SimulationConfig(
+                moveSpeedPerTick: 133,
+                laneSnapPerTick: 200,
+                turnTolerance: 300,
+                directionDeadzone: PlayerIntent.DefaultDeadzone,
+                cornerAssistEnabled: true,
+                playerRadius: 340,
+                cornerSlipPerTick: 90,
+                cornerSlipTolerance: 320,
+                playerLaneAssistPerTick: laneAssist);
+
+            return new GameSimulation(
+                config,
+                LevelLayout.Parse(
+                    "###############",
+                    "#.#.#.#.#.#.#.#",
+                    "#P............#",
+                    "#.#.#.#.#.#.#.#",
+                    "###############"),
+                seed: 1u);
+        }
+
+        /// <summary>How far east the player gets on a given stick reading.</summary>
+        private static int DistanceEast(int laneAssist, sbyte moveX, sbyte moveY, int ticks = 150)
+        {
+            var simulation = PillarCorridor(laneAssist);
+            var start = simulation.State.Player.Position.X;
+
+            for (var i = 0; i < ticks; i++)
+            {
+                simulation.Tick(new PlayerIntent(moveX, moveY));
+            }
+
+            return simulation.State.Player.Position.X - start;
+        }
+
+        [Test]
+        public void AnOffAxisStickTravelsAsFastAsAKeyboard()
+        {
+            // Reported from play: the player is slowed by obstacles, and far more on a pad than on
+            // a keyboard. Keys are perfectly axis-aligned so the box never drifts off-lane; a stick
+            // is a couple of degrees off and clips the corner of every pillar it passes.
+            var keyboard = DistanceEast(130, 100, 0);
+            var gamepad = DistanceEast(130, 99, 14);
+
+            Assert.That(gamepad, Is.GreaterThan(keyboard * 9 / 10),
+                $"an off-axis stick covered {gamepad} against a keyboard's {keyboard}");
+        }
+
+        [Test]
+        public void LaneAssistIsWhatClosesTheGamepadGap()
+        {
+            // Guards the fix from being quietly undone, and proves the problem is real rather than
+            // assumed: without assist the same stick reading loses ground down the same corridor.
+            var without = DistanceEast(0, 99, 14);
+            var with = DistanceEast(130, 99, 14);
+
+            Assert.That(with, Is.GreaterThan(without),
+                $"assist must help an off-axis run, but went {without} -> {with}");
+        }
+
+        [Test]
+        public void LaneAssistLeavesADeliberateDiagonalAlone()
+        {
+            // The help has to disappear well before a diagonal, or continuous movement quietly
+            // becomes movement on rails — which is the thing the whole hybrid rests on not being.
+            var simulation = new GameSimulation(
+                new SimulationConfig(
+                    moveSpeedPerTick: 133,
+                    laneSnapPerTick: 200,
+                    turnTolerance: 300,
+                    directionDeadzone: PlayerIntent.DefaultDeadzone,
+                    cornerAssistEnabled: true,
+                    playerRadius: 340,
+                    cornerSlipPerTick: 90,
+                    cornerSlipTolerance: 320,
+                    playerLaneAssistPerTick: 130),
+                // Deliberately roomy. A 45° run covers nearly four tiles on each axis, and a wall
+                // arriving first would clamp one of them and look exactly like flattening.
+                LevelLayout.Parse(
+                    "###########",
+                    "#.........#",
+                    "#.........#",
+                    "#.........#",
+                    "#.........#",
+                    "#.........#",
+                    "#.........#",
+                    "#.........#",
+                    "#.........#",
+                    "#P........#",
+                    "###########"),
+                seed: 1u);
+
+            var start = simulation.State.Player.Position;
+
+            for (var i = 0; i < 40; i++)
+            {
+                simulation.Tick(new PlayerIntent(70, 70));
+            }
+
+            var movedX = simulation.State.Player.Position.X - start.X;
+            var movedY = simulation.State.Player.Position.Y - start.Y;
+
+            Assert.That(movedY, Is.GreaterThan(movedX * 8 / 10),
+                "a 45° push must still travel diagonally, not be flattened onto a lane");
+        }
+
     }
 }

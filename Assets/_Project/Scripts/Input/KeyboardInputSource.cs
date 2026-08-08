@@ -24,6 +24,9 @@ namespace BomberLegends.Input
         public KeyboardInputSource(IAimSource? aim = null) => _aim = aim;
 
         /// <inheritdoc />
+        public ControlScheme Scheme => ControlScheme.KeyboardMouse;
+
+        /// <inheritdoc />
         public PlayerIntent Sample(int tick)
         {
             var keyboard = Keyboard.current;
