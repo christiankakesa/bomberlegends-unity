@@ -3,6 +3,7 @@ using BomberLegends.Gameplay.Camera;
 using BomberLegends.Gameplay.Match;
 using BomberLegends.Gameplay.Player;
 using BomberLegends.Input;
+using BomberLegends.Services.Save;
 using BomberLegends.Simulation;
 using BomberLegends.Simulation.Run;
 using UnityEngine;
@@ -37,6 +38,7 @@ namespace BomberLegends.Gameplay.Run
         private MatchViewSynchroniser? _views;
         private MatchCameraRig? _camera;
         private RunOverlayView? _overlay;
+        private ISaveService? _save;
         private IInputSource _input = null!;
 
         private GameSimulation? _shown;
@@ -53,7 +55,8 @@ namespace BomberLegends.Gameplay.Run
             IInputSource input,
             MatchViewSynchroniser? views = null,
             MatchCameraRig? camera = null,
-            RunOverlayView? overlay = null)
+            RunOverlayView? overlay = null,
+            ISaveService? save = null)
         {
             _run = run;
             _runner = runner;
@@ -64,6 +67,7 @@ namespace BomberLegends.Gameplay.Run
             _views = views;
             _camera = camera;
             _overlay = overlay;
+            _save = save;
 
             if (_overlay != null)
             {
@@ -149,6 +153,8 @@ namespace BomberLegends.Gameplay.Run
                     break;
 
                 case RunPhase.Ended:
+                    RunPersistence.Clear(_save);
+                    Flush();
                     _overlay.ShowEnded(_run.ArenaNumber);
                     break;
 
@@ -187,6 +193,55 @@ namespace BomberLegends.Gameplay.Run
                 _playerView.WorldPosition);
 
             _runner.Begin(simulation, _input, _playerView, _views, _camera);
+
+            PersistRun();
+        }
+
+        /// <summary>
+        /// Writes the run to storage, or forgets it once it has ended.
+        /// </summary>
+        /// <remarks>
+        /// Written the moment an arena begins rather than left to the application quitting. A
+        /// browser tab closing does not reliably deliver a quit callback, and a run lost to a stray
+        /// refresh is a player who does not start another one.
+        /// </remarks>
+        private void PersistRun()
+        {
+            if (_save == null)
+            {
+                return;
+            }
+
+            if (_run.Phase == RunPhase.Ended)
+            {
+                RunPersistence.Clear(_save);
+            }
+            else
+            {
+                RunPersistence.Write(_save, _run.CreateSnapshot());
+            }
+
+            Flush();
+        }
+
+        /// <summary>Pushes the save to storage without blocking the frame it happened on.</summary>
+        private async void Flush()
+        {
+            if (_save == null || !_save.IsDirty)
+            {
+                return;
+            }
+
+            try
+            {
+                await _save.SaveAsync();
+            }
+            catch (System.Exception exception)
+            {
+                // A failed save must never take the match down with it. The run continues; the
+                // player simply cannot resume it later.
+                Debug.LogError($"[Run] The run could not be saved: {exception.Message}");
+            }
         }
     }
 }

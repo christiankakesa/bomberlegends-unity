@@ -38,6 +38,16 @@ namespace BomberLegends.Core
         }
 
         /// <summary>
+        /// Rebuilds a generator part-way through its sequence.
+        /// </summary>
+        /// <remarks>
+        /// For resuming something saved mid-stream. Replaying the draws that got it there is not
+        /// equivalent: how many numbers a caller consumes usually depends on state that has since
+        /// moved on, so the sequence silently diverges. Restoring the position is exact.
+        /// </remarks>
+        public static DeterministicRandom FromState(uint state) => new DeterministicRandom(state);
+
+        /// <summary>
         /// The current internal state. Exposed so it can be included in a simulation state hash and
         /// written to a save or replay.
         /// </summary>

@@ -780,6 +780,47 @@ that than a list.
 
 ---
 
+## 4l. Build targets (2026-08-08 / 09)
+
+Three platforms build and run. **421 EditMode + 14 PlayMode green, zero warnings.**
+
+| Target | Size | Build | State |
+|---|---|---|---|
+| Android | 86 MB dev | 237 s | Device-verified on a Galaxy S21 Ultra |
+| Windows | 92 MB release | 36 s | Launches clean, no errors in the player log |
+| **WebGL** | **10 MB release** | 322 s | Runs windowed and fullscreen |
+
+**WebGL is the gate target.** For a validation gate, friction decides sample size: a link someone
+clicks reaches an order of magnitude more testers than an installer or a sideloaded APK, and the
+people put off by a download are exactly the ones whose "did they come back for a second run?"
+answer is worth having. It is also, at 10 MB, by far the smallest of the three.
+
+Brotli with the decompression fallback, so it serves from any static host without content-encoding
+configuration. Data caching on, so a reload or a return visit does not pay the download again.
+
+### A correction worth recording
+
+WebGL was scoped as a port on the strength of two `Awaitable.BackgroundThreadAsync()` calls in
+`SaveService` and the fact that WebGL has no threads. **That was wrong** — the file already carried
+`#if UNITY_WEBGL && !UNITY_EDITOR → PlatformSupportsBackgroundIo = false`, designed in at T-005. The
+grep hit was read without reading the guard directly below it.
+
+### The one real bug: black screen on fullscreen
+
+Caused by `runInBackground = false` in the build settings. On WebGL the player stops rendering when
+the canvas loses focus, and going fullscreen swaps the canvas and moves focus with it — so it came
+back black rather than visibly paused. Set to true, which is the correct default for the web anyway.
+
+`Application.Quit()` also does nothing inside a browser tab, so the hub's QUIT control is compiled
+out on WebGL rather than shipping a button that visibly fails.
+
+### Still unverified on WebGL
+
+Save persistence across a page refresh — `persistentDataPath` is IndexedDB there, and whether it
+survives a reload is the one thing that cannot be inferred from a successful build.
+
+---
+
 ## 5. Open questions
 
 1. **Does the third active skill earn its slot?** Three actives plus movement plus aim is a lot of

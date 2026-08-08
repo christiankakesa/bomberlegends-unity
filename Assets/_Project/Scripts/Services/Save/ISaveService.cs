@@ -24,6 +24,13 @@ namespace BomberLegends.Services.Save
         [SerializeField] private int _bombRangeLevel;
         [SerializeField] private SettingsData _settings = SettingsData.Default;
 
+        [SerializeField] private bool _hasRunInProgress;
+        [SerializeField] private int _runSeed;
+        [SerializeField] private int _runArenaIndex;
+        [SerializeField] private int _runHealth;
+        [SerializeField] private int[] _runItems = Array.Empty<int>();
+        [SerializeField] private int _runOfferState;
+
         /// <summary>The schema version this payload was written with.</summary>
         public int SchemaVersion
         {
@@ -52,13 +59,74 @@ namespace BomberLegends.Services.Save
             set => _settings = value;
         }
 
+        /// <summary>
+        /// Whether a run was left unfinished and should be offered back.
+        /// </summary>
+        /// <remarks>
+        /// A run is minutes of a player's attention. Losing one to a closed tab or a backgrounded
+        /// phone is the surest way to not get a second one, which is exactly the thing the slice
+        /// measures.
+        /// </remarks>
+        public bool HasRunInProgress
+        {
+            get => _hasRunInProgress;
+            set => _hasRunInProgress = value;
+        }
+
+        /// <summary>The seed the unfinished run was rolled from.</summary>
+        /// <remarks>
+        /// Stored signed because <c>JsonUtility</c> does not serialise unsigned integers. The bits
+        /// are preserved either way; only the reading of them changes.
+        /// </remarks>
+        public int RunSeed
+        {
+            get => _runSeed;
+            set => _runSeed = value;
+        }
+
+        /// <summary>How far through the unfinished run the player was.</summary>
+        public int RunArenaIndex
+        {
+            get => _runArenaIndex;
+            set => _runArenaIndex = value;
+        }
+
+        /// <summary>Health carried into that arena.</summary>
+        public int RunHealth
+        {
+            get => _runHealth;
+            set => _runHealth = value;
+        }
+
+        /// <summary>Items held, in the order they were taken.</summary>
+        public int[] RunItems
+        {
+            get => _runItems ??= Array.Empty<int>();
+            set => _runItems = value ?? Array.Empty<int>();
+        }
+
+        /// <summary>
+        /// Where the run's offer generator had reached.
+        /// </summary>
+        /// <remarks>
+        /// Signed for the same reason as the seed: <c>JsonUtility</c> has no unsigned integers, and
+        /// only the bits matter.
+        /// </remarks>
+        public int RunOfferState
+        {
+            get => _runOfferState;
+            set => _runOfferState = value;
+        }
+
         /// <summary>Creates the save a brand new player starts with.</summary>
         public static PlayerSaveData CreateNew() => new PlayerSaveData
         {
             SchemaVersion = CurrentSchemaVersion,
             DataCoins = 0,
             BombRangeLevel = 0,
-            Settings = SettingsData.Default
+            Settings = SettingsData.Default,
+            HasRunInProgress = false,
+            RunItems = Array.Empty<int>()
         };
     }
 

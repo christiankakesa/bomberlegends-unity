@@ -38,8 +38,13 @@ namespace BomberLegends.UI.Screens
 
             _playButton.onClick.AddListener(StartMatch);
 
+            // A browser tab cannot be quit by the page inside it: Application.Quit does nothing on
+            // WebGL, so the control would be a button that visibly fails. The tab close button is
+            // the platform's answer and it is already there.
+#if !UNITY_WEBGL || UNITY_EDITOR
             _quitButton ??= CreateQuitButton();
             _quitButton?.onClick.AddListener(Quit);
+#endif
 
             EnableNavigation();
         }

@@ -479,6 +479,230 @@ namespace BomberLegends.Tests.EditMode.Simulation
             Assert.That(run.Held.Length, Is.EqualTo(2));
         }
 
+        // ---------- resuming ----------
+
+        [Test]
+        public void AFreshRunHasNothingWorthResuming()
+        {
+            // Restoring a run that has made no progress is indistinguishable from starting one, and
+            // would quietly pin every session to a single seed.
+            var run = new GameRun(Config(), Arenas(4), seed: 1u);
+
+            Assert.That(run.CreateSnapshot().HasProgress, Is.False);
+        }
+
+        [Test]
+        public void ASnapshotCapturesTheRunAndPutsItBack()
+        {
+            var run = new GameRun(Config(), Arenas(4), seed: 77u);
+
+            ClearArena(run);
+            run.TryChoose(run.Offers[0]);
+            var taken = run.Held[0];
+
+            var snapshot = run.CreateSnapshot();
+            Assume.That(snapshot.HasProgress, Is.True);
+
+            var resumed = new GameRun(Config(), Arenas(4), seed: 1u);
+            Assert.That(resumed.TryResume(snapshot), Is.True);
+
+            Assert.That(resumed.ArenaNumber, Is.EqualTo(run.ArenaNumber));
+            Assert.That(resumed.Held.ToArray(), Is.EqualTo(new[] { taken }));
+            Assert.That(resumed.Phase, Is.EqualTo(RunPhase.Fighting));
+        }
+
+        [Test]
+        public void AResumedRunRebuildsTheSameArena()
+        {
+            // The board is reconstructed from the seed rather than stored, so this is the assertion
+            // that the reconstruction is actually faithful.
+            var run = new GameRun(Config(), Arenas(4), seed: 512u);
+
+            ClearArena(run);
+            run.TryChoose(run.Offers[0]);
+
+            var expected = run.Current.State.Board.ComputeHash();
+
+            var resumed = new GameRun(Config(), Arenas(4), seed: 3u);
+            resumed.TryResume(run.CreateSnapshot());
+
+            Assert.That(resumed.Current.State.Board.ComputeHash(), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void AResumedRunRegeneratesTheIdenticalProceduralArena()
+        {
+            // The authored-arena version of this proves nothing: that source returns a fixed layout
+            // and never touches the generator. This is the path a real run uses.
+            //
+            // Driven from a snapshot rather than by playing, because a generated arena starts its
+            // enemies six tiles away by design and cannot be cleared from spawn.
+            var snapshot = new RunSnapshot(
+                seed: 4242u,
+                arenaIndex: 3,
+                carriedHealth: 74,
+                held: new[] { ItemId.Momentum, ItemId.KineticCore },
+                offerState: 0x51ED270Bu);
+
+            GameRun Resume(uint constructionSeed)
+            {
+                // A different construction seed on purpose, so anything the snapshot fails to carry
+                // shows up as a different board rather than accidentally matching.
+                var run = new GameRun(
+                    Config(), new GeneratedArenaSource(ArenaSettings.Default), constructionSeed);
+
+                Assert.That(run.TryResume(snapshot), Is.True);
+                return run;
+            }
+
+            var first = Resume(1u);
+            var second = Resume(9999u);
+
+            Assert.That(second.Current.State.Board.ComputeHash(),
+                Is.EqualTo(first.Current.State.Board.ComputeHash()),
+                "the same snapshot must regenerate the very same arena, not merely a similar one");
+
+            Assert.That(second.Current.State.Board.Width,
+                Is.EqualTo(first.Current.State.Board.Width));
+            Assert.That(second.Current.State.Enemies.AliveCount,
+                Is.EqualTo(first.Current.State.Enemies.AliveCount));
+            Assert.That(first.ArenaNumber, Is.EqualTo(4));
+            Assert.That(first.Current.State.Player.Health.Current, Is.EqualTo(74));
+        }
+
+        [Test]
+        public void AResumedArenaComesBackWholeRatherThanAsItWasLeft()
+        {
+            // Resuming restarts the arena, so destructible blocks blown up before the interruption
+            // are back. Worth pinning down: it is the one way a correctly restored run looks wrong
+            // to a player, who remembers the hole they made in it.
+            var snapshot = new RunSnapshot(
+                seed: 77u,
+                arenaIndex: 2,
+                carriedHealth: 90,
+                held: new[] { ItemId.Overcharge },
+                offerState: 0x2545F491u);
+
+            var run = new GameRun(
+                Config(), new GeneratedArenaSource(ArenaSettings.Default), seed: 5u);
+
+            run.TryResume(snapshot);
+            var pristine = run.Current.State.Board.ComputeHash();
+
+            // Walk clear of the spawn pocket before bombing. The pocket is guaranteed empty for a
+            // radius of two and the blast reaches exactly two, so a bomb placed at spawn destroys
+            // nothing at all — the safety guarantee working exactly as intended.
+            for (var i = 0; i < 90; i++)
+            {
+                run.Current.Tick(PlayerIntent.FromDirection(Direction.East));
+            }
+
+            run.Current.Tick(Bomb);
+            for (var i = 0; i < Fuse + 40; i++)
+            {
+                run.Current.Tick(Idle);
+            }
+
+            Assume.That(run.Current.State.Board.ComputeHash(), Is.Not.EqualTo(pristine),
+                "the bomb must actually have destroyed something");
+
+            var resumed = new GameRun(
+                Config(), new GeneratedArenaSource(ArenaSettings.Default), seed: 5u);
+            resumed.TryResume(snapshot);
+
+            Assert.That(resumed.Current.State.Board.ComputeHash(), Is.EqualTo(pristine),
+                "the arena returns as it was entered, not as it was left");
+        }
+
+        [Test]
+        public void AResumedRunKeepsTheEffectsOfItsBuild()
+        {
+            // Listing the items back is not enough; they have to be applied to the loadout again.
+            var run = new GameRun(
+                Config(), Arenas(4), seed: 5u, startingItems: new[] { ItemId.Momentum });
+
+            ClearArena(run);
+            run.TryChoose(run.Offers[0]);
+
+            var resumed = new GameRun(Config(), Arenas(4), seed: 9u);
+            resumed.TryResume(run.CreateSnapshot());
+
+            Assert.That(resumed.Current.State.Player.Skills[0].Power, Is.EqualTo(40));
+        }
+
+        [Test]
+        public void AResumedRunKeepsTheDamageAlreadyTaken()
+        {
+            var run = new GameRun(Config(healing: 0), Arenas(4), seed: 11u);
+
+            ClearArena(run);
+            var hurt = run.Current.State.Player.Health.Current;
+            Assume.That(hurt, Is.LessThan(100));
+
+            run.TryChoose(run.Offers[0]);
+
+            var resumed = new GameRun(Config(healing: 0), Arenas(4), seed: 2u);
+            resumed.TryResume(run.CreateSnapshot());
+
+            Assert.That(resumed.Current.State.Player.Health.Current,
+                Is.EqualTo(run.Current.State.Player.Health.Current));
+        }
+
+        [Test]
+        public void AResumedRunDoesNotReofferWhatItAlreadyShowed()
+        {
+            // The offer generator is wound forward to where it was, so coming back does not hand the
+            // player the same three items they were already choosing between.
+            var run = new GameRun(Config(), Arenas(6), seed: 31u);
+
+            ClearArena(run);
+            var firstOffer = run.Offers.ToArray();
+            run.TryChoose(run.Offers[0]);
+
+            ClearArena(run);
+            var secondOffer = run.Offers.ToArray();
+            run.TryChoose(run.Offers[0]);
+
+            var resumed = new GameRun(Config(), Arenas(6), seed: 4u);
+            resumed.TryResume(run.CreateSnapshot());
+
+            // Both runs are now on the same arena, so clearing each should present the same next
+            // offer if the resumed one really did pick the sequence back up.
+            ClearArena(run);
+            ClearArena(resumed);
+
+            Assume.That(run.Offers.Length, Is.GreaterThan(0), "there must be an offer to compare");
+
+            Assert.That(resumed.Offers.ToArray(), Is.EqualTo(run.Offers.ToArray()),
+                "a resumed run must continue the same sequence of offers");
+            Assert.That(resumed.Offers.ToArray(), Is.Not.EqualTo(firstOffer));
+            Assert.That(resumed.Offers.ToArray(), Is.Not.EqualTo(secondOffer),
+                "and must not replay an offer the player already answered");
+        }
+
+        [Test]
+        public void ADeadRunIsNotResumable()
+        {
+            // Health of zero is a finished run. Restoring it would drop the player into an arena
+            // they are already dead in.
+            var snapshot = new RunSnapshot(1u, 3, 0, new[] { ItemId.Momentum });
+
+            Assert.That(snapshot.HasProgress, Is.False);
+            Assert.That(new GameRun(Config(), Arenas(4), seed: 1u).TryResume(snapshot), Is.False);
+        }
+
+        [Test]
+        public void RestartingAbandonsTheResumedRun()
+        {
+            var run = new GameRun(Config(), Arenas(4), seed: 6u);
+
+            ClearArena(run);
+            run.TryChoose(run.Offers[0]);
+            run.Restart();
+
+            Assert.That(run.CreateSnapshot().HasProgress, Is.False);
+        }
+
         // ---------- guarantees ----------
 
         [Test]

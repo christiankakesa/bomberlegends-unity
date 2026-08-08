@@ -191,6 +191,7 @@ namespace BomberLegends.Gameplay.Match
 
         private GameContext? _context;
         private PauseController? _pause;
+        private SkillTouchButton[] _skillButtons = System.Array.Empty<SkillTouchButton>();
 
         /// <summary>When the on-screen controls are shown.</summary>
         private enum TouchControlMode
@@ -225,8 +226,6 @@ namespace BomberLegends.Gameplay.Match
                 return;
             }
 
-            ApplyTouchControlVisibility();
-
             // Nothing may stay selected during a match. On a pad, Submit and Bomb are the same
             // button, so a selected control would be clicked every time the player throws a bomb.
             UiFocus.Clear();
@@ -235,6 +234,8 @@ namespace BomberLegends.Gameplay.Match
             var config = SimulationConfig.FromTilesPerSecond(
                 _moveSpeedTilesPerSecond, laneAssistStrength: _laneAssist);
             var run = new GameRun(config, CreateArenaSource(arenas), _seed, _startingItems);
+
+            ResumeIfUnfinished(context, run);
 
             _playerView.Initialise(projector);
 
@@ -249,6 +250,7 @@ namespace BomberLegends.Gameplay.Match
 
             var overlay = CreateOverlay();
             var controller = _runner.gameObject.AddComponent<RunController>();
+            var input = CreateInputSource(projector, run.Current.State.Player.Skills);
 
             controller.Begin(
                 run,
@@ -256,13 +258,15 @@ namespace BomberLegends.Gameplay.Match
                 _boardRenderer,
                 _playerView,
                 projector,
-                CreateInputSource(projector, run.Current.State.Player.Skills),
+                input,
                 _views,
                 _cameraRig,
-                overlay);
+                overlay,
+                context.Save);
 
             InstallPauseMenu(overlay);
             InstallFeedback(context, projector);
+            InstallTouchControlVisibility(input);
         }
 
         /// <summary>
@@ -414,6 +418,32 @@ namespace BomberLegends.Gameplay.Match
         }
 
         /// <summary>
+        /// Puts the player back into whatever run they left unfinished.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Silent by design: there is no "continue?" prompt, because there is nothing to decide.
+        /// A player who left mid-run wants to be back in it, and a player who died has no run to
+        /// return to — the snapshot is cleared on death.
+        /// </para>
+        /// <para>
+        /// It resumes at the start of the arena they were in rather than the exact moment. Health
+        /// and the build come back; the bombs that were ticking do not.
+        /// </para>
+        /// </remarks>
+        private static void ResumeIfUnfinished(GameContext context, GameRun run)
+        {
+            var snapshot = RunPersistence.Read(context.Save);
+
+            if (!snapshot.HasProgress || !run.TryResume(snapshot))
+            {
+                return;
+            }
+
+            Debug.Log($"[Match] Resumed a run on arena {run.ArenaNumber} with {run.Held.Length} items.");
+        }
+
+        /// <summary>
         /// Chooses between rolled arenas and the authored list.
         /// </summary>
         /// <remarks>
@@ -489,33 +519,40 @@ namespace BomberLegends.Gameplay.Match
         }
 
         /// <summary>
-        /// Shows the on-screen stick and bomb button only where they can actually be used.
+        /// Makes the on-screen controls follow whichever device is actually being used.
         /// </summary>
         /// <remarks>
-        /// A desktop build was drawing a thumbstick and a BOMB button over the arena, neither of
-        /// which does anything with a mouse and keyboard. Touch presence is the honest test rather
-        /// than the platform name, so a Windows tablet or a device plugged into the Editor still
-        /// gets them.
+        /// Replaces a check for whether a touchscreen <i>exists</i>. Desktop browsers advertise
+        /// touch support with no hardware attached, so that test passed on WebGL and drew a
+        /// thumbstick over a mouse-and-keyboard game.
         /// </remarks>
-        private void ApplyTouchControlVisibility()
+        private void InstallTouchControlVisibility(IInputSource input)
         {
-            if (_joystick != null)
+            if (_runner == null || input is not CompositeInputSource composite)
             {
-                _joystick.gameObject.SetActive(ShowTouchControls);
+                return;
             }
 
-            if (_bombButton != null)
+            var visibility = _runner.gameObject.AddComponent<TouchControlVisibility>();
+
+            var controls = new System.Collections.Generic.List<GameObject?>
             {
-                _bombButton.gameObject.SetActive(ShowTouchControls);
+                _joystick != null ? _joystick.gameObject : null,
+                _bombButton != null ? _bombButton.gameObject : null
+            };
+
+            for (var i = 0; i < _skillButtons.Length; i++)
+            {
+                controls.Add(_skillButtons[i] != null ? _skillButtons[i].gameObject : null);
+            }
+
+            visibility.Begin(composite.Devices, controls.ToArray());
+
+            if (_touchControls != TouchControlMode.Auto)
+            {
+                visibility.Force(_touchControls == TouchControlMode.AlwaysShow);
             }
         }
-
-        private bool ShowTouchControls => _touchControls switch
-        {
-            TouchControlMode.AlwaysShow => true,
-            TouchControlMode.AlwaysHide => false,
-            _ => UnityEngine.InputSystem.Touchscreen.current != null || Application.isMobilePlatform
-        };
 
         private IInputSource CreateInputSource(
             IGridProjection projection, in Simulation.Skills.SkillLoadout loadout)
@@ -526,7 +563,7 @@ namespace BomberLegends.Gameplay.Match
 
             // A hidden stick must not still be sampled, or an invisible control would keep feeding
             // the simulation whatever it was last left holding.
-            if (_joystick != null && _inputFeel != null && ShowTouchControls)
+            if (_joystick != null && _inputFeel != null)
             {
                 return new CompositeInputSource(
                     keyboard,
@@ -539,7 +576,7 @@ namespace BomberLegends.Gameplay.Match
                         BuildSkillButtons(loadout)));
             }
 
-            if (_joystick != null && _inputFeel == null && ShowTouchControls)
+            if (_joystick != null && _inputFeel == null)
             {
                 Debug.LogWarning(
                     "[Match] No input feel config is assigned, so the on-screen stick is disabled.");
@@ -568,7 +605,11 @@ namespace BomberLegends.Gameplay.Match
 
             var anchor = _bombButton.GetComponent<RectTransform>();
 
-            return anchor != null ? TouchControlsBuilder.Build(anchor, loadout) : null;
+            _skillButtons = anchor != null
+                ? TouchControlsBuilder.Build(anchor, loadout)
+                : System.Array.Empty<SkillTouchButton>();
+
+            return _skillButtons;
         }
 
         /// <summary>

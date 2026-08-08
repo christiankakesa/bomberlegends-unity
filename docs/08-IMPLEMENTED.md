@@ -87,8 +87,40 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Audio: pooled service, voice limiting, pitch variation | ✅ | Generated placeholder sounds; no assets needed |
 | Feedback table (event → sound + shake) | ✅ | Designer-editable asset; falls back to placeholders |
 | Camera kick scaled to the event | ✅ | View-only; never touches simulation state |
-| Android build pipeline | ✅ | Device-verified again 2026-08-08; 86 MB dev APK |
+| Android build pipeline | ✅ | Device-verified 2026-08-08; 86 MB dev APK |
+| Windows build pipeline | ✅ | Mono; release 92 MB in 36 s; launches clean |
+| WebGL build pipeline | ✅ | Brotli + fallback, 10 MB; runs windowed and fullscreen |
 | Block inset for readability | ✅ | Blocks fill 88% of their tile; collision unchanged |
+
+---
+
+## Deployment
+
+| Environment | URL | Branch |
+|---|---|---|
+| Dev | `playdev-bomberlegends.kakesa.net` | `main` |
+| Release | `play-bomberlegends.kakesa.net` | `release/*` |
+
+Build output goes into the `bomberlegends-play` repo (`Build/`, `TemplateData/`, `index.html`); a
+push triggers a GitHub Action that runs a deploy script on the VPS. Traefik terminates TLS and
+proxies to nginx.
+
+**The build depends on server headers and will not degrade without them.** `decompressionFallback`
+is off, so Unity emits `.br` files that the browser decompresses natively and `.wasm.br` served as
+`application/wasm` lets WebAssembly compile while it downloads. Turning the fallback on instead costs
+about 90 KB of loader script and gives up stream compilation, and is only worth it for a host that
+cannot set `Content-Encoding`. Verify after any infrastructure change:
+
+```
+curl -sI https://playdev-bomberlegends.kakesa.net/Build/Release.wasm.br
+```
+
+`content-encoding: br` and `content-type: application/wasm` are both required.
+
+**Two things that bite when syncing a build in.** `rsync` from the Windows drive carries `777`
+across and turns every unchanged asset into a file-mode change, so `chmod 644` afterwards keeps the
+commit to the real diff. And the deploy `rsync`s the whole repo into the web root, so `.git` needs
+excluding — nginx also denies hidden paths, verified returning 403.
 
 ---
 

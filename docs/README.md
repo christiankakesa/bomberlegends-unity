@@ -13,6 +13,7 @@
 | [07-CONCEPT-REVISION.md](07-CONCEPT-REVISION.md) | — | **Read this first.** v2.0 hybrid concept, what survives, the revised slice and milestone plan. Supersedes parts of 01–04. |
 | [08-IMPLEMENTED.md](08-IMPLEMENTED.md) | — | **What is actually built.** Feature inventory, known gaps, and proposals awaiting validation. |
 | [09-GAME-FEEL.md](09-GAME-FEEL.md) | — | The juice plan: sound, effects, the tricks worth doing, and the designer-ownership requirement. |
+| [10-PLAYTEST-PROTOCOL.md](10-PLAYTEST-PROTOCOL.md) | — | How to run the validation gate: sample size, session script, recording sheet, and how to read the result. |
 | [CLAUDE.md](../CLAUDE.md) | — | Project conventions (binding). |
 | `.claude/skills/unity-6.3/SKILL.md` | — | Unity engineering standards (binding). |
 

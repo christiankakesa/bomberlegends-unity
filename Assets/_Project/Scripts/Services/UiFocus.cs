@@ -36,7 +36,9 @@ namespace BomberLegends.Services
                 return;
             }
 
-            events.SetSelectedGameObject(target);
+            // Null is the documented way to clear selection, which Clear relies on. Unity's
+            // signature simply is not annotated for it.
+            events.SetSelectedGameObject(target!);
         }
 
         /// <summary>Gives up selection entirely, so no button can be triggered by Submit.</summary>

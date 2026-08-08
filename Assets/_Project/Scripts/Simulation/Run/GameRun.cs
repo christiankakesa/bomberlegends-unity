@@ -31,7 +31,7 @@ namespace BomberLegends.Simulation.Run
         private readonly ItemId[] _held;
         private readonly ItemId[] _offers = new ItemId[OfferCount];
         private readonly ItemId[] _startingItems;
-        private readonly uint _seed;
+        private uint _seed;
 
         private DeterministicRandom _random;
         private int _heldCount;
@@ -99,6 +99,60 @@ namespace BomberLegends.Simulation.Run
         /// <see cref="RunPhase.Discarding"/>.
         /// </summary>
         public ItemId Pending => _pending;
+
+        /// <summary>
+        /// Captures the run so it can be resumed in another session.
+        /// </summary>
+        public RunSnapshot CreateSnapshot() => new RunSnapshot(
+            _seed,
+            _arenaIndex,
+            Current.State.Player.Health.Current,
+            Held.ToArray(),
+            _random.State);
+
+        /// <summary>
+        /// Puts the run back where a snapshot left it.
+        /// </summary>
+        /// <remarks>
+        /// The current arena is rebuilt from the seed rather than restored, so play resumes at its
+        /// start. Anything mid-arena — bombs ticking, enemies mid-stride — is deliberately lost.
+        /// </remarks>
+        /// <returns>Whether the snapshot described a run worth resuming.</returns>
+        public bool TryResume(in RunSnapshot snapshot)
+        {
+            if (!snapshot.HasProgress)
+            {
+                return false;
+            }
+
+            _seed = snapshot.Seed;
+            _arenaIndex = snapshot.ArenaIndex;
+            _offerCount = 0;
+            _pending = ItemId.None;
+            _heldCount = 0;
+
+            Array.Clear(_held, 0, _held.Length);
+
+            for (var i = 0; i < snapshot.Held.Length && _heldCount < _held.Length; i++)
+            {
+                if (snapshot.Held[i] != ItemId.None)
+                {
+                    _held[_heldCount++] = snapshot.Held[i];
+                }
+            }
+
+            // Restored to the exact position it had reached, never replayed. Rebuilding the offers
+            // that led here would consume a different number of draws, because each shuffle sized
+            // itself against however many items were held at that moment.
+            _random = snapshot.OfferState != 0u
+                ? DeterministicRandom.FromState(snapshot.OfferState)
+                : new DeterministicRandom(_seed);
+
+            BuildArena(snapshot.CarriedHealth);
+            Phase = RunPhase.Fighting;
+
+            return true;
+        }
 
         /// <summary>
         /// Reacts to whatever the current arena's simulation has decided.
