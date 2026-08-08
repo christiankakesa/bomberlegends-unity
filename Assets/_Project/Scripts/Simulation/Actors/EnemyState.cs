@@ -14,6 +14,17 @@ namespace BomberLegends.Simulation.Actors
         /// <summary>The way it is currently travelling.</summary>
         public Direction MoveDirection;
 
+        /// <summary>
+        /// A heading that just failed to move it, so it is not chosen again immediately.
+        /// </summary>
+        /// <remarks>
+        /// The chase picks directions by tile but travels as a box, and those two can disagree: a
+        /// tile ahead reads walkable while the box is clipping the corner of the pillar beside it.
+        /// Without this memory the enemy re-picks the same blocked heading every tick and never
+        /// leaves. Lane centring keeps that from arising; this makes sure it cannot persist.
+        /// </remarks>
+        public Direction BlockedDirection;
+
         /// <summary>Whether this slot holds a live enemy.</summary>
         public bool IsActive;
 
@@ -26,6 +37,7 @@ namespace BomberLegends.Simulation.Actors
             Position = SubTilePoint.AtCentreOf(tile),
             Health = HealthState.Full(maxHealth),
             MoveDirection = Direction.None,
+            BlockedDirection = Direction.None,
             IsActive = true
         };
     }

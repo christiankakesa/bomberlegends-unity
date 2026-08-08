@@ -11,6 +11,7 @@
 | [05-BACKLOG.md](05-BACKLOG.md) | 5 | Task backlog T-001 → T-063 with dependencies, complexity, tests, DoD. |
 | [06-ENGINEERING-PROCESS.md](06-ENGINEERING-PROCESS.md) | 6–7 | Pre-implementation protocol and standing technical direction. |
 | [07-CONCEPT-REVISION.md](07-CONCEPT-REVISION.md) | — | **Read this first.** v2.0 hybrid concept, what survives, the revised slice and milestone plan. Supersedes parts of 01–04. |
+| [08-IMPLEMENTED.md](08-IMPLEMENTED.md) | — | **What is actually built.** Feature inventory, known gaps, and proposals awaiting validation. |
 | [CLAUDE.md](../CLAUDE.md) | — | Project conventions (binding). |
 | `.claude/skills/unity-6.3/SKILL.md` | — | Unity engineering standards (binding). |
 

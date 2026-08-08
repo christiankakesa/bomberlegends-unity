@@ -52,13 +52,15 @@ namespace BomberLegends.Simulation.Systems
                     var offset = enemy.MoveDirection.ToOffset();
                     var speed = config.EnemySpeedPerTick;
 
+                    CentreInLane(enemy, offset, config, out var driftX, out var driftY);
+
                     var exempt = GridMotion.OverlappedBombs(
                         enemy.Position, config.EnemyRadius, state.BombGrid);
 
                     enemy.Position = GridMotion.Move(
                         enemy.Position,
-                        offset.X * speed,
-                        offset.Y * speed,
+                        (offset.X * speed) + driftX,
+                        (offset.Y * speed) + driftY,
                         config.EnemyRadius,
                         state.Board,
                         state.BombGrid,
@@ -67,18 +69,72 @@ namespace BomberLegends.Simulation.Systems
                         config.CornerSlipTolerance);
                 }
 
-                // Stuck against something despite having a heading: force a fresh decision next tick.
+                // Stuck against something despite having a heading: remember what failed, so the
+                // next decision does not simply choose it again and wedge here permanently.
                 if (enemy.Position == beforePosition)
                 {
+                    enemy.BlockedDirection = enemy.MoveDirection;
                     enemy.MoveDirection = Direction.None;
+                }
+                else
+                {
+                    enemy.BlockedDirection = Direction.None;
                 }
 
                 if (enemy.Tile != beforeTile)
                 {
                     enemy.MoveDirection = Direction.None;
+                    enemy.BlockedDirection = Direction.None;
                 }
 
                 state.Enemies[slot] = enemy;
+            }
+        }
+
+        /// <summary>
+        /// Pulls the enemy toward the middle of the lane it is travelling along.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The chase reasons in whole tiles but the body is a box, and those two disagree the moment
+        /// an enemy sits off-centre: the tile ahead reads walkable while the box is clipping the
+        /// pillar beside it. Corner slip, which exists to help the <i>player</i> round corners, is
+        /// what knocks them off-centre in the first place — so the assist was quietly creating the
+        /// condition that trapped them.
+        /// </para>
+        /// <para>
+        /// Centred enemies never clip a corner, so the disagreement cannot arise. This is what
+        /// <see cref="SimulationConfig.LaneSnapPerTick"/> was written for; it went unused when the
+        /// player moved to free 360° travel, and it is exactly right here.
+        /// </para>
+        /// </remarks>
+        private static void CentreInLane(
+            in Actors.EnemyState enemy,
+            GridCoord offset,
+            in SimulationConfig config,
+            out int driftX,
+            out int driftY)
+        {
+            driftX = 0;
+            driftY = 0;
+
+            var snap = config.LaneSnapPerTick;
+            if (snap <= 0)
+            {
+                return;
+            }
+
+            if (offset.X != 0)
+            {
+                var centre = SubTilePoint.CentreOf(enemy.Tile.Y);
+                driftY = IntMath.Clamp(centre - enemy.Position.Y, -snap, snap);
+                return;
+            }
+
+            if (offset.Y != 0)
+            {
+                var centre = SubTilePoint.CentreOf(enemy.Tile.X);
+                driftX = IntMath.Clamp(centre - enemy.Position.X, -snap, snap);
             }
         }
 
@@ -99,6 +155,21 @@ namespace BomberLegends.Simulation.Systems
             SubTilePoint target,
             in SimulationConfig config)
         {
+            var chosen = Choose(ref state, enemy, target, enemy.BlockedDirection);
+
+            // Everything else was walled off, so the failed heading is all that is left. Trying it
+            // again beats standing still: whatever was clipping may since have moved.
+            return chosen != Direction.None
+                ? chosen
+                : Choose(ref state, enemy, target, Direction.None);
+        }
+
+        private static Direction Choose(
+            ref SimulationState state,
+            in Actors.EnemyState enemy,
+            SubTilePoint target,
+            Direction avoid)
+        {
             var from = enemy.Tile;
             var toward = target.Tile;
 
@@ -110,6 +181,12 @@ namespace BomberLegends.Simulation.Systems
             for (var i = 0; i < cardinals.Length; i++)
             {
                 var candidate = cardinals[i];
+
+                if (candidate == avoid)
+                {
+                    continue;
+                }
+
                 var step = from.Neighbour(candidate);
 
                 if (!state.Board.IsWalkable(step) || state.BombGrid.HasBomb(step))

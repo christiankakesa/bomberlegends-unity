@@ -60,8 +60,8 @@ namespace BomberLegends.Gameplay.Run
 
             for (var i = 0; i < _choices.Length; i++)
             {
-                var offset = new Vector2((i - 1) * 320f, 30f);
-                var button = CreateCard(_panel.transform, offset, new Vector2(300f, 230f),
+                var offset = new Vector2((i - 1) * 350f, 30f);
+                var button = CreateCard(_panel.transform, offset, new Vector2(330f, 270f),
                     out var name, out var blurb);
 
                 var index = i;
@@ -223,10 +223,12 @@ namespace BomberLegends.Gameplay.Run
         {
             var button = CreateButton(parent, position, size);
 
-            name = CreateLabel(button.transform, string.Empty, 22, new Vector2(0f, size.y * 0.34f));
+            name = CreateLabel(button.transform, string.Empty, 24, new Vector2(0f, size.y * 0.36f));
             name.rectTransform.sizeDelta = new Vector2(size.x - 24f, 56f);
 
-            blurb = CreateLabel(button.transform, string.Empty, 15, new Vector2(0f, -size.y * 0.10f));
+            // Large enough to read at a glance from a normal sitting distance. A description nobody
+            // reads is the same as no description, which was the whole problem being fixed.
+            blurb = CreateLabel(button.transform, string.Empty, 19, new Vector2(0f, -size.y * 0.08f));
             blurb.rectTransform.sizeDelta = new Vector2(size.x - 32f, size.y * 0.62f);
             blurb.alignment = TextAnchor.UpperCenter;
             blurb.horizontalOverflow = HorizontalWrapMode.Wrap;

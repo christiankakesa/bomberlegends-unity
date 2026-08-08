@@ -293,6 +293,204 @@ namespace BomberLegends.Tests.EditMode.Simulation
                 "the bomb must stop the enemy reaching the player, exactly as it would stop the player");
         }
 
+        /// <summary>
+        /// The arena the Match scene actually ships, which is where the wedging was reported.
+        /// </summary>
+        /// <remarks>
+        /// Reproduced only in this shape. A plain pillar corridor never wedges, because the bug
+        /// needs the tight alternating pillars <i>and</i> destructible blocks opening mid-match to
+        /// knock an enemy off-centre in the first place.
+        /// </remarks>
+        private static GameSimulation ShippedArena(uint seed, int laneSnap = 200) =>
+            new GameSimulation(
+                new SimulationConfig(
+                    moveSpeedPerTick: 133,
+                    laneSnapPerTick: laneSnap,
+                    turnTolerance: 300,
+                    directionDeadzone: PlayerIntent.DefaultDeadzone,
+                    cornerAssistEnabled: true,
+                    fuseTicks: Fuse,
+                    blastLingerTicks: Linger,
+                    bombCooldownTicks: 0,
+                    startingBombCapacity: 1,
+                    startingBlastRange: 2,
+                    maxBombs: 16,
+                    playerRadius: 340,
+                    cornerSlipPerTick: 90,
+                    cornerSlipTolerance: 320,
+                    playerMaxHealth: 100,
+                    // The player is made unkillable so the match runs its full length. A finished
+                    // match freezes every system, and counting past that measures nothing at all.
+                    blastDamageToPlayer: 0,
+                    enemyContactDamage: 0,
+                    invulnerabilityTicks: Immunity,
+                    enemyMaxHealth: 100,
+                    blastDamageToEnemy: 100,
+                    enemySpeedPerTick: 80,
+                    enemyRadius: 320,
+                    maxEnemies: 32),
+                LevelLayout.Parse(
+                    "#########################",
+                    "#P...X...X...X...X...X..#",
+                    "#.#.#.#.#.#.#.#.#.#.#.#.#",
+                    "#..X...XE..X...X...X...X#",
+                    "#.#.#.#.#.#.#.#.#.#.#.#.#",
+                    "#X...X...X...X..EX...X..#",
+                    "#.#.#.#.#.#.#.#.#.#.#.#.#",
+                    "#..X...X...X...X...X...X#",
+                    "#.#.#.#.#.#.#.#.#.#.#.#.#",
+                    "#X...XE..X...X...X...X..#",
+                    "#.#.#.#.#.#.#.#.#.#.#.#.#",
+                    "#..X...X...X...X..EX...X#",
+                    "#.#.#.#.#.#.#.#.#.#.#.#.#",
+                    "#....X...X...X...X...X..#",
+                    "#.#.#.#.#.#.#.#.#.#.#.#.#",
+                    "#......X...XE..X...X...X#",
+                    "#########################"),
+                seed);
+
+        /// <summary>
+        /// The longest any enemy spends penned inside a single tile of the board.
+        /// </summary>
+        /// <remarks>
+        /// Confinement, not a frozen position, is what "stuck" actually looks like. A wedged enemy
+        /// is still moving — it jitters a few units against the corner it is caught on — so an
+        /// equality check on position reports everything as fine while the player watches an enemy
+        /// vibrate in a doorway for twenty seconds.
+        /// </remarks>
+        private static int LongestConfinement(GameSimulation simulation, int ticks)
+        {
+            var capacity = simulation.State.Enemies.Capacity;
+            var anchor = new GridCoord[capacity];
+            var held = new int[capacity];
+            var worst = 0;
+
+            for (var slot = 0; slot < capacity; slot++)
+            {
+                anchor[slot] = simulation.State.Enemies[slot].Tile;
+            }
+
+            for (var tick = 0; tick < ticks; tick++)
+            {
+                var direction = ((tick / 90) % 4) switch
+                {
+                    0 => Direction.East,
+                    1 => Direction.South,
+                    2 => Direction.West,
+                    _ => Direction.North
+                };
+
+                // Bombing as well as walking, because the maze has to open up: the wedge needs a
+                // destructible block to be gone before an enemy can reach the corner that traps it.
+                var buttons = tick % 70 == 0 ? IntentButtons.Bomb : IntentButtons.None;
+                simulation.Tick(PlayerIntent.FromDirection(direction, buttons));
+
+                if (simulation.Phase != MatchPhase.Playing)
+                {
+                    break;
+                }
+
+                for (var slot = 0; slot < capacity; slot++)
+                {
+                    var enemy = simulation.State.Enemies[slot];
+                    if (!enemy.IsActive)
+                    {
+                        continue;
+                    }
+
+                    var distance = enemy.Tile.ManhattanDistanceTo(anchor[slot]);
+
+                    if (distance <= 1)
+                    {
+                        held[slot]++;
+                        if (held[slot] > worst)
+                        {
+                            worst = held[slot];
+                        }
+
+                        continue;
+                    }
+
+                    held[slot] = 0;
+                    anchor[slot] = enemy.Tile;
+                }
+            }
+
+            return worst;
+        }
+
+        [Test]
+        public void EnemiesDoNotWedgeOnPillarCorners()
+        {
+            // Reported from play as enemies stuck on the corner of a blue pillar. The chase reasons
+            // in whole tiles but the body is a box: an enemy knocked off-centre reads the tile ahead
+            // as open while its box clips the pillar beside it, so it shuffles against the corner
+            // indefinitely. Lane centring keeps the two in agreement by never letting it drift.
+            for (var seed = 1u; seed <= 4u; seed++)
+            {
+                var confined = LongestConfinement(ShippedArena(seed), ticks: 900);
+
+                Assert.That(confined, Is.LessThan(150),
+                    $"an enemy spent {confined} ticks penned in one tile on seed {seed}");
+            }
+        }
+
+        [Test]
+        public void LaneCentringIsWhatKeepsEnemiesMoving()
+        {
+            // Guards the fix against being quietly undone. Without centring an enemy spends almost
+            // the entire match in one tile; with it, a few dozen ticks at most.
+            var without = LongestConfinement(ShippedArena(1u, laneSnap: 0), ticks: 900);
+            var with = LongestConfinement(ShippedArena(1u), ticks: 900);
+
+            Assert.That(without, Is.GreaterThan(400),
+                "the bug must still be reproducible, or this test proves nothing");
+            Assert.That(with * 4, Is.LessThan(without),
+                $"centring must dramatically unstick enemies, but went {without} -> {with}");
+        }
+
+        [Test]
+        public void EnemiesInAMazeCloseOnThePlayer()
+        {
+            var simulation = new GameSimulation(
+                Config(enemySpeed: 80),
+                LevelLayout.Parse(
+                    "#############",
+                    "#P.........E#",
+                    "#.#.#.#.#.#.#",
+                    "#E..........#",
+                    "#.#.#.#.#.#.#",
+                    "#.........E.#",
+                    "#############"),
+                seed: 4u);
+
+            var start = 0;
+            var capacity = simulation.State.Enemies.Capacity;
+
+            for (var slot = 0; slot < capacity; slot++)
+            {
+                var enemy = simulation.State.Enemies[slot];
+                if (enemy.IsActive)
+                {
+                    start += enemy.Tile.ManhattanDistanceTo(simulation.State.Player.Tile);
+                }
+            }
+
+            Advance(simulation, 300);
+
+            var ended = 0;
+            for (var slot = 0; slot < capacity; slot++)
+            {
+                var enemy = simulation.State.Enemies[slot];
+                if (enemy.IsActive)
+                {
+                    ended += enemy.Tile.ManhattanDistanceTo(simulation.State.Player.Tile);
+                }
+            }
+
+            Assert.That(ended, Is.LessThan(start), "a maze must slow the chase, not defeat it");
+        }
+
         [Test]
         public void EnemiesAndDamage_AreDeterministic()
         {

@@ -16,6 +16,10 @@ namespace BomberLegends.UI.Screens
         [Tooltip("Starts a match.")]
         private Button? _playButton;
 
+        [SerializeField]
+        [Tooltip("Leaves the game. Built at run time when nothing is assigned.")]
+        private Button? _quitButton;
+
         private GameContext? _context;
 
         /// <inheritdoc />
@@ -33,6 +37,9 @@ namespace BomberLegends.UI.Screens
             }
 
             _playButton.onClick.AddListener(StartMatch);
+
+            _quitButton ??= CreateQuitButton();
+            _quitButton?.onClick.AddListener(Quit);
         }
 
         private void OnDestroy()
@@ -41,6 +48,62 @@ namespace BomberLegends.UI.Screens
             {
                 _playButton.onClick.RemoveListener(StartMatch);
             }
+
+            if (_quitButton != null)
+            {
+                _quitButton.onClick.RemoveListener(Quit);
+            }
+        }
+
+        private static void Quit() => ApplicationExit.Request();
+
+        /// <summary>
+        /// Builds a quit control beneath the play button.
+        /// </summary>
+        /// <remarks>
+        /// Created at run time so the scene needs no regeneration to gain one. A game with no way
+        /// out of it is a bug however small the button would have been.
+        /// </remarks>
+        private Button? CreateQuitButton()
+        {
+            if (_playButton == null)
+            {
+                return null;
+            }
+
+            var source = _playButton.GetComponent<RectTransform>();
+
+            var host = new GameObject("QuitButton", typeof(RectTransform));
+            host.transform.SetParent(_playButton.transform.parent, false);
+
+            var rect = host.GetComponent<RectTransform>();
+            rect.anchorMin = source.anchorMin;
+            rect.anchorMax = source.anchorMax;
+            rect.pivot = source.pivot;
+            rect.sizeDelta = source.sizeDelta;
+            rect.anchoredPosition = source.anchoredPosition - new Vector2(0f, source.sizeDelta.y + 24f);
+
+            var image = host.AddComponent<Image>();
+            image.color = new Color(0.32f, 0.16f, 0.20f);
+
+            var label = new GameObject("Label", typeof(RectTransform));
+            label.transform.SetParent(host.transform, false);
+
+            var labelRect = label.GetComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+
+            var text = label.AddComponent<Text>();
+            text.text = "QUIT";
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 28;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+
+            return host.AddComponent<Button>();
         }
 
         private async void StartMatch()
