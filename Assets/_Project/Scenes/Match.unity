@@ -219,9 +219,15 @@ MonoBehaviour:
   _touchControls: 0
   _inputFeel: {fileID: 11400000, guid: 6d10296967492b043a32b80caf5ca075, type: 2}
   _moveSpeedTilesPerSecond: 4
-  _laneAssist: 1
+  _laneAssist: 0.5
+  _feedback: {fileID: 0}
   _tileSize: 1
   _blockHeight: 1
+  _generateArenas: 1
+  _arenaWidth: 21
+  _arenaHeight: 15
+  _destructiblePercent: 55
+  _startingEnemies: 4
   _levelLayout: '#########################
 
     #P...X...X...X...X...X..#
@@ -846,6 +852,7 @@ MonoBehaviour:
   _floorAlternateColour: {r: 0.24, g: 0.23, b: 0.36, a: 1}
   _solidColour: {r: 0.13, g: 0.52, b: 0.6, a: 1}
   _destructibleColour: {r: 0.85, g: 0.45, b: 0.16, a: 1}
+  _blockFootprint: 0.88
 --- !u!4 &844849686
 Transform:
   m_ObjectHideFlags: 0
