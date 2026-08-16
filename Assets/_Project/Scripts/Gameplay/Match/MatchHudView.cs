@@ -31,6 +31,7 @@ namespace BomberLegends.Gameplay.Match
 
         private readonly StringBuilder _text = new StringBuilder(96);
         private readonly int[] _lastCharges = new int[SkillLoadout.SlotCount];
+        private readonly int[] _lastTenths = new int[SkillLoadout.SlotCount];
 
         private int _lastHealth = -1;
         private int _lastEnemies = -1;
@@ -55,7 +56,7 @@ namespace BomberLegends.Gameplay.Match
             // Rebuilding a string every frame would allocate for no reason; almost every frame
             // shows exactly what the last one did.
             if (health == _lastHealth && enemies == _lastEnemies && ArenaNumber == _lastArena &&
-                ChargesUnchanged(simulation))
+                SkillsUnchanged(simulation))
             {
                 return;
             }
@@ -89,19 +90,27 @@ namespace BomberLegends.Gameplay.Match
                 }
 
                 _lastCharges[index] = slot.Charges;
+                _lastTenths[index] = Tenths(slot);
 
                 _text.Append("    ").Append(Label(slot.Id)).Append(' ');
 
-                // Charges rather than a timer: what a player needs mid-fight is whether they can
-                // act, not how long until they can.
                 if (slot.Charges > 0)
                 {
                     _text.Append(slot.Charges);
+                    continue;
                 }
-                else
+
+                // A spent skill shows when it returns, not merely that it is gone. A playtester
+                // hoarded both skills for an entire run because nothing said they recharge — so
+                // "how long" is the question worth answering, not "can I act".
+                if (slot.CooldownRemaining > 0)
                 {
-                    _text.Append('-');
+                    var tenths = Tenths(slot);
+                    _text.Append(tenths / 10).Append('.').Append(tenths % 10).Append('s');
+                    continue;
                 }
+
+                _text.Append('-');
             }
 
             AppendBuild(simulation);
@@ -151,11 +160,13 @@ namespace BomberLegends.Gameplay.Match
             _output.verticalOverflow = VerticalWrapMode.Overflow;
         }
 
-        private bool ChargesUnchanged(GameSimulation simulation)
+        private bool SkillsUnchanged(GameSimulation simulation)
         {
             for (var index = 0; index < SkillLoadout.SlotCount; index++)
             {
-                if (simulation.State.Player.Skills[index].Charges != _lastCharges[index])
+                var slot = simulation.State.Player.Skills[index];
+
+                if (slot.Charges != _lastCharges[index] || Tenths(slot) != _lastTenths[index])
                 {
                     return false;
                 }
@@ -163,6 +174,16 @@ namespace BomberLegends.Gameplay.Match
 
             return true;
         }
+
+        /// <summary>
+        /// Recharge left, in tenths of a second.
+        /// </summary>
+        /// <remarks>
+        /// Tenths rather than ticks, so the readout is rebuilt ten times a second while something
+        /// is recharging instead of thirty. Nobody can read the difference.
+        /// </remarks>
+        private static int Tenths(in SkillSlot slot) =>
+            slot.CooldownRemaining * 10 / SimulationConstants.TicksPerSecond;
 
         private static string Label(SkillId id) => id switch
         {

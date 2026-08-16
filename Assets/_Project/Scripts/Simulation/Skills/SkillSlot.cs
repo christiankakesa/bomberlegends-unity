@@ -58,6 +58,18 @@ namespace BomberLegends.Simulation.Skills
         /// <summary>How far the skill reaches, in sub-tile units.</summary>
         public readonly int Reach => Magnitude * DurationTicks;
 
+        /// <summary>
+        /// How far through its recharge the skill is, from nought to a hundred.
+        /// </summary>
+        /// <remarks>
+        /// Integer, like everything else here, and defined once because two separate views need it
+        /// and two separate views computing it is two chances to disagree. A skill with no cooldown
+        /// is always fully recharged rather than dividing by zero.
+        /// </remarks>
+        public readonly int RechargePercent => CooldownTicks <= 0 || CooldownRemaining <= 0
+            ? 100
+            : 100 - (CooldownRemaining * 100 / CooldownTicks);
+
         /// <summary>Creates a fully charged slot.</summary>
         public static SkillSlot Create(
             SkillId id, int cooldownTicks, int magnitude, int durationTicks, int power = 0, int maxCharges = 1) =>

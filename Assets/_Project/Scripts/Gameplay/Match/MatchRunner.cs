@@ -57,6 +57,9 @@ namespace BomberLegends.Gameplay.Match
         /// </summary>
         public MatchFeedback? Feedback { get; set; }
 
+        /// <summary>Keeps the on-screen skill buttons showing charges and recharge. Optional.</summary>
+        public Ui.SkillReadoutView? SkillReadout { get; set; }
+
         /// <summary>
         /// Whether the match is held still.
         /// </summary>
@@ -132,6 +135,7 @@ namespace BomberLegends.Gameplay.Match
             }
 
             InterpolationAlpha = _accumulator.Alpha;
+            SkillReadout?.Render(_simulation);
             _playerView.Render(_previousPlayerPosition, _currentPlayerPosition, InterpolationAlpha);
             _views?.Render(_simulation, Time.deltaTime, InterpolationAlpha);
         }

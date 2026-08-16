@@ -19,6 +19,7 @@ namespace BomberLegends.Gameplay.Ui
         private static readonly Color SkillColour = new Color(0.20f, 0.38f, 0.58f, 0.85f);
         private static readonly Color IndicatorColour = new Color(0.55f, 0.85f, 1f, 0.55f);
         private static readonly Color CancelColour = new Color(0.55f, 0.16f, 0.20f, 0.80f);
+        private static readonly Color CooldownColour = new Color(0.02f, 0.03f, 0.06f, 0.72f);
 
         /// <summary>Diameter of a skill button, in canvas units.</summary>
         private const float ButtonSize = 130f;
@@ -88,8 +89,10 @@ namespace BomberLegends.Gameplay.Ui
             // of the indicator that says where the shot is going.
             var indicator = CreateIndicator(rect);
 
+            var cooldown = CreateCooldownOverlay(rect);
+
             var button = host.AddComponent<SkillTouchButton>();
-            button.Initialise(ButtonFor(slot), indicator, cancel);
+            button.Initialise(ButtonFor(slot), indicator, cancel, cooldown);
 
             return button;
         }
@@ -111,6 +114,37 @@ namespace BomberLegends.Gameplay.Ui
             image.raycastTarget = false;
 
             host.transform.SetAsFirstSibling();
+            host.SetActive(false);
+
+            return rect;
+        }
+
+        /// <summary>
+        /// A dark pane over the button that shrinks away as the skill recharges.
+        /// </summary>
+        /// <remarks>
+        /// Scaled from the top rather than filled radially, so it needs no sprite and no atlas — the
+        /// greybox has neither. What is still covered is what is still to wait.
+        /// </remarks>
+        private static RectTransform CreateCooldownOverlay(RectTransform parent)
+        {
+            var host = new GameObject("Cooldown", typeof(RectTransform));
+            host.transform.SetParent(parent, false);
+
+            var rect = host.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 1f);
+
+            var image = host.AddComponent<Image>();
+            image.color = CooldownColour;
+
+            // Never a touch target: the button underneath must stay pressable while it recharges,
+            // so a player can learn that pressing early does nothing rather than that it is broken.
+            image.raycastTarget = false;
+
             host.SetActive(false);
 
             return rect;

@@ -187,6 +187,46 @@ namespace BomberLegends.Tests.EditMode.Simulation
             Assert.That(slot.CooldownRemaining, Is.Zero, "a full skill must not keep counting");
         }
 
+        [Test]
+        public void ASpentSkillReportsHowFarThroughItsRechargeItIs()
+        {
+            // The number both readouts draw. A playtester hoarded both skills for an entire run
+            // because nothing on screen said they come back, so this is the fix's foundation.
+            var slot = SkillSlot.Create(SkillId.Dash, cooldownTicks: 100, magnitude: 1, durationTicks: 1);
+
+            Assert.That(slot.RechargePercent, Is.EqualTo(100), "a ready skill is fully charged");
+
+            slot.TrySpend();
+            Assert.That(slot.RechargePercent, Is.Zero, "and a just-spent one is at nothing");
+
+            for (var i = 0; i < 50; i++)
+            {
+                slot.TickCooldown();
+            }
+
+            Assert.That(slot.RechargePercent, Is.EqualTo(50).Within(2));
+
+            for (var i = 0; i < 50; i++)
+            {
+                slot.TickCooldown();
+            }
+
+            Assert.That(slot.RechargePercent, Is.EqualTo(100));
+            Assert.That(slot.IsReady, Is.True);
+        }
+
+        [Test]
+        public void ASkillWithNoCooldownIsAlwaysFullyCharged()
+        {
+            // Never a division by zero, and never a readout stuck at empty.
+            var slot = SkillSlot.Create(SkillId.Dash, cooldownTicks: 0, magnitude: 1, durationTicks: 1);
+
+            Assert.That(slot.RechargePercent, Is.EqualTo(100));
+
+            slot.TrySpend();
+            Assert.That(slot.RechargePercent, Is.EqualTo(100));
+        }
+
         // ---------- dash ----------
 
         [Test]

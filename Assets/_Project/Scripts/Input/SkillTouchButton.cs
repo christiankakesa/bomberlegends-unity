@@ -51,6 +51,10 @@ namespace BomberLegends.Input
         [Tooltip("Releasing inside this area abandons the cast. Optional but strongly advised.")]
         private RectTransform? _cancelZone;
 
+        [SerializeField]
+        [Tooltip("Wipes downward as the skill recharges. Optional.")]
+        private RectTransform? _cooldownOverlay;
+
         private RectTransform _rect = null!;
         private Camera? _eventCamera;
         private Vector2 _origin;
@@ -70,11 +74,15 @@ namespace BomberLegends.Input
         /// scene later; this only fills them in.
         /// </remarks>
         public void Initialise(
-            IntentButtons action, RectTransform? aimIndicator = null, RectTransform? cancelZone = null)
+            IntentButtons action,
+            RectTransform? aimIndicator = null,
+            RectTransform? cancelZone = null,
+            RectTransform? cooldownOverlay = null)
         {
             _action = action;
             _aimIndicator = aimIndicator;
             _cancelZone = cancelZone;
+            _cooldownOverlay = cooldownOverlay;
 
             // A cast latched by a previous life must not survive into this one.
             _castLatched = false;
@@ -120,6 +128,37 @@ namespace BomberLegends.Input
             _castLatched = false;
             _latchedAim = Vector2.zero;
             return true;
+        }
+
+        /// <summary>
+        /// Shows whether the skill can be used, and how far off it is if not.
+        /// </summary>
+        /// <remarks>
+        /// A button that looks identical whether or not it will do anything teaches players to stop
+        /// pressing it. One playtester deliberately hoarded both skills for a whole run because
+        /// nothing on screen said they would come back.
+        /// </remarks>
+        /// <param name="ready">Whether a charge is available now.</param>
+        /// <param name="recharge">How far through the recharge it is, from zero to one.</param>
+        public void SetReadiness(bool ready, float recharge)
+        {
+            if (_cooldownOverlay != null)
+            {
+                // Wipes downward as it fills, so the covered part is what is still to wait.
+                var remaining = Mathf.Clamp01(1f - recharge);
+
+                _cooldownOverlay.gameObject.SetActive(!ready && remaining > 0.001f);
+                _cooldownOverlay.localScale = new Vector3(1f, remaining, 1f);
+            }
+
+            var image = GetComponent<UnityEngine.UI.Image>();
+
+            if (image != null)
+            {
+                var colour = image.color;
+                colour.a = ready ? 0.85f : 0.4f;
+                image.color = colour;
+            }
         }
 
         /// <inheritdoc />

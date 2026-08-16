@@ -267,6 +267,10 @@ namespace BomberLegends.Gameplay.Match
             InstallPauseMenu(overlay);
             InstallFeedback(context, projector);
             InstallTouchControlVisibility(input);
+
+            var readout = _runner.gameObject.AddComponent<Ui.SkillReadoutView>();
+            readout.Begin(_skillButtons);
+            _runner.SkillReadout = readout;
         }
 
         /// <summary>
