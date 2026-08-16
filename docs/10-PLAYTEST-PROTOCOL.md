@@ -207,6 +207,53 @@ been careful about exactly that kind of record.
 
 ---
 
+## 10a. Round 1 outcome (2026-08-09 → 16)
+
+**4 testers · gate NOT called · 5 defects found, 4 fixed**
+
+### Why it was not called
+
+Two reasons, either sufficient on its own.
+
+**Metric 4 failed.** Two of four testers never discovered that Space places a bomb. One concluded
+the game was broken and stopped; another described a labyrinth with no way out. Per §7, a session
+where the controls are blamed is a session that measured the controls — nothing else in it is usable.
+
+**The sample was below the floor.** §2 sets six as the minimum for a percentage to mean anything,
+and four is bug-finding by definition.
+
+**So the concept was never actually tested.** What was tested was whether the game teaches itself,
+and the answer was no.
+
+### What it produced, which was a great deal
+
+| Finding | Status |
+|---|---|
+| Core verb undiscoverable — 2 of 4 never found the bomb | ✅ control hints that retire on use, plus the objective on screen |
+| Skills avoided because recharge was invisible | ✅ cooldown seconds in the readout; touch buttons dim and wipe |
+| "No sound effects or background music" — 3 of 4 | ✅ SFX were attenuated by a listener parked at the world origin. Music still absent by design |
+| "Shot is not working" | ✅ it was invisible, not broken: too small, teal on teal, and inside the block occlusion shadow |
+| Arena 2 unplayable — "assured to lose HP or die" | ✅ every Sentinel hunted from tick 0; they are now dormant until approached |
+| Fullscreen black screen | ✅ fixed before the round, tester likely on an older build |
+
+### The single most useful observation
+
+**The mobile build was the one nobody got lost in** — because it has a button with BOMB written on
+it. That is not a mobile-versus-desktop result. It is evidence that labelling the verb was the whole
+fix, and it is what the control hints copy.
+
+### Process notes for round 2
+
+- **The §4 opening script was not used.** Placeholders were never named, and art feedback flooded in
+  exactly as §8 predicts — *"design too simple"*, *"the weakness is the graphics"*. Not wrong, just
+  not what the session was for.
+- **"Think out loud" suppresses metric 3.** A tester narrating for you will not naturally stop and
+  restart. Worth keeping for discovery rounds, worth dropping for the gate.
+- Two testers clicked skill *names* expecting descriptions. The descriptions are on the choice cards
+  and were read; this was reaching for more depth somewhere it does not exist.
+
+---
+
 ## 10. Player's captured feeling and notes
 
 **Contact for a video recording**

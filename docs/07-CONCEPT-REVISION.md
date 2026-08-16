@@ -122,7 +122,7 @@ their build does, the synergy pillar has not landed and no amount of content wil
 | **M5** | Item framework + three items + two passive slots | ✅ **complete, verified in play** |
 | **M6** | Run loop: arenas, item choice, death, restart | ✅ **complete, verified in play** |
 | — | *Gate enablement* — procedural sectors, feedback layer, run persistence, touch controls, three platforms, deployment | ✅ complete (§4e–§4l) |
-| — | **▶ VALIDATION GATE** — the question in §3 | 🟡 **RUNNING — collecting feedback since 2026-08-09** |
+| — | **▶ VALIDATION GATE** — the question in §3 | 🟡 **round 1 (4 testers) did not call it — onboarding blocked the measurement; round 2 pending** |
 | M7+ | Third skill, slots 3–4, bosses, meta, art, audio | **not started, and should not start until the gate reports** |
 
 Audio (T-020) and screen shake (T-021) move behind the hybrid work. They add polish to a loop whose
