@@ -308,9 +308,10 @@ namespace BomberLegends.Gameplay.Match
                     BoardProjector.ToGrid(_projectileCurrent[slot].Y),
                     alpha);
 
-                // Held at chest height so a shot reads as passing over the floor rather than
-                // sliding along it, and never disappears behind a block it is flying past.
-                view.Render(_projector.GridToWorld(gridX, gridY, _projector.BlockHeight * 0.5f));
+                // Flown high in the block rather than half way up it. At a 55° pitch a full-height
+                // block hides about a third of a tile behind itself, and half height put the shot
+                // squarely in that shadow for most of its flight.
+                view.Render(_projector.GridToWorld(gridX, gridY, _projector.BlockHeight * 0.72f));
             }
         }
 
@@ -331,7 +332,7 @@ namespace BomberLegends.Gameplay.Match
             _projectileCurrent[slot] = position;
 
             var view = _projectilePool.Get();
-            view.Begin(_projector.PositionToWorld(position, _projector.BlockHeight * 0.5f));
+            view.Begin(_projector.PositionToWorld(position, _projector.BlockHeight * 0.72f));
 
             _projectilesBySlot[slot] = view;
         }
