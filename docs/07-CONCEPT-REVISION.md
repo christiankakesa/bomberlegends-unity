@@ -121,8 +121,9 @@ their build does, the synergy pillar has not landed and no amount of content wil
 | **M4** | Skill framework + dash + skillshot | ✅ **complete, verified in play** |
 | **M5** | Item framework + three items + two passive slots | ✅ **complete, verified in play** |
 | **M6** | Run loop: arenas, item choice, death, restart | ✅ **complete, verified in play** |
-| — | **▶ VALIDATION GATE** — the question in §3 | **now reachable — needs playtesters** |
-| M7+ | Third skill, slots 3–4, bosses, meta, art, audio, mobile port | |
+| — | *Gate enablement* — procedural sectors, feedback layer, run persistence, touch controls, three platforms, deployment | ✅ complete (§4e–§4l) |
+| — | **▶ VALIDATION GATE** — the question in §3 | 🟡 **RUNNING — collecting feedback since 2026-08-09** |
+| M7+ | Third skill, slots 3–4, bosses, meta, art, audio | **not started, and should not start until the gate reports** |
 
 Audio (T-020) and screen shake (T-021) move behind the hybrid work. They add polish to a loop whose
 shape is about to change.
@@ -821,6 +822,43 @@ survives a reload is the one thing that cannot be inferred from a successful bui
 
 ---
 
+## 4m. The competitive bet (2026-08-09)
+
+Recorded because it shapes what gets built after the gate.
+
+> *"I think players will be more focused on gameplay and game mechanics, leaderboard and
+> multiplayer. It's like a bet."*
+
+**The architecture already bets the same way**, and not by accident:
+
+- The simulation is deterministic and engine-free, and a match is fully described by its seed, its
+  layout and a sequence of `PlayerIntent`. That is a **replay format**, and a replay format is what
+  makes a leaderboard score *verifiable* rather than merely reported. Most small games cannot do
+  this, and it is why `PlayerIntent` was kept to a few bytes from the first milestone.
+- Intent-as-input over a fixed tick is the shape lockstep and rollback netcode both need. Multiplayer
+  would be a matter of delivering someone else's intents, not of rewriting gameplay.
+
+**The cheapest competitive hook is already sitting there: a shared daily seed.** Everyone plays the
+same generated sector on the same day, and the leaderboard compares like with like. Seeds are already
+a first-class concept and arenas already regenerate exactly from one, so this is small — and it turns
+a single-player roguelite into something with a reason to return tomorrow.
+
+Two consequences to settle before that ships, both cheap now and awkward later:
+
+- **Resume and competition do not mix.** A run that can be restored is a run that can be retried from
+  a good position. A competitive mode either disables resume or records that it happened.
+- **A verified score needs the intent log kept**, which nothing currently records. Small to add while
+  the format is stable; unpleasant to retrofit once runs are long.
+
+**What it does not change is the gate.** Whether people compete is a different question from whether
+the moment-to-moment game is good, and a leaderboard cannot rescue a loop nobody wants a second run
+of. The current gate validates the thing any competitive layer would stand on.
+
+**Multiplayer remains the single largest item in the project** and should not precede validation. The
+GDD already defers the backend to Milestone 9, and nothing here argues with that.
+
+---
+
 ## 5. Open questions
 
 1. **Does the third active skill earn its slot?** Three actives plus movement plus aim is a lot of
@@ -832,6 +870,13 @@ survives a reload is the one thing that cannot be inferred from a successful bui
    whether those decisions stay *interesting* deep into a run — which needs a playtest, not code.
 3. **Does the bomb stay the primary verb?** If the skillshot is more effective than bombing, the
    Bomberman layer becomes set dressing. Bombs must remain the highest-damage, highest-risk option.
-4. **Hit-stop.** Deliberately not implemented: pausing a fixed-tick authoritative simulation on frame
+4. **What fills the Awakening meter?** Introduced by the lore update (GDD §3.1) with no mechanic
+   behind it. Damage dealt rewards aggression, damage taken rewards recklessness, and chain size
+   rewards the Bomberman layer — three different games. Not required before the gate.
+5. **What is a Bomb Art?** Used as a character's identity in one line of the lore and as a per-sector
+   unlock in another. Character, loadout, single skill or skin — undecided.
+6. **Is a Fractured Heart a currency?** Harvested from Sentinels by the lore; §9.1 already lists Data
+   Coins and Cœurs Néon. Third currency, rename, or the Awakening resource?
+7. **Hit-stop.** Deliberately not implemented: pausing a fixed-tick authoritative simulation on frame
    time breaks determinism and replay validation. It can be added as a simulation rule if wanted, but
    that is a gameplay change, not a visual one.

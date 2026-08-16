@@ -94,6 +94,19 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 
 ---
 
+## Naming
+
+The build uses generic names; the lore (GDD §3.1) names the same things. Bomb → **Soul Orb**,
+destructible block → **Corrupted Data Cube**, enemy → **Sombra-Corps Sentinel**, boss → **Sentinel
+Lord**, arena → **Sector**, active skill → **Bomb Art**.
+
+**The simulation keeps the generic names on purpose.** `BombState` and `TileType.Destructible`
+describe rules rather than fiction, and that layer is deliberately free of anything a designer might
+rename. Lore names belong in the view, the interface and content assets — see
+[11-ART-DIRECTION.md](11-ART-DIRECTION.md) §1.
+
+---
+
 ## Deployment
 
 | Environment | URL | Branch |
@@ -130,6 +143,9 @@ excluding — nginx also denies hidden paths, verified returning 403.
 |---|---|
 | **Skill-ready / recharge indicator** | Only the numeric charge count in the HUD |
 | Authored audio | Sounds are generated placeholders; real clips drop into the same slots |
+| Cel-shaded look | Greybox draws with URP/Lit. Any new shader must join `ShaderInclusionTool` or it is stripped from device builds |
+| Neon palette and bloom | Unmeasured on device; the look leans on the most expensive mobile post-process there is |
+| Locked → liberated palette shift | May be a runtime system rather than authoring; see 11 §2 |
 | Chain pitch escalation | §3 of the feel plan; the cheapest remaining win |
 | Dash visual | Movement alone currently carries it |
 | Squash-and-stretch on arena border | Agreed, view layer only |

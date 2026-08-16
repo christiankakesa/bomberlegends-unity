@@ -4,7 +4,7 @@
 
 **Version:** 2.0 — concept revision
 
-**Date:** 23 March 2026 (v1.0) — translated 5 August 2026 · perspective revised 6 August 2026 · **concept revised 6 August 2026 (v2.0)**
+**Date:** 23 March 2026 (v1.0) — translated 5 August 2026 · perspective revised 6 August 2026 · concept revised 6 August 2026 (v2.0) · **lore and art revised 9 August 2026**
 
 **Author:** Christian Kakesa
 
@@ -112,24 +112,42 @@ the maze matter to the MOBA layer too, so the two layers reinforce each other in
 
 ### **3.1. Setting (Lore)**
 
-In the megacity of **Ébène-Prime**, the **Sombra-Corps** corporation controls all data flow. The player is a member of the **Génération Néon** ("Neon Generation"), rebels who physically hack the city's servers to free information. Each level is a *sector* (a district) that the player must cross to reach a main data terminal. The obstacles are physical data blocks and **Sentinelles** (Sentinels — the enemies).
+**Bomber Legends** – *Lore*
 
-### **3.2. Art Direction (based on the reference image)**
+In the megacity Ébène-Prime, color itself has been stolen.
+The Sombra-Corps locked every memory, dream, and heartbeat inside a living digital prison — the Shadow Grid.
+The people wander in silence, their inner flames extinguished.
+Only one thing can shatter the Grid: the reckless, burning will of a Neon Soul.
 
-* **Style:** **Low-poly 3D**, viewed three-quarter top-down over a square grid (revised 2026-08-06 to
-  v2.0; superseding both the isometric pixel art of v1.0 and the 2D sprite direction of v1.2).
-  360° movement makes 3D the cheaper pipeline: a model rotates, whereas a sprite character needs a
-  frame authored per facing.
-* **Colour Palette:** Deep night (blue/purple) contrasted with vibrant neon (cyan, magenta, golden orange).
-* **Architecture:** A mix of afro-futurism and cyberpunk. Futuristic buildings with geometric tribal motifs, technological hieroglyphs, and cybernetic tropical vegetation.
-* **Protagonist:** Silhouette of a man with dreadlocks, wearing a luminous tech suit.
-* **Objects:** Bombs are glowing plasma orbs. Destructible blocks are complex technological cubes.
+You are one of the Génération Néon — young warriors whose emotions ignite into Blaze Code, raw explosive power that overloads data-locks and incinerates corruption.
+Wielding your signature Bomb Art (a flashy, unique fighting style), you dive into the city's Sectors — dungeon-like data-mazes patrolled by Sentinel Lords, corrupted echoes of stolen hopes.
+Each blast is a promise shouted into the dark: "I will bring back our light!"
+
+Fight through adaptive block-fields, purify Sentinels to harvest Fractured Hearts, and grow your bond with your crew.
+When your resolve peaks, unleash your Awakening — a catastrophic neon detonation that rewrites the battlefield.
+Liberate the master terminal, shatter the Sector's lockdown, and return the stolen colors to the city.
+Every freed sector unlocks new Bomb Arts, lost memories of fallen Neon legends, and a step closer to the truth behind Sombra-Corps' origin — a shadowy mastermind who feeds on despair and awaits the one bold enough to defy fate.
+Your legend is about to explode.
+
+### 3.2. Art Direction (Shonen / Neon Soul Edition)
+
+* **Style:** **Low-poly 3D with cel-shaded edges and anime-inspired post-processing.** Three-quarter top-down view over a square grid. Stylized impact frames, speed lines, and screen shakes accompany Awakening detonations. The world feels like a vibrant battle diorama, where every explosion blooms into a splash of painterly light.
+
+* **Colour Palette:** **Stolen Silence vs. Reclaimed Brilliance.** Locked sectors are washed in desaturated grays and deep void-purples. Liberated areas erupt with hyper-saturated neon: **cyan, magenta, and golden orange** blaze across the grid. Each hero’s Blaze Code emits a signature inner glow (e.g., electric blue, flame crimson) that tints their explosions and leaves luminous trails.
+
+* **Architecture:** **Afro-futurist Cyberpunk reclaimed by emotion.** Buildings blend brutalist data-spires with holographic tribal motifs and glowing techno-hieroglyphs. Corrupted sectors are choked with black crystalline "Shadow Grid" growths and flickering dead neon. Freed structures pulse with rhythmic light patterns and cybernetic tropical vegetation that blossoms into vivid life, as if the city itself wakes up.
+
+* **Protagonist:** **Neon Soul warrior with dreadlocks.** The silhouette features dreadlocks tipped in liquid plasma, eyes burning with concentrated Blaze Code, and a sleek, armored tech-jacket adorned with luminous tribal lines. The suit’s patterns flare and shift color during combat, mirroring the hero’s rising willpower. Weaponized emotion is visible — when resolve peaks, the entire body erupts into a brilliant energy aura.
+
+* **Objects:** **Soul Orbs & Data Locks.** Bombs are personalized **Soul Orbs** — pulsating spheres wrapped in spinning code-rings, each leaving ghostly afterimages that match the hero's Blaze signature. Destructible blocks are **Corrupted Data Cubes**, shifting black-and-neon boxes etched with glitched runes. Upon destruction, they shatter into pixelated sparks and a brief burst of freed color, like a stolen memory returning home.
 
 ---
 
 ## **4. CORE GAMEPLAY LOOP**
 
-1. **Level Start:** The player spawns on the isometric grid. Objectives and the timer begin.
+> **Superseded by [07-CONCEPT-REVISION.md](07-CONCEPT-REVISION.md).** Kept as the v1.0 record; see [11-ART-DIRECTION.md](11-ART-DIRECTION.md) §3 for what differs from the built game.
+
+1. **Level Start:** The player spawns on the grid. Objectives and the timer begin.
 2. **Exploration & Destruction:** The player moves their character across the grid, placing bombs to destroy obstacles (orange/purple cubes) and reveal passages or rewards.
 3. **Threat Management:** Avoid your own explosions, enemies, and traps. Use skills.
 4. **Reach the Exit:** Once the path is clear and the data objectives are met, the player must reach the **Porte de Données** (Data Gate) before time runs out.
@@ -153,6 +171,8 @@ In the megacity of **Ébène-Prime**, the **Sombra-Corps** corporation controls 
 
 ### **5.3. In-Match HUD and Economy (Top of Screen)**
 
+> **Superseded by [07-CONCEPT-REVISION.md](07-CONCEPT-REVISION.md).** Kept as the v1.0 record; see [11-ART-DIRECTION.md](11-ART-DIRECTION.md) §3 for what differs from the built game.
+
 * **Score:** Points earned by destroying blocks and enemies, and by finishing quickly.
 * **Time:** Level countdown. If the timer runs out (e.g. 02:34 → 00:00), the player loses a life.
 * **Lives:** Number of remaining attempts (here, 3 hearts). Losing a life (explosion, enemy, or timeout) resets the character to the starting point of the current level, with the timer reset.
@@ -160,6 +180,8 @@ In the megacity of **Ébène-Prime**, the **Sombra-Corps** corporation controls 
 ---
 
 ## **6. SKILL SYSTEM (BOTTOM HUD)**
+
+> **Superseded by [07-CONCEPT-REVISION.md](07-CONCEPT-REVISION.md).** Kept as the v1.0 record; see [11-ART-DIRECTION.md](11-ART-DIRECTION.md) §3 for what differs from the built game.
 
 This is the main strategic element of the HUD in the reference image.
 
