@@ -17,6 +17,12 @@ namespace BomberLegends.Simulation.Systems
     /// Ties are broken with the match's own random source rather than a fixed preference, so two
     /// enemies in the same situation do not move as one, and a replay still reproduces exactly.
     /// </para>
+    /// <para>
+    /// Sentinels are <b>dormant until approached</b>. Every enemy hunting from the first tick meant
+    /// an arena could only ever be fought as one mass, which is what made the second sector
+    /// unplayable in testing. Waking on proximity turns the same enemies into a sequence of
+    /// encounters the player chooses to start, and makes the maze worth reading.
+    /// </para>
     /// </remarks>
     public static class EnemySystem
     {
@@ -37,6 +43,20 @@ namespace BomberLegends.Simulation.Systems
                 }
 
                 enemy.Health.Age();
+
+                // Waking is checked before anything else moves, so a Sentinel the player has just
+                // walked up to reacts on the same tick rather than a tick late.
+                if (!enemy.IsAlerted)
+                {
+                    if (enemy.Tile.ManhattanDistanceTo(state.Player.Tile) > config.EnemyAggroRadius)
+                    {
+                        // Dormant: still takes damage and still blocks, but does not hunt.
+                        state.Enemies[slot] = enemy;
+                        continue;
+                    }
+
+                    enemy.IsAlerted = true;
+                }
 
                 var beforeTile = enemy.Tile;
                 var beforePosition = enemy.Position;

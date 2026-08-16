@@ -32,13 +32,25 @@ namespace BomberLegends.Gameplay.Enemies
             SetColour(_colour);
         }
 
-        /// <summary>Moves the enemy and reflects whether it is currently immune.</summary>
-        public void Render(Vector3 position, bool invulnerable)
+        /// <summary>Moves the enemy and reflects whether it is immune, and whether it is awake.</summary>
+        /// <remarks>
+        /// A dormant Sentinel is drawn dark. Without that, an enemy standing still because the
+        /// player has not come close enough reads as an enemy that is broken — and the player never
+        /// learns that approaching is what starts a fight.
+        /// </remarks>
+        public void Render(Vector3 position, bool invulnerable, bool alerted = true)
         {
             Ensure();
 
             transform.localPosition = position;
-            SetColour(invulnerable ? Color.Lerp(_colour, Color.white, 0.7f) : _colour);
+
+            if (invulnerable)
+            {
+                SetColour(Color.Lerp(_colour, Color.white, 0.7f));
+                return;
+            }
+
+            SetColour(alerted ? _colour : Color.Lerp(_colour, Color.black, 0.55f));
         }
 
         /// <summary>Restores a clean state before reuse.</summary>

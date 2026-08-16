@@ -267,6 +267,7 @@ namespace BomberLegends.Simulation
                     hash = Fold(hash, (ulong)(uint)enemy.Health.Current);
                     hash = Fold(hash, (byte)enemy.MoveDirection);
                     hash = Fold(hash, (byte)enemy.BlockedDirection);
+                    hash = Fold(hash, enemy.IsAlerted ? 1UL : 0UL);
                 }
 
                 hash = Fold(hash, _state.Random.State);

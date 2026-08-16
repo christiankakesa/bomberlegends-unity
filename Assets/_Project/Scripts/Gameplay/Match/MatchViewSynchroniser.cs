@@ -285,7 +285,8 @@ namespace BomberLegends.Gameplay.Match
                     BoardProjector.ToGrid(_enemyCurrent[slot].Y),
                     alpha);
 
-                view.Render(_projector.GridToWorld(gridX, gridY), enemy.Health.IsInvulnerable);
+                view.Render(
+                    _projector.GridToWorld(gridX, gridY), enemy.Health.IsInvulnerable, enemy.IsAlerted);
             }
         }
 

@@ -36,6 +36,7 @@ namespace BomberLegends.Simulation
             int enemySpeedPerTick = 80,
             int enemyRadius = 320,
             int maxEnemies = 32,
+            int enemyAggroRadius = 7,
             int dashSpeedPerTick = 500,
             int dashDurationTicks = 6,
             int dashCooldownTicks = 60,
@@ -72,6 +73,7 @@ namespace BomberLegends.Simulation
             EnemySpeedPerTick = enemySpeedPerTick;
             EnemyRadius = enemyRadius;
             MaxEnemies = maxEnemies;
+            EnemyAggroRadius = enemyAggroRadius;
             DashSpeedPerTick = dashSpeedPerTick;
             DashDurationTicks = dashDurationTicks;
             DashCooldownTicks = dashCooldownTicks;
@@ -206,6 +208,17 @@ namespace BomberLegends.Simulation
 
         /// <summary>The most enemies that can exist at once.</summary>
         public int MaxEnemies { get; }
+
+        /// <summary>
+        /// How close, in tiles, the player must come before a Sentinel wakes.
+        /// </summary>
+        /// <remarks>
+        /// The dial that turns an arena into a sequence of fights rather than a single swarm. Large
+        /// enough and it is as if it did not exist; small enough and enemies wake in the player's
+        /// lap. It is measured in whole tiles from tile to tile, so a diamond rather than a circle —
+        /// consistent with everything else that reasons about the grid.
+        /// </remarks>
+        public int EnemyAggroRadius { get; }
 
         /// <summary>Sub-tile units the player covers each tick of a dash.</summary>
         public int DashSpeedPerTick { get; }
@@ -419,6 +432,12 @@ namespace BomberLegends.Simulation
             if (MaxEnemies <= 0)
             {
                 throw new ArgumentException("There must be room for at least one enemy.");
+            }
+
+            if (EnemyAggroRadius <= 0)
+            {
+                throw new ArgumentException(
+                    "Enemies must wake at some distance, or an arena can never be cleared.");
             }
 
             if (DashSpeedPerTick <= 0 || DashDurationTicks <= 0)

@@ -25,6 +25,18 @@ namespace BomberLegends.Simulation.Actors
         /// </remarks>
         public Direction BlockedDirection;
 
+        /// <summary>
+        /// Whether this Sentinel has noticed the player.
+        /// </summary>
+        /// <remarks>
+        /// Dormant until the player comes close, then awake for good. Without it every enemy in the
+        /// arena converges from the first tick, which is what made the second sector unplayable in
+        /// testing: five pursuers arriving together is not five encounters, it is one that cannot be
+        /// fought. Waking never reverses, because an enemy that loses interest at a threshold
+        /// oscillates on and off at exactly the distance a player is most likely to be standing.
+        /// </remarks>
+        public bool IsAlerted;
+
         /// <summary>Whether this slot holds a live enemy.</summary>
         public bool IsActive;
 
@@ -38,6 +50,7 @@ namespace BomberLegends.Simulation.Actors
             Health = HealthState.Full(maxHealth),
             MoveDirection = Direction.None,
             BlockedDirection = Direction.None,
+            IsAlerted = false,
             IsActive = true
         };
     }

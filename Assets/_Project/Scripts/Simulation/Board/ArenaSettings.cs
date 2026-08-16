@@ -19,11 +19,11 @@ namespace BomberLegends.Simulation.Board
             int growthPerArena = 2,
             int maxWidth = 31,
             int maxHeight = 21,
-            int baseEnemies = 4,
+            int baseEnemies = 3,
             int enemiesPerArena = 1,
             int maxEnemies = 12,
             int destructiblePercent = 55,
-            int minEnemyDistance = 6,
+            int minEnemyDistance = 9,
             int safePocketRadius = 2)
         {
             BaseWidth = baseWidth;
@@ -71,6 +71,8 @@ namespace BomberLegends.Simulation.Board
         /// </summary>
         /// <remarks>
         /// Being hit before the arena has been read is not difficulty, it is a bad first second.
+        /// Kept above <see cref="SimulationConfig.EnemyAggroRadius"/> on purpose, so no Sentinel is
+        /// awake when a sector begins and the player always gets a moment to look around.
         /// </remarks>
         public int MinEnemyDistance { get; }
 
@@ -98,11 +100,11 @@ namespace BomberLegends.Simulation.Board
             growthPerArena: 2,
             maxWidth: 31,
             maxHeight: 21,
-            baseEnemies: 4,
+            baseEnemies: 3,
             enemiesPerArena: 1,
             maxEnemies: 12,
             destructiblePercent: 55,
-            minEnemyDistance: 6,
+            minEnemyDistance: 9,
             safePocketRadius: 2);
 
         /// <summary>Throws if any value would produce an unplayable arena.</summary>

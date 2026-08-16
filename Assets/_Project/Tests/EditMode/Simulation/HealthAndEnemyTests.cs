@@ -393,8 +393,13 @@ namespace BomberLegends.Tests.EditMode.Simulation
                 for (var slot = 0; slot < capacity; slot++)
                 {
                     var enemy = simulation.State.Enemies[slot];
-                    if (!enemy.IsActive)
+
+                    // Dormant Sentinels are supposed to stand still. Counting them would report the
+                    // aggro rule as a wedging bug, which is exactly what it is not.
+                    if (!enemy.IsActive || !enemy.IsAlerted)
                     {
+                        anchor[slot] = enemy.Tile;
+                        held[slot] = 0;
                         continue;
                     }
 
@@ -489,6 +494,122 @@ namespace BomberLegends.Tests.EditMode.Simulation
             }
 
             Assert.That(ended, Is.LessThan(start), "a maze must slow the chase, not defeat it");
+        }
+
+        // ---------- waking ----------
+
+        [Test]
+        public void ADistantSentinelStaysAsleep()
+        {
+            // The fix for the second sector being unplayable: five pursuers arriving together is
+            // not five encounters, it is one that cannot be fought.
+            var simulation = new GameSimulation(
+                Config(),
+                LevelLayout.Parse(
+                    "###############",
+                    "#P...........E#",
+                    "###############"),
+                seed: 1u);
+
+            var start = simulation.State.Enemies[0].Position;
+
+            Advance(simulation, 200);
+
+            Assert.That(simulation.State.Enemies[0].IsAlerted, Is.False);
+            Assert.That(simulation.State.Enemies[0].Position, Is.EqualTo(start),
+                "a Sentinel that has not seen the player must not hunt it");
+        }
+
+        [Test]
+        public void ApproachingWakesIt()
+        {
+            var simulation = new GameSimulation(
+                Config(),
+                LevelLayout.Parse(
+                    "###############",
+                    "#P...........E#",
+                    "###############"),
+                seed: 1u);
+
+            Assume.That(simulation.State.Enemies[0].IsAlerted, Is.False);
+
+            Advance(simulation, 200, PlayerIntent.FromDirection(Direction.East));
+
+            Assert.That(simulation.State.Enemies[0].IsAlerted, Is.True,
+                "walking up to a Sentinel must start the fight");
+        }
+
+        [Test]
+        public void OnceAwakeItStaysAwake()
+        {
+            // A threshold that reverses makes enemies flicker on and off at precisely the distance
+            // a player is most likely to be standing.
+            var simulation = new GameSimulation(
+                Config(),
+                LevelLayout.Parse(
+                    "###############",
+                    "#P.E..........#",
+                    "###############"),
+                seed: 1u);
+
+            Advance(simulation, 20);
+            Assume.That(simulation.State.Enemies[0].IsAlerted, Is.True);
+
+            Advance(simulation, 400, PlayerIntent.FromDirection(Direction.East));
+
+            Assert.That(simulation.State.Enemies[0].IsAlerted, Is.True);
+        }
+
+        [Test]
+        public void ASleepingSentinelCanStillBeKilled()
+        {
+            // Dormant is not invulnerable. Bombing something that has not noticed you is a
+            // legitimate tactic and the whole reward for approaching carefully.
+            var simulation = new GameSimulation(
+                Config(range: 2, enemySpeed: 1),
+                LevelLayout.Parse(
+                    "#######",
+                    "#P.E..#",
+                    "#######"),
+                seed: 1u);
+
+            simulation.Tick(Bomb);
+            Advance(simulation, Fuse + 5);
+
+            Assert.That(simulation.State.Enemies.AliveCount, Is.Zero);
+        }
+
+        [Test]
+        public void ASectorOpensWithNothingAwake()
+        {
+            // The reported complaint was the *start* of the sector, so this is the assertion that
+            // matters: a generated arena never begins with a Sentinel already hunting.
+            for (var seed = 1u; seed <= 40u; seed++)
+            {
+                var random = new DeterministicRandom(seed);
+                var layout = ArenaGenerator.Generate(0, ArenaSettings.Default, ref random);
+                var simulation = new GameSimulation(Config(), layout, seed);
+
+                simulation.Tick(Idle);
+
+                for (var slot = 0; slot < simulation.State.Enemies.Capacity; slot++)
+                {
+                    var enemy = simulation.State.Enemies[slot];
+
+                    Assert.That(!enemy.IsActive || !enemy.IsAlerted, Is.True,
+                        $"seed {seed} began with a Sentinel already hunting");
+                }
+            }
+        }
+
+        [Test]
+        public void SpawnDistanceStaysAheadOfWakingDistance()
+        {
+            // The two numbers are a pair. If enemies can spawn inside the aggro radius, the opening
+            // breath the player is being given quietly disappears.
+            Assert.That(ArenaSettings.Default.MinEnemyDistance,
+                Is.GreaterThan(Config().EnemyAggroRadius),
+                "spawn distance must exceed aggro radius, or sectors open mid-fight");
         }
 
         [Test]
