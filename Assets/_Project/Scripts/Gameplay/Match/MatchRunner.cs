@@ -60,6 +60,9 @@ namespace BomberLegends.Gameplay.Match
         /// <summary>Keeps the on-screen skill buttons showing charges and recharge. Optional.</summary>
         public Ui.SkillReadoutView? SkillReadout { get; set; }
 
+        /// <summary>Teaches the controls until they are used. Optional.</summary>
+        public Ui.ControlHintsView? Hints { get; set; }
+
         /// <summary>
         /// Whether the match is held still.
         /// </summary>
@@ -131,11 +134,13 @@ namespace BomberLegends.Gameplay.Match
                 // that runs several ticks would otherwise see only the last one's effects.
                 _views?.Consume(_simulation);
                 Feedback?.Consume(_simulation);
+                Hints?.Consume(_simulation);
                 DrainEvents();
             }
 
             InterpolationAlpha = _accumulator.Alpha;
             SkillReadout?.Render(_simulation);
+            Hints?.Render();
             _playerView.Render(_previousPlayerPosition, _currentPlayerPosition, InterpolationAlpha);
             _views?.Render(_simulation, Time.deltaTime, InterpolationAlpha);
         }

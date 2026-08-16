@@ -271,6 +271,8 @@ namespace BomberLegends.Gameplay.Match
             var readout = _runner.gameObject.AddComponent<Ui.SkillReadoutView>();
             readout.Begin(_skillButtons);
             _runner.SkillReadout = readout;
+
+            InstallControlHints(input);
         }
 
         /// <summary>
@@ -520,6 +522,34 @@ namespace BomberLegends.Gameplay.Match
                 Debug.LogError($"[Match] Arena {index + 1} is invalid: {exception.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Puts the controls and the objective on screen until the player no longer needs them.
+        /// </summary>
+        /// <remarks>
+        /// Two of four playtesters never found that Space places a bomb, and one concluded the game
+        /// was broken. The build nobody got lost in was the touch one, for the unglamorous reason
+        /// that it has a button with BOMB written on it.
+        /// </remarks>
+        private void InstallControlHints(IInputSource input)
+        {
+            if (_runner == null || input is not CompositeInputSource composite)
+            {
+                return;
+            }
+
+            var canvas = ResolveCanvas();
+
+            if (canvas == null)
+            {
+                return;
+            }
+
+            var hints = _runner.gameObject.AddComponent<Ui.ControlHintsView>();
+            hints.Begin(canvas, composite.Devices);
+
+            _runner.Hints = hints;
         }
 
         /// <summary>
