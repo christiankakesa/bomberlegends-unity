@@ -23,30 +23,30 @@ namespace BomberLegends.Data.Audio
 
             var entries = new List<FeedbackEntry>
             {
-                Entry(SimEventType.BombPlaced, Sfx(ProceduralClips.Thump(), volume: 0.5f)),
+                Entry(SimEventType.BombPlaced, Sfx(ProceduralClips.Thump(), volume: 0.75f)),
 
                 // Bound to the detonation, never to the blast tiles. One chain lights a hundred
                 // tiles on a single tick, and a sound per tile is noise, not an explosion.
-                Entry(SimEventType.BombDetonated, Sfx(ProceduralClips.Boom(), maxConcurrent: 3),
+                Entry(SimEventType.BombDetonated, Sfx(ProceduralClips.Boom(), volume: 0.95f, maxConcurrent: 3),
                     shake: 0.5f, seconds: 0.28f),
 
                 Entry(SimEventType.BlockDestroyed,
-                    Sfx(ProceduralClips.Crunch(), volume: 0.4f, maxConcurrent: 3, retrigger: 0.05f),
+                    Sfx(ProceduralClips.Crunch(), volume: 0.65f, maxConcurrent: 3, retrigger: 0.05f),
                     shake: 0.08f, seconds: 0.10f),
 
-                Entry(SimEventType.EnemyKilled, Sfx(ProceduralClips.Pop(), volume: 0.6f),
+                Entry(SimEventType.EnemyKilled, Sfx(ProceduralClips.Pop(), volume: 0.8f),
                     shake: 0.12f, seconds: 0.12f),
 
                 // The two that must never be missed. Loud, unique, and the only ones that shake
                 // hard enough to interrupt what the player was doing.
-                Entry(SimEventType.DamageTaken, Sfx(ProceduralClips.Hurt(), pitchVariation: 0.02f),
+                Entry(SimEventType.DamageTaken, Sfx(ProceduralClips.Hurt(), volume: 1f, pitchVariation: 0.02f),
                     shake: 0.85f, seconds: 0.35f),
 
-                Entry(SimEventType.PlayerDied, Sfx(ProceduralClips.Death(), pitchVariation: 0f),
+                Entry(SimEventType.PlayerDied, Sfx(ProceduralClips.Death(), volume: 0.95f, pitchVariation: 0f),
                     shake: 1f, seconds: 0.7f),
 
-                Entry(SimEventType.DashStarted, Sfx(ProceduralClips.Whoosh(), volume: 0.45f)),
-                Entry(SimEventType.ProjectileFired, Sfx(ProceduralClips.Shot(), volume: 0.4f)),
+                Entry(SimEventType.DashStarted, Sfx(ProceduralClips.Whoosh(), volume: 0.7f)),
+                Entry(SimEventType.ProjectileFired, Sfx(ProceduralClips.Shot(), volume: 0.65f)),
                 Entry(SimEventType.ItemAcquired, Sfx(ProceduralClips.Pickup())),
                 Entry(SimEventType.ArenaCleared, Sfx(ProceduralClips.Fanfare()))
             };

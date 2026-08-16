@@ -68,7 +68,25 @@ namespace BomberLegends.Services.Audio
             _music.loop = true;
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Plays a one-shot effect.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <paramref name="worldPosition"/> is accepted and currently ignored, and that is a fix
+        /// rather than an oversight. The only <c>AudioListener</c> lives on the bootstrap object so
+        /// that exactly one exists and it is never unloaded — which also means it sits at the world
+        /// origin and never moves. Sounds play at tile coordinates, so an arena spanning twenty
+        /// units made every event quieter the further it happened from one corner of the board, for
+        /// no reason a player could perceive as anything but inconsistency.
+        /// </para>
+        /// <para>
+        /// Flat playback is also simply correct for this camera: the whole arena is on screen at a
+        /// near-constant distance, so distance attenuation models nothing real. Stereo panning would
+        /// be worth having and is not the same thing; it needs a position relative to the view, not
+        /// to a listener parked at the origin.
+        /// </para>
+        /// </remarks>
         public void PlaySfx(SfxDefinition definition, Vector3? worldPosition = null)
         {
             if (definition == null || definition.Clips == null || definition.Clips.Length == 0)
@@ -100,12 +118,10 @@ namespace BomberLegends.Services.Audio
             source.clip = clip;
             source.volume = definition.Volume * _busVolumes[(int)definition.Bus];
             source.pitch = 1f + Spread(definition.PitchVariation);
-            source.spatialBlend = worldPosition.HasValue ? 0.35f : 0f;
 
-            if (worldPosition.HasValue)
-            {
-                source.transform.position = worldPosition.Value;
-            }
+            // Flat, always. See the note on the position parameter: spatialising against a listener
+            // that never moves attenuated every sound by its distance from the world origin.
+            source.spatialBlend = 0f;
 
             source.Play();
 
