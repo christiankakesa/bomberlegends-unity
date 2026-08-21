@@ -256,6 +256,7 @@ fix, and it is what the control hints copy.
 
 ## 10. Player's captured feeling and notes
 
+### Round 1
 **Contact for a video recording**
 Hey! 👋
 I’m testing a new version of my game and I’d really appreciate your help.
@@ -288,7 +289,7 @@ The session should take around **5–10 minutes**.
 
 If you're available, let me know and we’ll set up a quick call. 🙏
 
-### Rudy
+#### Rudy
 * The player encounter blackscreen when pressing the fullscreen button and needed to refresh the browser and press again the fullscreen button to have the game up and running.
 * Confusion with a labyrinth game; the player don't use space or think about activating the bomb.
 * The player feels like there is no solution to get out.
@@ -312,7 +313,7 @@ If you're available, let me know and we’ll set up a quick call. 🙏
 * The player sugested to add virus lore.
 * The player suggested to introduce : Red alert lore at startup.
 
-### Hasby
+#### Hasby
 
 *Without explanation*
 
@@ -339,7 +340,7 @@ If you're available, let me know and we’ll set up a quick call. 🙏
 3. The game’s UI needs improvement; it’s too simple.
 
 
-### Fenicks
+#### Fenicks
 
 * He was very calm and was looking for the action keys on the keyboard and mouse.
 * Found how to drop a bomb.
@@ -352,7 +353,7 @@ If you're available, let me know and we’ll set up a quick call. 🙏
 
 Fenicks was not really impressed, but he was very curious.
 
-### Daffa
+#### Daffa
 
 *Gameplay*
 
@@ -366,3 +367,271 @@ Fenicks was not really impressed, but he was very curious.
 * “Here’s the play test… to be honest, it feels like playing my childhood games.”
 * “I really love the mechanics of roguelike progression. But the weakness is the graphics. Yeah, I know it’s early access and just a play test.”
 * “For the next step, we can improve the graphics.”
+
+### Round 2
+
+#### Tester 01   Date 2026-08-19   Input: keyboard
+
+RUN 1   items taken: Bomb Trail, Quickstep   - died on arena 3   - length 11 min
+RUN 2   items taken: Twin Shot, Piercing Rounds, Overcharge, skip   - died on arena 5   - length 18 min
+        Started run 2 unprompted?   YES          <- metric 3
+        Chose differently on run 2? DELIBERATE   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where: 
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "got boxed in by his own bomb."
+  "That wall clipped his dash (player's skill)."
+
+#### Tester 02   Date 2026-08-19   Input: gamepad
+
+RUN 1   items taken: Focusing Lens, Kinetic Core   - died on arena 2   - length 8 min
+RUN 2   items taken: Focusing Lens, Quickstep, Overclock   - died on arena 4   - length 15 min
+        Started run 2 unprompted?   NO          <- metric 3
+        Chose differently on run 2? RANDOM   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [ ] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where:
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "Miss a shot and get caught"
+  "Didn't use correctly diagonal movement"
+
+#### Tester 03   Date 2026-08-19   Input: touch
+
+RUN 1   items taken: Momentum, Bomb Trail   - died on arena 3   - length 9 min
+RUN 2   items taken: Momentum, Twin Shot   - died on arena 3   - length 13 min
+        Started run 2 unprompted?   YES          <- metric 3
+        Chose differently on run 2? SAME   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [ ] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where: 
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "I forgot to shoot, I need a fat arrow on the ground oriented to the enemy when shooting."
+  "I kept tapping the wrong side."
+
+#### Tester 04   Date 2026-08-19   Input: keyboard
+
+RUN 1   items taken: Twin Shot, Bomb Trail, Piercing Rounds   - died on arena 4   - length 14 min
+RUN 2   items taken: Twin Shot, skip, Momentum, skip, skip   - died on arena 6   - length 21 min
+        Started run 2 unprompted?   YES          <- metric 3
+        Chose differently on run 2? DELIBERATE   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where: 
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "I got greedy on the third blast."
+  "I dashed into the wall."
+
+#### Tester 05   Date 2026-08-19   Input: gamepad
+
+RUN 1   items taken: Quickstep, Kinetic Core   - died on arena 2   - length 7 min
+RUN 2   items taken: Quickstep, Focusing Lens, Overcharge   - died on arena 4   - length 16 min
+        Started run 2 unprompted?   NO          <- metric 3
+        Chose differently on run 2? RANDOM   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [ ] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where:
+  [x] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "The dash went in different direction than I thought."
+  "I can’t aim the attack properly – are the buttons too close together?"
+
+#### Tester 06   Date 2026-08-19   Input: touch
+
+RUN 1   items taken: NA   - died on arena 1   - length 5 min
+RUN 2   items taken: Overclock, Momentum   - died on arena 3   - length 12 min
+        Started run 2 unprompted?   YES          <- metric 3
+        Chose differently on run 2? DELIBERATE   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [ ] Swapped an item when slots were full
+  [ ] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where: 
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "I couldn't tell where my finger landed."
+  "I died with my own bomb, so funny!"
+
+#### Tester 07   Date 2026-08-19   Input: keyboard
+
+RUN 1   items taken: Piercing Rounds, skip, Twin Shot, Bomb Trail   - died on arena 5   - length 17 min
+RUN 2   items taken: Piercing Rounds, Twin Shot, skip, Twin Shot, skip, skip   - died on arena 7   - length 24 min
+        Started run 2 unprompted?   YES          <- metric 3
+        Chose differently on run 2? RANDOM   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where: 
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "I overcommitted for one more kill."
+  "I thought the corridor was wider."
+
+#### Tester 08   Date 2026-08-19   Input: gamepad
+
+RUN 1   items taken: Focusing Lens, skip, Quickstep   - died on arena 3   - length 10 min
+RUN 2   items taken: Focusing Lens, Kinetic Core, Overcharge, skip   - died on arena 5   - length 19 min
+        Started run 2 unprompted?   NO          <- metric 3
+        Chose differently on run 2? DELIBERATE   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where: 
+  [x] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "I panicked and fat-fingered the dodge. It's difficult to aim the shot with the gamepad!"
+  "I need to stop playing, the game is good waiting for next steps"
+
+#### Tester 09   Date 2026-08-19   Input: touch
+
+RUN 1   items taken: Momentum, Bomb Trail   - died on arena 2   - length 6 min
+RUN 2   items taken: Momentum, Bomb Trail, Twin Shot   - died on arena 4   - length 14 min
+        Started run 2 unprompted?   YES          <- metric 3
+        Chose differently on run 2? SAME   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [ ] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where:
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "My thumb slipped off the screen."
+  "It fired at the wrong target."
+
+#### Tester 10   Date 2026-08-19   Input: keyboard
+
+RUN 1   items taken: Momentum, Quickstep, Kinetic Core   - died on arena 4   - length 12 min
+RUN 2   items taken: Momentum, Quickstep, Piercing Rounds, skip, skip   - died on arena 6   - length 20 min
+        Started run 2 unprompted?   YES          <- metric 3
+        Chose differently on run 2? RANDOM   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where: 
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "I mistimed the blast chain."
+  "I dashed straight into the hazard."
+
+#### Tester 11   Date 2026-08-19   Input: gamepad
+
+RUN 1   items taken: Momentum, Focusing Lens, skip   - died on arena 3   - length 9 min
+RUN 2   items taken: Momentum, Focusing Lens, Quickstep, skip   - died on arena 5   - length 17 min
+        Started run 2 unprompted?   NO          <- metric 3
+        Chose differently on run 2? DELIBERATE   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where: 
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "I go to the wrong way."
+  "The dash button keeps changing in my head."
+
+#### Tester 12   Date 2026-08-19   Input: touch
+
+RUN 1   items taken: Twin Shot, Momentum, Quickstep   - died on arena 4   - length 13 min
+RUN 2   items taken: Twin Shot, Momentum, skip, Quickstep, skip   - died on arena 6   - length 22 min
+        Started run 2 unprompted?   YES          <- metric 3
+        Chose differently on run 2? RANDOM   <- metric 1
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where: 
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+  "The controls are fighting my thumb."
+  "I couldn't get around the rocks fast enough."
+
+### Round 3
