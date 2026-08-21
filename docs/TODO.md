@@ -1,5 +1,6 @@
 # Bomber Legends TODO
 
+- [ ] Sound with Minimax Music 3 (local AI)?
 - [ ] Theme & Juicy
   * [ ] Colors...
   * [ ] Haptic...
@@ -9,6 +10,7 @@
       * [ ] Animation blending: high fidelity animation, more responsive especially with attacks, make sure the attack feel unbelievable
       * [ ] Locomotion response
     - Animation
+      * [ ] Use SpriteLoop for 2D animation? Does it have MCP connector? Or SKILL.md for SpriteLoop?
       * [ ] Slow in / Slow out
       * [ ] Exaggeration & strong posing
       * [ ] Ennemy animation
