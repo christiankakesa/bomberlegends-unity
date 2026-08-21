@@ -15,6 +15,8 @@
 | [09-GAME-FEEL.md](09-GAME-FEEL.md) | — | The juice plan: sound, effects, the tricks worth doing, and the designer-ownership requirement. |
 | [10-PLAYTEST-PROTOCOL.md](10-PLAYTEST-PROTOCOL.md) | — | How to run the validation gate: sample size, session script, recording sheet, and how to read the result. |
 | [11-ART-DIRECTION.md](11-ART-DIRECTION.md) | — | Engineering reading of the lore and art: naming, what the look costs, and what it leaves undefined. |
+| [12-TRAILERS.md](12-TRAILERS.md) | — | Trailer and capture planning. |
+| [13-MUSIC.md](13-MUSIC.md) | — | Music and sound direction: one architecture across many cultural palettes, cue list, mix rules, and prompt seeds. |
 | [CLAUDE.md](../CLAUDE.md) | — | Project conventions (binding). |
 | `.claude/skills/unity-6.3/SKILL.md` | — | Unity engineering standards (binding). |
 
