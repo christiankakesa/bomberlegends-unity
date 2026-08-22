@@ -89,10 +89,23 @@ namespace BomberLegends.Simulation.Systems
             in SkillSlot slot,
             SimEventBuffer events)
         {
+            // A dash follows the stick, not the aim. Every twin-stick game resolves it that way and
+            // for the same reason: a pad player holding the right stick on an enemy is lining up a
+            // shot, and a dash that obeyed it would launch them into the thing they were escaping.
+            //
+            // The exception is an aim drawn *for this skill*. On touch every skill button is its
+            // own stick (07-CONCEPT-REVISION §4i), so a drag on the dash button is the only
+            // direction the player gave — and until this flag existed the simulation discarded it,
+            // leaving the gesture, its on-button indicator and the ground arrow all pointing
+            // somewhere the dash would not go.
+            var aimed = intent.Buttons.Has(IntentButtons.AimedCast) && intent.HasAim;
+
             if (!TryResolveHeading(
-                    intent.MoveX,
-                    intent.MoveY,
+                    aimed ? intent.AimX : intent.MoveX,
+                    aimed ? intent.AimY : intent.MoveY,
                     state.Player.Facing,
+                    state.Player.LastHeadingX,
+                    state.Player.LastHeadingY,
                     config.DirectionDeadzone,
                     slot.Magnitude,
                     out var velocityX,
@@ -137,6 +150,8 @@ namespace BomberLegends.Simulation.Systems
                     aimX,
                     aimY,
                     state.Player.Facing,
+                    state.Player.LastHeadingX,
+                    state.Player.LastHeadingY,
                     config.DirectionDeadzone,
                     slot.Magnitude,
                     out var velocityX,
@@ -165,17 +180,33 @@ namespace BomberLegends.Simulation.Systems
         }
 
         /// <summary>
-        /// Turns a stick reading into a velocity of the given speed, falling back to facing.
+        /// Turns a stick reading into a velocity of the given speed, falling back to where the
+        /// player was last actually going, and only then to which way they face.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// The order of those fallbacks is the fix for "the dash went in a different direction than
+        /// I thought". A stick returns to centre faster than a thumb reaches a button, so a player
+        /// running diagonally routinely presses dash on a frame where the stick reads nothing. With
+        /// only a cardinal facing to fall back on, the dash was thrown up to 45° off the line they
+        /// were travelling — reliably, and with no way for them to see why.
+        /// </para>
+        /// <para>
+        /// The recorded heading is exact, so the dash follows the diagonal. Facing survives as the
+        /// last resort for a player who has not moved at all yet.
+        /// </para>
+        /// <para>
         /// Integer normalisation, as everywhere else in the simulation: a floating-point square root
         /// is not bit-identical across platforms, and a single differing bit in a dash velocity
         /// would put two runs of the same replay in different places.
+        /// </para>
         /// </remarks>
         private static bool TryResolveHeading(
             int x,
             int y,
             Direction facing,
+            int lastHeadingX,
+            int lastHeadingY,
             int deadzone,
             int speed,
             out int velocityX,
@@ -190,6 +221,12 @@ namespace BomberLegends.Simulation.Systems
             }
 
             if ((x * x) + (y * y) < deadzone * deadzone)
+            {
+                x = lastHeadingX;
+                y = lastHeadingY;
+            }
+
+            if (x == 0 && y == 0)
             {
                 var offset = facing.ToOffset();
                 x = offset.X * PlayerIntent.AxisRange;

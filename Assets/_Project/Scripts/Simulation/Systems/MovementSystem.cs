@@ -68,10 +68,14 @@ namespace BomberLegends.Simulation.Systems
                 player.MoveDirection = DominantDirection(velocityX, velocityY);
                 player.Facing = player.MoveDirection;
 
-                // Only while steering. A dash has committed to a heading and must not be quietly
-                // curved onto a lane part-way through it.
+                // Recorded before lane assist bends it, and only while steering: this is where the
+                // player was actually going, which is what a dash launched a moment later should
+                // follow. Facing alone would round it to the nearest of four cardinals.
                 if (!dashing)
                 {
+                    player.LastHeadingX = velocityX;
+                    player.LastHeadingY = velocityY;
+
                     ApplyLaneAssist(player, config, ref velocityX, ref velocityY);
                 }
 

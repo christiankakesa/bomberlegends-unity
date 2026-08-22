@@ -273,6 +273,7 @@ namespace BomberLegends.Gameplay.Match
             _runner.SkillReadout = readout;
 
             InstallControlHints(input);
+            InstallAimIndicator(input, projector);
         }
 
         /// <summary>
@@ -550,6 +551,26 @@ namespace BomberLegends.Gameplay.Match
             hints.Begin(canvas, composite.Devices);
 
             _runner.Hints = hints;
+        }
+
+        /// <summary>
+        /// Puts a fat arrow on the ground under the player, showing where a skillshot will go.
+        /// </summary>
+        /// <remarks>
+        /// Round two asked for it in as many words — "I need a fat arrow on the ground oriented to
+        /// the enemy when shooting" — and the reason it was needed shows up in the numbers: keyboard
+        /// players, who aim with a visible cursor, hit the aiming metric every time; touch and
+        /// gamepad players, who had nothing to look at, hit it well under half the time.
+        /// </remarks>
+        private void InstallAimIndicator(IInputSource input, BoardProjector projector)
+        {
+            if (_runner == null || _playerView == null || input is not CompositeInputSource composite)
+            {
+                return;
+            }
+
+            var indicator = _runner.gameObject.AddComponent<Skills.AimIndicatorView>();
+            indicator.Begin(_runner, _playerView, projector, composite.Devices);
         }
 
         /// <summary>

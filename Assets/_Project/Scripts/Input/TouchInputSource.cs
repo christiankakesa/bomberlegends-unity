@@ -80,10 +80,31 @@ namespace BomberLegends.Input
         }
 
         /// <summary>Collects any casts released since the last tick.</summary>
+        /// <remarks>
+        /// An aim still being drawn is reported too, not only the one attached to a released cast.
+        /// Nothing in the simulation reads it until a skill button is actually pressed, so it costs
+        /// the rules nothing — but it is what lets the view draw where the shot is going <i>while</i>
+        /// the player is still deciding. Round two was unambiguous that they cannot otherwise tell:
+        /// "I couldn't tell where my finger landed", "it fired at the wrong target".
+        /// </remarks>
         private void ReadSkillCasts(ref IntentButtons buttons, out sbyte aimX, out sbyte aimY)
         {
             aimX = 0;
             aimY = 0;
+
+            for (var i = 0; i < _skillButtons.Length; i++)
+            {
+                var drawing = _skillButtons[i];
+
+                if (drawing == null || !drawing.IsAiming)
+                {
+                    continue;
+                }
+
+                var pending = _projection.ScreenToGrid(drawing.CurrentAim);
+                PointerAim.TryPack(pending.x, pending.y, out aimX, out aimY);
+                break;
+            }
 
             for (var i = 0; i < _skillButtons.Length; i++)
             {
@@ -103,7 +124,13 @@ namespace BomberLegends.Input
                 }
 
                 var grid = _projection.ScreenToGrid(aim);
-                PointerAim.TryPack(grid.x, grid.y, out aimX, out aimY);
+
+                if (PointerAim.TryPack(grid.x, grid.y, out aimX, out aimY))
+                {
+                    // Marks the aim as this cast's own, which is what lets a dragged dash go where
+                    // it was dragged while a pad's standing aim leaves the dash on the stick.
+                    buttons = buttons.With(IntentButtons.AimedCast);
+                }
             }
         }
 

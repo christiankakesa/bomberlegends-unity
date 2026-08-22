@@ -26,6 +26,11 @@ not landing. Everything else can be fixed later; that cannot.
 
 **Metric 4 is a filter, not a verdict.** It exists to tell you whether the other four are
 trustworthy. If a quarter of deaths are blamed on the controls, the session measured the controls.
+Round 2 is the worked example: metric 1 came in at 42%, and it means nothing, because metric 4 came
+in at 62% (§10b).
+
+**Score metric 4 per death, not per tester**, and split every metric by input device before reading
+any of them. Round 2's overall numbers hid a scheme that passed at 100% next to two that failed.
 
 ### Also worth capturing
 
@@ -63,7 +68,12 @@ nothing about whether the hybrid teaches itself.
 - Somewhere to write. One sheet per tester (§5).
 - **Clear the saved run between testers.** A run persists now, so tester B would resume tester A's.
   A fresh browser profile, a private window, or clearing site data all work.
-- Decide gamepad or keyboard/mouse in advance and keep it constant. Do not offer a choice mid-run.
+- Decide gamepad, keyboard/mouse or touch in advance and keep it constant. Do not offer a choice
+  mid-run, and balance the devices across the sample — round 2's result was invisible until it was
+  split by device (§10b).
+- **On a pad in the browser, press a button before handing it over.** A browser does not report a
+  gamepad until it has been used once, so a tester's first press looks to them like a dead game.
+  Doing it yourself while the menu is up costs nothing and is not explaining a control.
 
 ---
 
@@ -99,6 +109,16 @@ Whatever they do in that gap is metric 3.
 A facilitator leaning forward expectantly produces a second run every time — and a number you cannot
 use.
 
+### The one question you may ask, and only at the end
+
+When they have stopped playing for good — not between runs — ask exactly once:
+
+> "Tell me about the character you ended up with."
+
+Name nothing. Not an item, not a skill, not the word *build*. Then write down what they say in their
+words. That is metric 2's fallback reading (§5), and it is the only sentence in this protocol you are
+allowed to initiate.
+
 ---
 
 ## 5. What to record
@@ -110,8 +130,16 @@ Tester ___   Date ___   Input: keyboard / gamepad / touch
 
 RUN 1   items taken: ______________________   died on arena ___   length ___ min
 RUN 2   items taken: ______________________   died on arena ___   length ___ min
-        Started run 2 unprompted?   YES / NO          <- metric 3
-        Chose differently on run 2? DELIBERATE / RANDOM / SAME   <- metric 1
+        Started run 2 unprompted?   YES / NO                     <- metric 3
+        Chose differently on run 2? YES / NO
+        Chose deliberately?         DELIBERATE / RANDOM          <- metric 1
+
+BUILD LEGIBILITY
+  [ ] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  YES / PARTLY / NO
+      What they said: ____________________________________________
 
 OBSERVED (tick as it happens)
   [ ] Placed a bomb and escaped it on purpose
@@ -127,9 +155,22 @@ OBSERVED (tick as it happens)
 DEATHS   cause of each, in their words:
 ```
 
-**"Deliberate" versus "random" on metric 1** is a judgement, so make it on evidence, not impression:
-did they read the cards, hesitate, or say anything about why? A pick made in under two seconds
-without their eyes moving is random, whatever they say afterwards.
+**The two item questions are not the same question, and round 2 lost the gate by conflating them.**
+*Chose differently* is a fact you can read off the two item lists. *Chose deliberately* is the gate.
+A tester who repeats a build **because it worked** chose deliberately and differently is irrelevant;
+a tester who takes whatever card is nearest chose randomly however different the result looks.
+
+Make the deliberate call on evidence, not impression: did they read the cards, hesitate, skip an
+offer, or say anything about why? A pick made in under two seconds without their eyes moving is
+random, whatever they say afterwards. **Skipping an offer is the single strongest evidence of
+deliberation the choice screen can produce** — nobody skips by accident.
+
+**Metric 2 has a strict reading and a fallback, and both go on the sheet.** The threshold is against
+the strict one — described unaided, during play, because nobody asked. That is what "legible" means.
+But round 2 produced *zero* readings of it across twelve testers, which is worse than a low number,
+so the end-of-session question exists to guarantee some answer. Ask it only once they have stopped
+playing for good: any earlier and it teaches them to narrate, which §10a already found destroys
+metric 3.
 
 ---
 
@@ -251,6 +292,114 @@ fix, and it is what the control hints copy.
   restart. Worth keeping for discovery rounds, worth dropping for the gate.
 - Two testers clicked skill *names* expecting descriptions. The descriptions are on the choice cards
   and were read; this was reaching for more depth somewhere it does not exist.
+
+---
+
+## 10b. Round 2 outcome (2026-08-19)
+
+**12 testers · sample large enough to call the gate · gate NOT passed**
+
+| # | Metric | Threshold | Result | |
+|---|---|---|---|---|
+| 1 | Deliberately picks differently on run 2 | ≥ 60% | **42%** (5/12) | ❌ |
+| 2 | Can describe their build unprompted | ≥ 50% | **not recorded** | — |
+| 3 | Voluntary second run | ≥ 60% | **67%** (8/12) | ✅ |
+| 4 | Deaths blamed on self, not controls | ≥ 80% | **62%** (15/24 deaths) | ❌ |
+| 5 | Stuck on geometry | 0 | **0** | ✅ |
+
+### The verdict, and why it is not what it looks like
+
+Metric 4 failed, and §1 is explicit that metric 4 is a filter rather than a verdict: when deaths are
+blamed on the controls, the session measured the controls. So metric 1's 42% cannot be read as a
+result about items at all.
+
+But the failure is not spread evenly. Split by device it stops being a game problem and becomes a
+control-scheme problem:
+
+| Device | Metric 4 | Metric 3 |
+|---|---|---|
+| Keyboard | **100%** (8/8 deaths self-blamed) | 4/4 started run 2 |
+| Gamepad | **50%** (4/8) | **0/4 started run 2** |
+| Touch | **38%** (3/8) | 4/4 started run 2 |
+
+**The design works. Two of the three ways to play it do not.** Keyboard players — the only ones with
+a visible cursor telling them where a shot goes — passed metric 4 outright, at 100%. Every gamepad
+tester declined a second run; nobody else declined one.
+
+Two of the 24 death classifications are judgement calls rather than quotes ("Didn't use correctly
+diagonal movement" is worded as self-blame but describes an input failure). Coding both the other
+way puts the total at 54% and gamepad at 38%. The direction does not change.
+
+### The cause, which was physical
+
+Gamepad skills were on the face buttons. Aiming needs the right thumb on the right stick, and a face
+button needs that same thumb somewhere else — so a player could aim or shoot, never both. Testers
+described the same wall from three sides:
+
+- *"I can't aim the attack properly – are the buttons too close together?"* (05)
+- *"I panicked and fat-fingered the dodge. It's difficult to aim the shot with the gamepad!"* (08)
+- *"The dash button keeps changing in my head."* (11)
+
+Touch failed for the neighbouring reason: the aim indicator was drawn **on the skill button**, which
+is the one place on a phone guaranteed to be under a thumb. *"I couldn't tell where my finger
+landed"* (06), *"It fired at the wrong target"* (09), *"The controls are fighting my thumb"* (12).
+
+The most valuable line in the round is tester 03's, because it is a specification rather than a
+complaint: *"I need a fat arrow on the ground oriented to the enemy when shooting."*
+
+### What was fixed as a result
+
+| Finding | Status |
+|---|---|
+| Gamepad: aiming and shooting need the same thumb | ✅ skills moved to LB / RT / LT; face buttons kept as aliases |
+| Gamepad: aim collapses the instant the stick centres, so the shot leaves sideways | ✅ the aim is held 0.35 s past release |
+| Gamepad: 0.3 deadzone discarded a third of the stick and jumped on crossing | ✅ 0.2, radial, rescaled — small movements and fine aim exist again |
+| *"The dash went in different direction than I thought"* (05) | ✅ a dash follows the last analogue heading, not the 4-way facing |
+| *"Didn't use correctly diagonal movement"* (02) | ✅ same fix; a diagonal run now dashes diagonally |
+| Touch/gamepad players cannot see where a shot will go | ✅ a fat arrow on the ground, from the aim in the intent, on every device but the mouse |
+| Gamepad players never discovered the right stick aims | ✅ the hint names both halves: `(R-STICK AIM + RT) SHOOT` |
+
+### Metric 1 has a coding problem — recorded, not rescored
+
+The observation ticks contradict the coding. **12 of 12 read an item description before choosing**,
+10 of 12 swapped when their slots were full, 8 of 12 skipped an offer outright — and yet 7 of 12
+were coded RANDOM or SAME. §5 defines random as *a pick made in under two seconds without their eyes
+moving*, and by that definition nobody in this round picked randomly.
+
+Tester 07 is the clearest case: coded RANDOM, having skipped three offers and deliberately doubled
+down on Twin Shot. Skipping is the most deliberate act the choice screen allows.
+
+The likely cause is that the sheet asks one question and the column name asks another — *chose
+differently* is not *chose deliberately*, and a tester who repeats a build **because it worked** is
+being deliberate about it.
+
+**This is deliberately not rescored.** Moving a threshold after seeing the data is how a gate stops
+meaning anything. For round 3 the column splits in two:
+
+```
+        Chose differently on run 2?  YES / NO
+        Chose deliberately?          DELIBERATE / RANDOM   <- metric 1
+```
+
+### Also worth capturing, and it is the encouraging part
+
+- **Every single tester's run 2 was longer than their run 1** — 10.1 min mean rising to 17.6.
+- **Eleven of twelve got further**, arena 3.0 mean rising to 4.8. The twelfth held.
+- **No geometry traps.** The §4g/§4h wedge that round 1 chased did not recur once in 24 runs.
+- **Every gamepad tester took Focusing Lens, and nobody else did** — 4/4 against 0/8. Players who
+  could not aim spent an item slot on compensating for it. A balance signal that is really an input
+  signal.
+
+### Process notes for round 3
+
+- **Metric 2 was never recorded.** Twelve testers and the item-legibility number is simply missing,
+  which is the one number that would say whether 42% is a design result or an interface result. Ask
+  it out loud at the end of run 1: *"what does your build do?"*
+- Split metric 1's column as above.
+- Re-run with **fresh testers on gamepad and touch**. The eight who blamed the controls were
+  measuring the old controls and cannot be reused for the same question.
+- Still outstanding from this round: enemy HP is not shown, skill cards have no icons, and two
+  testers clicked skill *names* expecting descriptions — the same reach for depth round 1 saw.
 
 ---
 
@@ -635,3 +784,33 @@ DEATHS   cause of each, in their words:
   "I couldn't get around the rocks fast enough."
 
 ### Round 3
+
+```md
+Tester ___   Date ___   Input: keyboard / gamepad / touch
+
+RUN 1   items taken: ______________________   died on arena ___   length ___ min
+RUN 2   items taken: ______________________   died on arena ___   length ___ min
+        Started run 2 unprompted?   YES / NO                     <- metric 3
+        Chose differently on run 2? YES / NO
+        Chose deliberately?         DELIBERATE / RANDOM          <- metric 1
+
+BUILD LEGIBILITY
+  [ ] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  YES / PARTLY / NO
+      What they said: ____________________________________________
+
+OBSERVED (tick as it happens)
+  [ ] Placed a bomb and escaped it on purpose
+  [ ] Used the dash to escape
+  [ ] Used the dash to attack
+  [ ] Aimed a skillshot at something specific
+  [ ] Read an item description before choosing (watch their eyes)
+  [ ] Swapped an item when slots were full
+  [ ] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words:
+```

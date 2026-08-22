@@ -378,6 +378,113 @@ namespace BomberLegends.Tests.EditMode.Simulation
         }
 
         [Test]
+        public void ADashAfterADiagonalRunFollowsTheDiagonal()
+        {
+            // Reported in round two as "the dash went in a different direction than I thought".
+            // A stick recentres faster than a thumb reaches a button, so a player running diagonally
+            // routinely presses dash on a frame reading no input at all. Falling back to the
+            // four-way facing threw them up to 45° off the line they were actually travelling.
+            var simulation = Corridor();
+
+            // Run north-east for long enough to establish a heading, then dash with nothing held.
+            Advance(simulation, 6, new PlayerIntent(70, 70));
+
+            var before = simulation.State.Player.Position;
+            simulation.Tick(new PlayerIntent(0, 0, IntentButtons.Skill1));
+
+            var movedX = simulation.State.Player.Position.X - before.X;
+            var movedY = simulation.State.Player.Position.Y - before.Y;
+
+            Assert.That(movedX, Is.GreaterThan(0), "the dash must keep going east");
+            Assert.That(movedY, Is.GreaterThan(0), "and north — a diagonal run dashes diagonally");
+
+            // Within a quarter of each other is comfortably diagonal; a cardinal fallback would put
+            // one of these at zero.
+            Assert.That(IntMath.Abs(movedX - movedY), Is.LessThan(IntMath.Abs(movedX) / 4 + 40),
+                $"the dash should follow the diagonal, but went ({movedX}, {movedY})");
+        }
+
+        [Test]
+        public void ADraggedDashGoesWhereItWasDragged()
+        {
+            // The gesture 07-CONCEPT-REVISION §4i designed and the simulation never read: on touch
+            // each skill button is its own stick, so a drag on the dash button is a direction. It
+            // was discarded for two weeks, which showed up the moment the ground arrow made it
+            // visible — the arrow pointed one way and the dash went another.
+            var simulation = Corridor();
+
+            // Running east, then dashing on an aim drawn north. The aim must win.
+            Advance(simulation, 6, new PlayerIntent(100, 0));
+
+            var before = simulation.State.Player.Position;
+
+            simulation.Tick(new PlayerIntent(
+                0, 0, IntentButtons.Skill1 | IntentButtons.AimedCast, 0, 100));
+
+            var movedX = simulation.State.Player.Position.X - before.X;
+            var movedY = simulation.State.Player.Position.Y - before.Y;
+
+            Assert.That(movedY, Is.GreaterThan(0), "the dash must follow the aim that was drawn for it");
+            Assert.That(IntMath.Abs(movedX), Is.LessThan(IntMath.Abs(movedY) / 4 + 40),
+                $"and not the direction of travel, but it went ({movedX}, {movedY})");
+        }
+
+        [Test]
+        public void AStandingAimDoesNotSteerTheDash()
+        {
+            // The pad case, and the reason the flag exists rather than the dash simply reading the
+            // aim. A right stick held on an enemy is a shot being lined up; a dash that obeyed it
+            // would launch the player into the thing they were escaping.
+            var simulation = Corridor();
+
+            Advance(simulation, 6, new PlayerIntent(100, 0));
+
+            var before = simulation.State.Player.Position;
+
+            // Aim north, no AimedCast flag — exactly what GamepadInputSource produces.
+            simulation.Tick(new PlayerIntent(0, 0, IntentButtons.Skill1, 0, 100));
+
+            var movedX = simulation.State.Player.Position.X - before.X;
+            var movedY = simulation.State.Player.Position.Y - before.Y;
+
+            Assert.That(movedX, Is.GreaterThan(0), "the dash must keep following the stick");
+            Assert.That(IntMath.Abs(movedY), Is.LessThan(IntMath.Abs(movedX) / 4 + 40),
+                $"and ignore the standing aim, but it went ({movedX}, {movedY})");
+        }
+
+        [Test]
+        public void AnAimedCastStillSteersTheShot()
+        {
+            // The skillshot has always honoured a free aim and must keep doing so — the flag adds a
+            // case for the dash, it does not take one away from firing.
+            var simulation = Corridor();
+
+            Advance(simulation, 6, new PlayerIntent(100, 0));
+
+            simulation.Tick(new PlayerIntent(
+                0, 0, IntentButtons.Skill2 | IntentButtons.AimedCast, 0, 100));
+
+            var projectile = simulation.State.Projectiles[0];
+
+            Assert.That(projectile.IsActive, Is.True, "the shot must leave");
+            Assert.That(projectile.VelocityY, Is.GreaterThan(0), "and follow the aim it was given");
+        }
+
+        [Test]
+        public void AStandingPlayerWhoHasNeverMovedStillDashes()
+        {
+            // Facing is the last resort behind the recorded heading, and it has to survive: on the
+            // very first tick of a run there is no heading to fall back on at all.
+            var simulation = Corridor();
+
+            var before = simulation.State.Player.Position;
+            simulation.Tick(new PlayerIntent(0, 0, IntentButtons.Skill1));
+
+            Assert.That(simulation.State.Player.Position, Is.Not.EqualTo(before),
+                "a dash on the first tick of a run must still fire");
+        }
+
+        [Test]
         public void ADashAnnouncesItself()
         {
             var simulation = Corridor();

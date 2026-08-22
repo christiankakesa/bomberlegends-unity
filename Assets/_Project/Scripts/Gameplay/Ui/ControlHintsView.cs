@@ -158,10 +158,13 @@ namespace BomberLegends.Gameplay.Ui
 
             // Bomb leads, always. It is the verb the whole game is built on and the one that was
             // actually missed; a player who never finds it cannot find anything else either.
+            // The pad hint for shooting names both halves of the gesture on purpose. Round two
+            // showed gamepad players never discovering that the right stick aims — they hunted for
+            // a fire button and shot wherever they happened to be running.
             var bomb = _bombed ? null : pad ? "(A) BOMB" : "[SPACE] BOMB";
             var move = _bombed ? null : pad ? "(L-STICK) MOVE" : "[WASD] MOVE";
-            var dash = _dashed ? null : pad ? "(B) DASH" : "[SHIFT] DASH";
-            var shot = _shot ? null : pad ? "(X) SHOOT" : "[Q / LEFT-CLICK] SHOOT";
+            var dash = _dashed ? null : pad ? "(LB) DASH" : "[SHIFT] DASH";
+            var shot = _shot ? null : pad ? "(R-STICK AIM + RT) SHOOT" : "[Q / LEFT-CLICK] SHOOT";
 
             var parts = new System.Collections.Generic.List<string>(4);
 

@@ -64,6 +64,16 @@ namespace BomberLegends.Gameplay.Match
         public Ui.ControlHintsView? Hints { get; set; }
 
         /// <summary>
+        /// The intent most recently handed to the simulation.
+        /// </summary>
+        /// <remarks>
+        /// Exposed so the view can draw what the player is asking for — an aim being lined up, most
+        /// of all — without every view reaching into a particular input device. Whatever supplies
+        /// the aim, stick or thumb, it arrives here in the same two bytes.
+        /// </remarks>
+        public PlayerIntent LastIntent { get; private set; }
+
+        /// <summary>
         /// Whether the match is held still.
         /// </summary>
         /// <remarks>
@@ -126,7 +136,8 @@ namespace BomberLegends.Gameplay.Match
                 _previousPlayerPosition = _simulation.State.Player.Position;
                 _views?.BeforeTick(_simulation);
 
-                _simulation.Tick(_input.Sample(_simulation.CurrentTick));
+                LastIntent = _input.Sample(_simulation.CurrentTick);
+                _simulation.Tick(LastIntent);
 
                 _currentPlayerPosition = _simulation.State.Player.Position;
 

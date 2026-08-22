@@ -25,7 +25,25 @@ namespace BomberLegends.Core
         Skill2 = 1 << 2,
 
         /// <summary>Use the skill in the third loadout slot.</summary>
-        Skill3 = 1 << 3
+        Skill3 = 1 << 3,
+
+        /// <summary>
+        /// The aim carried by this intent was drawn for the skill being cast this tick.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Not a button. It is the one thing the aim bytes cannot say on their own: <b>who the aim
+        /// belongs to.</b> On touch each skill button is its own stick, so a drag on the dash button
+        /// is a direction meant for the dash. On a pad the right stick is a standing aim that
+        /// belongs to nothing in particular — it is where you are pointing, not where you asked to
+        /// go — and a dash that followed it would leap into the enemy you were lining up.
+        /// </para>
+        /// <para>
+        /// Set only by a device whose aim gesture is attached to a specific button, which today
+        /// means touch alone. Never by the pad, and never by the mouse.
+        /// </para>
+        /// </remarks>
+        AimedCast = 1 << 4
     }
 
     /// <summary>

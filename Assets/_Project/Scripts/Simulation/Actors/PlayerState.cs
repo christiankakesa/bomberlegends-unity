@@ -24,6 +24,26 @@ namespace BomberLegends.Simulation.Actors
         /// </summary>
         public Direction Facing;
 
+        /// <summary>
+        /// The exact heading the player was last travelling on, in sub-tile units per tick.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Kept alongside <see cref="Facing"/> because the two answer different questions.
+        /// <see cref="Facing"/> is one of four cardinals and is right for choosing a pose; it is
+        /// wrong for launching a dash, because a player running diagonally who releases the stick a
+        /// frame before pressing dash would be thrown along an axis they were never on.
+        /// </para>
+        /// <para>
+        /// Reported in playtesting as "the dash went in a different direction than I thought" —
+        /// which it did, by up to 45°.
+        /// </para>
+        /// </remarks>
+        public int LastHeadingX;
+
+        /// <summary>The exact heading the player was last travelling on, in sub-tile units per tick.</summary>
+        public int LastHeadingY;
+
         /// <summary>Whether the player actually moved on the last tick.</summary>
         public bool IsMoving;
 
@@ -107,6 +127,8 @@ namespace BomberLegends.Simulation.Actors
                 Position = SubTilePoint.AtCentreOf(tile),
                 MoveDirection = Direction.None,
                 Facing = Direction.South,
+                LastHeadingX = 0,
+                LastHeadingY = 0,
                 IsMoving = false,
                 BombCapacity = bombCapacity,
                 ActiveBombs = 0,

@@ -122,7 +122,7 @@ their build does, the synergy pillar has not landed and no amount of content wil
 | **M5** | Item framework + three items + two passive slots | ✅ **complete, verified in play** |
 | **M6** | Run loop: arenas, item choice, death, restart | ✅ **complete, verified in play** |
 | — | *Gate enablement* — procedural sectors, feedback layer, run persistence, touch controls, three platforms, deployment | ✅ complete (§4e–§4l) |
-| — | **▶ VALIDATION GATE** — the question in §3 | 🟡 **round 1 (4 testers) did not call it — onboarding blocked the measurement; round 2 pending** |
+| — | **▶ VALIDATION GATE** — the question in §3 | 🟡 **round 1 (4 testers): onboarding blocked the measurement. Round 2 (12 testers): not passed — the controls blocked it, on gamepad and touch only (§4n). Round 3 pending** |
 | M7+ | Third skill, slots 3–4, bosses, meta, art, audio | **not started, and should not start until the gate reports** |
 
 Audio (T-020) and screen shake (T-021) move behind the hybrid work. They add polish to a loop whose
@@ -672,6 +672,25 @@ landed in the cancel zone — so the zone was always inactive by the time it was
 **cancelling could never work**. On device this would have read as "cancel is broken" with no clue
 why. Ten gesture tests now drive the pointer events directly.
 
+### Correction (2026-08-22): the dash never read its own drag
+
+Recorded here rather than quietly fixed, because "delivered" above was two-thirds true for two
+weeks. Every skill button offered the drag gesture, and `SkillSystem.TryDash` resolved its heading
+from `intent.MoveX/MoveY` alone — so a drag on the **dash** button rotated the on-button indicator,
+packed an aim into the intent, and was then discarded. Tapping and dragging the dash did the same
+thing. The shot honoured its aim throughout, which is why nothing looked wrong.
+
+It surfaced the moment the ground arrow (§4n) drew that aim in the world: the arrow pointed one way
+and the dash went another, which is worse than no arrow at all.
+
+**The missing piece was ownership, not aim.** The intent's two aim bytes cannot say *who the aim
+belongs to*, and the answer differs by device — on touch each skill button is its own stick, so a
+drag belongs to that skill; on a pad the right stick is a standing aim belonging to nothing, and a
+dash that followed it would launch the player into the enemy they were escaping. `IntentButtons`
+had a spare bit, which is now `AimedCast`: set by touch on a released drag, never by the pad or the
+mouse. `TryDash` honours the aim only when it is set, so the pad keeps the twin-stick convention of
+dodging along the movement stick and touch finally gets the control §4i designed.
+
 ### Still missing on touch
 
 No pause control on screen — Escape maps to the Android back button, so hardware back pauses, but
@@ -859,15 +878,60 @@ GDD already defers the backend to Milestone 9, and nothing here argues with that
 
 ---
 
+## 4n. Round 2: the gate measured the controls (2026-08-19 → 22)
+
+Full sheets and metric working in [10-PLAYTEST-PROTOCOL.md §10b](10-PLAYTEST-PROTOCOL.md). Recorded
+here because it changes what happens next, not because it settles the question in §3.
+
+**12 testers, enough to call the gate, and the gate was not passed.** Metric 1 came in at 42%
+against a 60% threshold — but metric 4 came in at 62% against 80%, and §1 of the protocol is
+explicit that metric 4 is a filter rather than a verdict. A session where deaths are blamed on the
+controls is a session that measured the controls. **The item number is therefore not a result about
+items.**
+
+What makes it worth acting on rather than re-running is that the failure was not spread evenly:
+
+| Device | Deaths blamed on self | Voluntary second run |
+|---|---|---|
+| Keyboard | **100%** (8/8) | 4/4 |
+| Gamepad | 50% (4/8) | **0/4** |
+| Touch | 38% (3/8) | 4/4 |
+
+**The design works; two of the three ways to play it do not.** Keyboard players are the only ones
+with a cursor showing where a shot goes, and they are the only ones who passed. Every gamepad tester
+declined a second run, and nobody else did.
+
+The gamepad cause was physical rather than a matter of taste: skills sat on the face buttons, aiming
+needs the right thumb on the right stick, and both cannot be true at once. Touch failed next door to
+it — the aim indicator was drawn on the skill button, which is the one place on a phone guaranteed
+to be under a thumb.
+
+Fixed since: skills moved to LB/RT/LT with the face buttons kept as aliases; the aim held 0.35 s past
+the stick centring; the deadzone cut to 0.2 and rescaled radially; a dash following the last analogue
+heading instead of the 4-way facing; and a fat arrow drawn on the ground under the player, fed from
+the aim already in `PlayerIntent` so touch and gamepad light it up through the same two bytes. The
+arrow is tester 03's, in their words: *"I need a fat arrow on the ground oriented to the enemy when
+shooting."*
+
+**Metric 2 was not recorded at all** — twelve testers and no item-legibility number, which is the one
+figure that would say whether 42% is a design result or an interface result. It is the first thing
+round 3 must capture.
+
+**Round 3 needs fresh testers on gamepad and touch.** The eight who blamed the controls were
+measuring controls that no longer exist.
+
+---
+
 ## 5. Open questions
 
 1. **Does the third active skill earn its slot?** Three actives plus movement plus aim is a lot of
    simultaneous decision-making. Worth validating two before committing to three.
-2. **What does a run cost in time?** Roguelite runs are typically 20–40 minutes. That is far longer
-   than the 6–10 minute mobile session the original design targeted, and it changes the save model
-   (a run must survive being interrupted). **No longer blocked**: nine items and swap-when-full mean
-   every arena presents a decision for as long as a run lasts (§4f). What remains unmeasured is
-   whether those decisions stay *interesting* deep into a run — which needs a playtest, not code.
+2. **What does a run cost in time?** **Answered by round 2** (§4n): a first run averaged 10.1
+   minutes and a second 17.6, across 24 runs. That straddles the 6–10 minute mobile session the
+   original design targeted and the 20–40 minutes a roguelite usually asks for — which is why run
+   persistence had to exist before the gate, and it did. Every one of the twelve got a longer run
+   out of their second attempt and eleven got further, so the loop teaches. What remains unmeasured
+   is whether the *decisions* stay interesting deep into a run, which needs a playtest, not code.
 3. **Does the bomb stay the primary verb?** If the skillshot is more effective than bombing, the
    Bomberman layer becomes set dressing. Bombs must remain the highest-damage, highest-risk option.
 4. **What fills the Awakening meter?** Introduced by the lore update (GDD §3.1) with no mechanic

@@ -197,6 +197,8 @@ namespace BomberLegends.Simulation
                 hash = Fold(hash, (ulong)(uint)_state.Player.Position.Y);
                 hash = Fold(hash, (byte)_state.Player.MoveDirection);
                 hash = Fold(hash, (byte)_state.Player.Facing);
+                hash = Fold(hash, (ulong)(uint)_state.Player.LastHeadingX);
+                hash = Fold(hash, (ulong)(uint)_state.Player.LastHeadingY);
                 hash = Fold(hash, _state.Player.IsMoving ? 1UL : 0UL);
                 hash = Fold(hash, (ulong)_state.Player.ActiveBombs);
                 hash = Fold(hash, (ulong)_state.Player.BombCapacity);
