@@ -63,8 +63,14 @@ namespace BomberLegends.Gameplay.Ui
         /// The navigation colours are not decoration. A mouse user knows what they are about to
         /// click because the pointer sits on it; a pad user has nothing but the highlight.
         /// </remarks>
+        /// <param name="fontSize">
+        /// Defaults to the legibility floor, not to whatever looks balanced on a monitor. The old
+        /// default of 24 rendered at about 9.5 dp on a phone, which is how most of the greybox came
+        /// to be unreadable in a hand while looking entirely reasonable on a desk.
+        /// </param>
         public static Button CreateButton(
-            Transform parent, string label, Vector2 position, Vector2 size, Color colour, int fontSize = 24)
+            Transform parent, string label, Vector2 position, Vector2 size, Color colour,
+            int fontSize = TextLegibility.MinimumBodySize)
         {
             var child = new GameObject("Button", typeof(RectTransform));
             child.transform.SetParent(parent, false);

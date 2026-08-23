@@ -1,5 +1,6 @@
 using BomberLegends.Core;
 using BomberLegends.Input;
+using BomberLegends.Services;
 using BomberLegends.Simulation.Skills;
 using UnityEngine;
 using UnityEngine.UI;
@@ -23,6 +24,16 @@ namespace BomberLegends.Gameplay.Ui
 
         /// <summary>Diameter of a skill button, in canvas units.</summary>
         private const float ButtonSize = 130f;
+
+        /// <summary>
+        /// The word on a control, at the legibility floor. See <see cref="TextLegibility"/>.
+        /// </summary>
+        /// <remarks>
+        /// These were 20, about 8 dp. Touch is the one input where the label is the only thing
+        /// naming the control — there is no key to recognise and no button glyph to learn — so an
+        /// unreadable one leaves a coloured circle that does something unknown.
+        /// </remarks>
+        private const int LabelSize = TextLegibility.MinimumBodySize;
 
         /// <summary>
         /// Where each slot sits relative to the bomb button, measured from that button's own size.
@@ -83,7 +94,7 @@ namespace BomberLegends.Gameplay.Ui
 
             host.AddComponent<Image>().color = SkillColour;
 
-            GreyboxUi.CreateLabel(host.transform, Label(id), 20, Vector2.zero, rect.sizeDelta);
+            GreyboxUi.CreateLabel(host.transform, Label(id), LabelSize, Vector2.zero, rect.sizeDelta);
 
             // Drawn behind the button and pointing away from it, so a thumb never covers the part
             // of the indicator that says where the shot is going.
@@ -172,7 +183,7 @@ namespace BomberLegends.Gameplay.Ui
             // Never a click target: it is a region a drag is released over, not a button.
             image.raycastTarget = false;
 
-            GreyboxUi.CreateLabel(host.transform, "CANCEL", 20, Vector2.zero, rect.sizeDelta);
+            GreyboxUi.CreateLabel(host.transform, "CANCEL", LabelSize, Vector2.zero, rect.sizeDelta);
 
             host.SetActive(false);
 

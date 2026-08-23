@@ -1,5 +1,6 @@
 using BomberLegends.Gameplay.Ui;
 using BomberLegends.Input;
+using BomberLegends.Services;
 using BomberLegends.Simulation;
 using BomberLegends.Simulation.Events;
 using UnityEngine;
@@ -33,6 +34,21 @@ namespace BomberLegends.Gameplay.Ui
         private static readonly Color PanelColour = new Color(0.04f, 0.05f, 0.10f, 0.72f);
         private static readonly Color GoalColour = new Color(1f, 0.85f, 0.35f);
 
+        /// <summary>
+        /// Both lines sit at the floor, in canvas units. See <see cref="TextLegibility"/>.
+        /// </summary>
+        /// <remarks>
+        /// The goal line was 26 and the bindings 22 — about 10 and 9 dp on a phone. A panel whose
+        /// whole job is teaching the controls to someone who has not found them is the last thing
+        /// that can afford to be small, and the bindings were the smaller of the two.
+        /// </remarks>
+        private const int BodySize = TextLegibility.MinimumBodySize;
+
+        // 1700 x 160, up from 900 x 130. The full keyboard line is four bindings long and does not
+        // fit 900 units at a readable size; widening the panel is what pays for the text. 1700
+        // still clears the narrowest canvas this ships on, which is 1920 units across.
+        private static readonly Vector2 PanelSize = new Vector2(1700f, 160f);
+
         private ControlSchemeTracker? _devices;
         private GameObject? _panel;
         private Text? _goal;
@@ -63,16 +79,16 @@ namespace BomberLegends.Gameplay.Ui
             rect.anchorMax = new Vector2(0.5f, 0f);
             rect.pivot = new Vector2(0.5f, 0f);
             rect.anchoredPosition = new Vector2(0f, 40f);
-            rect.sizeDelta = new Vector2(900f, 130f);
+            rect.sizeDelta = PanelSize;
 
             _panel.AddComponent<Image>().color = PanelColour;
 
             _goal = GreyboxUi.CreateLabel(
-                _panel.transform, string.Empty, 26, new Vector2(0f, 36f), new Vector2(860f, 44f));
+                _panel.transform, string.Empty, BodySize, new Vector2(0f, 42f), new Vector2(1640f, 48f));
             _goal.color = GoalColour;
 
             _hints = GreyboxUi.CreateLabel(
-                _panel.transform, string.Empty, 22, new Vector2(0f, -22f), new Vector2(860f, 60f));
+                _panel.transform, string.Empty, BodySize, new Vector2(0f, -30f), new Vector2(1640f, 76f));
         }
 
         /// <summary>Retires whichever hints the player has just proved they no longer need.</summary>

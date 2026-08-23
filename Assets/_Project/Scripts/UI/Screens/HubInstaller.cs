@@ -140,7 +140,9 @@ namespace BomberLegends.UI.Screens
             var text = label.AddComponent<Text>();
             text.text = "QUIT";
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 28;
+            // 28 was about 11 dp on a phone: under the floor, and on the one control that gets a
+            // player out of the game.
+            text.fontSize = TextLegibility.MinimumBodySize;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.raycastTarget = false;

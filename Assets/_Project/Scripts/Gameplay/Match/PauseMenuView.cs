@@ -21,6 +21,16 @@ namespace BomberLegends.Gameplay.Match
         private static readonly Color ResumeColour = new Color(0.16f, 0.45f, 0.40f);
         private static readonly Color QuitColour = new Color(0.42f, 0.18f, 0.22f);
 
+        /// <summary>The word a player scans for, large enough to be found without being aimed at.</summary>
+        private const int HeadlineSize = 40;
+
+        /// <summary>Sizes are canvas units. See <see cref="TextLegibility"/> for the conversion.</summary>
+        private const int BodySize = TextLegibility.MinimumBodySize;
+
+        // 360 x 96 rather than 320 x 84. The extra width carries QUIT TO HUB at the larger size
+        // without wrapping, and the extra height keeps the line off the edges of its own button.
+        private static readonly Vector2 ButtonSize = new Vector2(360f, 96f);
+
         private GameObject? _panel;
         private Button? _resume;
 
@@ -43,14 +53,18 @@ namespace BomberLegends.Gameplay.Match
 
             _panel = GreyboxUi.CreateFullScreenPanel("PauseMenu", canvas.transform, PanelColour);
 
-            GreyboxUi.CreateLabel(_panel.transform, "PAUSED", 40, new Vector2(0f, 140f));
+            GreyboxUi.CreateLabel(_panel.transform, "PAUSED", HeadlineSize, new Vector2(0f, 140f));
 
+            // Both controls state their size rather than leaning on the default, because the
+            // number is the point: at the 24 this screen inherited, RESUME and QUIT TO HUB drew at
+            // about 9.5 dp. The buttons grew with the words — 84 units tall left no margin around a
+            // 36-unit line once the label box filled the whole control.
             _resume = GreyboxUi.CreateButton(
-                _panel.transform, "RESUME", new Vector2(0f, 20f), new Vector2(320f, 84f), ResumeColour);
+                _panel.transform, "RESUME", new Vector2(0f, 24f), ButtonSize, ResumeColour, BodySize);
             _resume.onClick.AddListener(() => Resumed?.Invoke());
 
             var quit = GreyboxUi.CreateButton(
-                _panel.transform, "QUIT TO HUB", new Vector2(0f, -80f), new Vector2(320f, 84f), QuitColour);
+                _panel.transform, "QUIT TO HUB", new Vector2(0f, -88f), ButtonSize, QuitColour, BodySize);
             quit.onClick.AddListener(() => Quit?.Invoke());
 
             // Hidden before the keeper is attached. Adding it to a live object would fire OnEnable

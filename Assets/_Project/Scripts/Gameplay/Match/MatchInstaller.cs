@@ -368,7 +368,9 @@ namespace BomberLegends.Gameplay.Match
 
             if (rect != null)
             {
-                rect.sizeDelta = new Vector2(170f, 84f);
+                // 190 rather than 170: PAUSE at the floor size needs about 107 units, and the label
+                // box fills the whole button, so the word would otherwise sit against its edges.
+                rect.sizeDelta = new Vector2(190f, 88f);
             }
 
             var label = button.GetComponentInChildren<Text>();
@@ -379,7 +381,10 @@ namespace BomberLegends.Gameplay.Match
             }
 
             label.text = "PAUSE";
-            label.fontSize = 26;
+
+            // 26 was about 10 dp. The control is small on purpose, but small is a matter of the
+            // rect it occupies, not of whether the word inside it can be read.
+            label.fontSize = TextLegibility.MinimumBodySize;
 
             var labelRect = label.rectTransform;
             labelRect.anchorMin = Vector2.zero;

@@ -272,6 +272,16 @@ namespace BomberLegends.Tests.EditMode.Simulation
                 Assert.That(description.Length, Is.GreaterThan(25),
                     $"{ItemCatalog.Name(id)}'s description is too terse to decide from");
                 Assert.That(description, Is.Not.EqualTo(ItemCatalog.Name(id)));
+
+                // The other end of the same requirement: it has to fit on the card. A choice card
+                // is 580 units wide by 480 tall and shows the description at 32 units, which is
+                // about 33 characters across six lines once wrapping is paid for — call it 170. The
+                // budget is set below that, at a size the longest description today (110) clears
+                // comfortably. Overrunning it does not truncate any more, it overflows the card,
+                // which is louder but still wrong.
+                Assert.That(description.Length, Is.LessThanOrEqualTo(150),
+                    $"{ItemCatalog.Name(id)}'s description will not fit a choice card; say it " +
+                    "shorter rather than making the card bigger, which costs legibility elsewhere");
             }
         }
 

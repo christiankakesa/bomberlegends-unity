@@ -7,6 +7,7 @@ using BomberLegends.Gameplay.Camera;
 using BomberLegends.Gameplay.Match;
 using BomberLegends.Gameplay.Player;
 using BomberLegends.Input;
+using BomberLegends.Services;
 using BomberLegends.Services.Diagnostics;
 using BomberLegends.Services.Save;
 using BomberLegends.Services.Scenes;
@@ -132,7 +133,11 @@ namespace BomberLegends.Editor
 
             var text = textObject.GetComponent<Text>();
             text.font = font;
-            text.fontSize = 22;
+
+            // 22 was about 9 dp. This readout exists to diagnose failures that only happen on a
+            // device, so it is read on a phone by definition and was the least legible thing in
+            // the project.
+            text.fontSize = TextLegibility.MinimumBodySize;
             text.alignment = TextAnchor.LowerLeft;
             text.color = new Color(1f, 0.45f, 0.4f);
             text.raycastTarget = false;

@@ -1,6 +1,6 @@
 # What is actually built
 
-**Updated 2026-08-24 · 470 EditMode + 14 PlayMode tests green, zero warnings · device-verified on a Galaxy S21 Ultra**
+**Updated 2026-08-24 · 470 EditMode + 17 PlayMode tests green, zero warnings · device-verified on a Galaxy S21 Ultra**
 
 A plain inventory of what exists in the project right now, so proposals can be validated against
 reality rather than against memory. Design rationale lives in
@@ -77,6 +77,8 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | 3D greybox, follower camera | ✅ | Camera distance scales with arena width |
 | Pooled views for bombs, blasts, debris, shots | ✅ | Prewarmed; growth mid-match is an error |
 | HUD: arena, health, enemies, charges, build | ✅ | |
+| Item choice screen, phone-legible | 🧪 | Body text 9 → 14.3 dp, `TAKE`/`GIVE UP` on the card, `CHOOSE ONE` headline; **not yet seen by a tester** |
+| Every other greybox screen, phone-legible | 🧪 | Pause menu, control hints, touch buttons, pause control, hub QUIT, device log — all were 9–13 dp; **not yet seen by a tester** |
 | Keyboard + mouse aim | ✅ | `Shift` dash · `Q`/LMB shot · `E`/RMB slot 3 |
 | Gamepad + right-stick aim | 🧪 | `B` dash · `X` shot · `Y` slot 3 — **never played** |
 | Touch controls hidden off touch devices | ✅ | Added 2026-08-07 |
