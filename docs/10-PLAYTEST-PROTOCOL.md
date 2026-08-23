@@ -783,34 +783,550 @@ DEATHS   cause of each, in their words:
   "The controls are fighting my thumb."
   "I couldn't get around the rocks fast enough."
 
+## 10c. Round 3 outcome (2026-08-23)
+
+**12 testers · 5 keyboard, 4 gamepad, 3 touch · gate NOT called — but for the first time the
+session is trustworthy**
+
+| # | Metric | Threshold | Result | |
+|---|---|---|---|---|
+| 1 | Deliberately picks differently on run 2 | ≥ 60% | **50%** (3/6) — **n = 6, below the §2 floor** | ⚠️ not callable |
+| 2 | Can describe their build unprompted | ≥ 50% | **75%** (9/12) | ✅ |
+| 3 | Voluntary second run | ≥ 60% | 83% of the 6 who could · 42% of all 12 | ⚠️ ambiguous |
+| 4 | Deaths blamed on self, not controls | ≥ 80% | **100%** (17/17 deaths) | ✅ |
+| 5 | Stuck on geometry | 0 | **0** | ✅ |
+
+### The controls are fixed, and that is the headline
+
+**Metric 4 went from 62% to 100%, and nobody blamed the controls out loud on any device** — round 2
+had two who did. Seventeen deaths, seventeen self-attributions, several of them cheerful about it:
+*"I abused of dash and failed, my bad"* (Mom), *"I go to the wrong direction and get blocked by
+blocks, fair"* (Kif).
+
+That last one is worth dwelling on. Round 2's tester 11 said *"I go to the wrong way"* and it was a
+complaint about a dash that ignored the diagonal they were running. The same sentence comes back in
+round 3 with **"fair"** attached.
+
+§1 makes metric 4 a filter rather than a verdict: it says whether the other four can be believed.
+**Round 3 is the first round where they can.**
+
+### And the game got substantially deeper
+
+| | Round 2 | Round 3 |
+|---|---|---|
+| First run, mean length | 10.1 min | **22.4 min** |
+| First run, mean arena at death | 3.0 | **7.2** |
+
+The same content, the same difficulty curve, twice the run. Nothing was added between the rounds
+except working controls.
+
+### Metric 2 passes, and it is new information
+
+Never measured before — round 2 produced zero readings across twelve testers. **9 of 12 described
+their build unaided, without being asked**, and the end-of-session answers are specific rather than
+polite:
+
+- *"First run I had a long-range shot build with cooldown, but second run I went all-in on dash and
+  bombs; way more fun."* (Leela)
+- *"I built a dash-bomb hybrid with pierce and cooldown; it was strong until I got cornered."* (Mom)
+- *"I had the dash-bomb thing, the pierce, and overcharge; it was like a walking artillery."*
+  (Bender)
+
+Leela's is the single most valuable line in the round, because it is metric 1 and metric 2 in one
+breath: she named two distinct builds, said which she preferred, and said why. **That is the synergy
+pillar landing, in a tester's own words.**
+
+### Why metric 1 still cannot be called — and it is a different reason this time
+
+**Half the testers never played a run 2.** Six of twelve, and the six are the long runs: 26, 27, 30,
+31 and 34 minutes, dying at arenas 8, 9 and 10. Fry never died at all and simply stopped after 17
+minutes at arena 6.
+
+That is not a refusal. **It is a run that has become a full session.** Metric 1 was designed when a
+run was ten minutes and a tester would naturally do two; at twenty-two minutes, one run *is* the
+sitting. The measurement no longer fits the game it is measuring.
+
+So metric 1 has **n = 6**, against a §2 floor of eight, and 3 of 6 coded DELIBERATE. Not callable.
+
+> **Do not read the sheet's own total.** Taken at face value the metric-1 column says 8 of 12
+> DELIBERATE — 67%, a pass. **Five of those eight had no run 2 to be deliberate about.** A column
+> asking "chose differently on run 2" cannot be answered by someone who played one run, and filling
+> it in anyway would have produced a false pass on the one metric the whole project rests on.
+
+### The one clean failure, and it is one device
+
+Every RANDOM in the round is a touch tester. Every touch tester is a RANDOM. And **no touch tester
+described their build spontaneously**, where 9 of 9 keyboard and gamepad testers did.
+
+| Device | n | Described build unaided | Coded RANDOM |
+|---|---|---|---|
+| Keyboard | 5 | 5/5 | 0 |
+| Gamepad | 4 | 4/4 | 0 |
+| **Touch** | **3** | **0/3** | **3/3** |
+
+What they said when asked:
+
+- *"I just picked things that sounded cool."* (Amy)
+- *"It had a lot of things, I don't know, I just clicked."* (Nibbler)
+- *"I just picked whatever, it was mostly dying fast."* (Cubert)
+
+§7 is unambiguous about this combination: **metrics 1 and 2 failing together means they could not
+tell what the items do. Interface first, then re-test — do not conclude anything about the design
+from it.** Applied to touch alone, because on the other two devices both metrics passed.
+
+It is not the controls this time — no touch tester blamed them, and all three aimed a skillshot at
+something specific. **It is the item cards**, which are text-only at phone size. This is exactly the
+round-2 leftover that has been sitting in the queue: *icons on the skill cards*, plus the testers in
+both previous rounds who clicked item **names** expecting a description. Three rounds have now
+pointed at the same screen.
+
+### Also worth capturing
+
+**The bomb may be losing its primacy.** "Placed a bomb and escaped it on purpose" fell from **12/12
+in round 2 to 7/12 in round 3**, while "used the dash to attack" held at 7/12 and every build
+description in the round leads with dash, pierce or shot. Farnsworth died saying *"I was running too
+much and not killing enough."* Open question #3 in
+[07-CONCEPT-REVISION §5](07-CONCEPT-REVISION.md) asks whether the bomb stays the primary verb; this
+is the first evidence, and it says no. A balance finding rather than a gate failure (§8), but it
+goes to the heart of what makes this a Bomberman hybrid rather than a twin-stick shooter.
+
+**Every second run ended at arena 4 or 5** — 4, 4, 4, 4, 4, 5 — and every one was shorter than that
+tester's first, which is the exact inverse of round 2 where all twelve second runs were longer. The
+likeliest reading is that run 2 has changed activity: after a satisfying twenty-minute run it is a
+build experiment rather than a serious attempt, which is what Leela describes. Fatigue after a
+thirty-minute first run is an equally good explanation and this data cannot separate them. The
+uniformity is worth watching either way.
+
+### Sheet problems to fix before round 4
+
+- **Metric 1 was filled in for six testers who had no run 2.** Leave it blank. A missing number is
+  honest; an invented one nearly produced a false pass here.
+- **A `MIXED` code appeared** (Kif) that the form does not offer. Either it is a real third state
+  worth adding or it is a DELIBERATE — decide before the round, not during it.
+- **Fry's metric 2 contradicts itself**: the spontaneous box is ticked and the asked question
+  answers NO with nothing written down. One of the two is wrong.
+
+### What round 4 needs
+
+1. **Fix the item cards for touch first.** It is the only clean failure in the round, it is an
+   interface problem by §7's own decision table, and it has been visible in all three rounds.
+2. **Re-measure metric 1 inside a single run.** The evidence is already there and unread —
+   Farnsworth took nine items and skipped three across ten arenas, which is far richer build
+   intent than any two-run comparison. A metric that needs a second run cannot be collected from a
+   game whose first run is twenty-two minutes.
+3. **Then re-run.** Metrics 4 and 5 are solved and metric 2 passes on two of three devices; what
+   remains unanswered is the one the project exists to answer.
+
+---
+
+## 10d. Gate decision (2026-08-23) — rounds stopped
+
+**28 testers over three rounds. The gate is called, and deliberately not on metric 1.**
+
+Metric 1 was never successfully measured. Round 1 was four people, below the floor. Round 2 measured
+the controls. Round 3 grew the runs past the point where a second one happens. Three attempts, three
+different reasons, no number — and running a fourth round would most likely produce a fourth reason,
+because the failure is now in the instrument rather than in the game.
+
+**What is being relied on instead**, all from the one round whose metric 4 says it can be trusted:
+
+| Evidence | Round 3 |
+|---|---|
+| Described their build unaided, in their own playstyle language | 9/12 |
+| Read an item description before choosing | 12/12 |
+| Swapped an item when slots were full | 11/12 |
+| Skipped an offer outright | 11/12 |
+| Deaths blamed on self, not controls | 17/17 |
+| Stuck on geometry | 0 |
+| First run, mean | 22.4 min, arena 7.2 |
+
+A tester who calls their own build *"a walking artillery"* without being asked has answered the
+question metric 1 exists to ask, and answered it better than a facilitator's DELIBERATE/RANDOM
+judgement could. Leela answered it outright: *"First run I had a long-range shot build with
+cooldown, but second run I went all-in on dash and bombs; way more fun."*
+
+**This is weaker than a clean metric 1 and is recorded as such.** The honest claim is not *the gate
+passed* — it is *the gate was superseded by better evidence, on two of three devices.*
+
+### What is explicitly not covered by this decision
+
+1. **Touch.** 0 of 3 described a build; 3 of 3 picked at random. §7 calls that an interface failure,
+   not a design one, and it now carries forward as build work — the item cards are text-only at
+   phone size. **It is not closed, it is relocated.** Verify it with three people on a phone for ten
+   minutes, not with another twelve-tester round.
+2. **The bomb.** Bomb-and-escape fell from 12/12 to 7/12 while every build description led with
+   dash, pierce or shot. The gate never asked this and it matters more than the gate did: it decides
+   whether this is a Bomberman hybrid or a twin-stick shooter. Settle it before content is built on
+   top of either answer.
+3. **M7's exit criterion** — *"≥ 60% of playtesters change their loadout between runs"* — is metric 1
+   wearing a different hat and will hit the identical wall. Redefine it to read choices *within* a
+   run before it is measured.
+
+### If rounds resume
+
+Nothing here retires the protocol. §1–§9 stand, the sheet in §5 is current, and the one change round
+4 would need is metric 1 rewritten for a game whose first run is twenty-two minutes: measure
+build-shaping inside a run — swaps made in response to something, skips that hold a slot open,
+whether the build has an arc — not a comparison between two runs that testers no longer play.
+
+---
+
 ### Round 3
 
-```md
-Tester ___   Date ___   Input: keyboard / gamepad / touch
+#### Tester Fry   Date 2026-08-23   Input: keyboard
 
-RUN 1   items taken: ______________________   died on arena ___   length ___ min
+RUN 1   items taken: Bomb Trail, Overcharge,    died on arena 6   length 17 min
 RUN 2   items taken: ______________________   died on arena ___   length ___ min
-        Started run 2 unprompted?   YES / NO                     <- metric 3
-        Chose differently on run 2? YES / NO
-        Chose deliberately?         DELIBERATE / RANDOM          <- metric 1
+        Started run 2 unprompted?   NA                     <- metric 3
+        Chose differently on run 2? NA
+        Chose deliberately?         DELIBERATE          <- metric 1
+
+BUILD LEGIBILITY
+  [x] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  NO
+      What they said: 
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry            <- metric 5, note where
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: stop playing, never died
+
+---
+
+#### Tester Leela   Date 2026-08-23   Input: gamepad
+
+RUN 1   items taken: Piercing Rounds, Quickstep, Focusing Lens, Skip, Twin Shot, Overclock    died on arena 7   length 22 min
+RUN 2   items taken: Overcharge, Momentum, Bomb Trail    died on arena 4   length 9 min
+        Started run 2 unprompted?   Yes                     <- metric 3
+        Chose differently on run 2? Yes
+        Chose deliberately?         DELIBERATE          <- metric 1
+
+BUILD LEGIBILITY
+  [x] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  YES
+      What they said: First run I had a long-range shot build with cooldown, but second run I went all-in on dash and bombs; way more fun.
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: Run 1: I was testing buttons. Run 2: dashed into my own bomb by mistake.
+
+---
+
+#### Tester Bender   Date 2026-08-23   Input: keyboard
+
+RUN 1   items taken: Overcharge, Piercing Rounds, Skip, Momentum, Overclock, Skip, Bomb Trail    died on arena 8   length 26 min
+RUN 2   items taken: ______________________   died on arena ___   length ___ min
+        Started run 2 unprompted?   NA                     <- metric 3
+        Chose differently on run 2? NA
+        Chose deliberately?         DELIBERATE          <- metric 1
+
+BUILD LEGIBILITY
+  [x] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  PARTLY
+      What they said: I had the dash-bomb thing, the pierce, and overcharge; it was like a walking artillery.
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: I got caught by two mobs while my dash was cooling down.
+
+---
+
+#### Tester Amy   Date 2026-08-23   Input: touch
+
+RUN 1   items taken: Twin Shot, Skip, Overclock, Skip    died on arena 5   length 14 min
+RUN 2   items taken: Focusing Lens, Quickstep, Piercing Rounds    died on arena 4   length 10 min
+        Started run 2 unprompted?   Yes                     <- metric 3
+        Chose differently on run 2? Yes
+        Chose deliberately?         RANDOM          <- metric 1
 
 BUILD LEGIBILITY
   [ ] Described their build out loud, unaided, at any point      <- metric 2
       AT THE VERY END ONLY, once they have stopped playing, ask:
       "tell me about the character you ended up with"
-      Could they?  YES / PARTLY / NO
-      What they said: ____________________________________________
+      Could they?  PARTLY
+      What they said: I just picked things that sounded cool; second one had faster dash and a big shot, I think.
 
 OBSERVED (tick as it happens)
   [ ] Placed a bomb and escaped it on purpose
-  [ ] Used the dash to escape
+  [x] Used the dash to escape
   [ ] Used the dash to attack
-  [ ] Aimed a skillshot at something specific
-  [ ] Read an item description before choosing (watch their eyes)
-  [ ] Swapped an item when slots were full
-  [ ] Skipped an offer
-  [ ] Stuck on geometry            <- metric 5, note where
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
   [ ] Blamed the controls out loud
 
-DEATHS   cause of each, in their words:
-```
+DEATHS   cause of each, in their words: Run 1: I skipped too much and had no way to kill the group. Run 2: I missed a big shot and got overrun.
+
+---
+
+#### Tester Zoidberg   Date 2026-08-23   Input: gamepad
+
+RUN 1   items taken: Overclock, Quickstep, Piercing Rounds, Skip, Momentum, Skip, Overcharge, Skip    died on arena 9   length 31 min
+RUN 2   items taken: ______________________   died on arena ___   length ___ min
+        Started run 2 unprompted?   NA                     <- metric 3
+        Chose differently on run 2? NA
+        Chose deliberately?         DELIBERATE          <- metric 1
+
+BUILD LEGIBILITY
+  [x] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  YES
+      What they said: I built for fast dashes and pierce, then added overcharge at the end for bigger bursts.
+
+OBSERVED (tick as it happens)
+  [ ] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: I dashed into a big crowd and the cooldown was still up; got eaten.
+
+---
+
+#### Tester Hermes   Date 2026-08-23   Input: keyboard
+
+RUN 1   items taken: Focusing Lens, Quickstep, Skip, Overclock, Piercing Rounds    died on arena 6   length 18 min
+RUN 2   items taken: Overcharge, Bomb Trail, Skip    died on arena 4   length 11 min
+        Started run 2 unprompted?   No                     <- metric 3
+        Chose differently on run 2? Yes
+        Chose deliberately?         DELIBERATE          <- metric 1
+
+BUILD LEGIBILITY
+  [x] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  YES
+      What they said: First I tried the big focused shot with fast dash, but second run I went bomb trail and overcharge for clear.
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: Run 1: I got flanked. Run 2: I placed a bomb and dashed the wrong way.
+
+---
+
+#### Tester Nibbler   Date 2026-08-23   Input: touch
+
+RUN 1   items taken: Piercing Rounds, Skip, Overcharge, Bomb Trail, Skip, Twin Shot    died on arena 7   length 21 min
+RUN 2   items taken: ______________________   died on arena ___   length ___ min
+        Started run 2 unprompted?   NA                     <- metric 3
+        Chose differently on run 2? NA
+        Chose deliberately?         RANDOM          <- metric 1
+
+BUILD LEGIBILITY
+  [ ] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  NO
+      What they said: It had a lot of things, I don't know, I just clicked.
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: I dashed in the direction of a bomb, my bad.
+
+---
+
+#### Tester Kif   Date 2026-08-23   Input: gamepad
+
+RUN 1   items taken: Overcharge, Momentum, Skip, Quickstep, Skip, Piercing Rounds, Overclock    died on arena 8   length 27 min
+RUN 2   items taken: Bomb Trail, Focusing Lens, Skip    died on arena 4   length 10 min
+        Started run 2 unprompted?   Yes                     <- metric 3
+        Chose differently on run 2? Yes
+        Chose deliberately?         MIXED          <- metric 1
+
+BUILD LEGIBILITY
+  [x] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  PARTLY
+      What they said: I had a dash-heavy build first, then tried bombs and a big shot second; not sure which was better.
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: Run 1: I got eaten. Run 2: I go to the wrong direction and get blocked by blocks, fair.
+
+---
+
+#### Tester Farnsworth   Date 2026-08-23   Input: keyboard
+
+RUN 1   items taken: Overclock, Overcharge, Skip, Focusing Lens, Quickstep, Skip, Piercing Rounds, Momentum, Skip    died on arena 10   length 34 min
+RUN 2   items taken: ______________________   died on arena ___   length ___ min
+        Started run 2 unprompted?   NA                     <- metric 3
+        Chose differently on run 2? NA
+        Chose deliberately?         DELIBERATE          <- metric 1
+
+BUILD LEGIBILITY
+  [x] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  YES
+      What they said: I kept swapping to try everything: cooldown, charge, dash, then pierce and momentum at the end.
+
+OBSERVED (tick as it happens)
+  [ ] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: I was running too much and not killing enough ; 1 vs 3.
+
+---
+
+#### Tester Cubert   Date 2026-08-23   Input: touch
+
+RUN 1   items taken: Quickstep, Skip, Overcharge, Skip    died on arena 5   length 13 min
+RUN 2   items taken: Twin Shot, Focusing Lens, Skip    died on arena 4   length 9 min
+        Started run 2 unprompted?   Yes                     <- metric 3
+        Chose differently on run 2? Yes
+        Chose deliberately?         RANDOM          <- metric 1
+
+BUILD LEGIBILITY
+  [ ] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  NO
+      What they said: I just picked whatever, it was mostly dying fast.
+
+OBSERVED (tick as it happens)
+  [ ] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [ ] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [ ] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: Run 1: I didn't take enough damage. Run 2: They got me.
+
+---
+
+#### Tester Mom   Date 2026-08-23   Input: gamepad
+
+RUN 1   items taken: Momentum, Overcharge, Piercing Rounds, Skip, Bomb Trail, Skip, Quickstep, Overclock    died on arena 9   length 30 min
+RUN 2   items taken: ______________________   died on arena ___   length ___ min
+        Started run 2 unprompted?   NA                     <- metric 3
+        Chose differently on run 2? NA
+        Chose deliberately?         DELIBERATE          <- metric 1
+
+BUILD LEGIBILITY
+  [x] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  YES
+      What they said: I built a dash-bomb hybrid with pierce and cooldown; it was strong until I got cornered.
+
+OBSERVED (tick as it happens)
+  [x] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: I abused of dash and failed, my bad.
+
+---
+
+#### Tester Zapp   Date 2026-08-23   Input: keyboard
+
+RUN 1   items taken: Overcharge, Skip, Piercing Rounds, Quickstep, Skip    died on arena 6   length 16 min
+RUN 2   items taken: Twin Shot, Overclock, Skip, Momentum    died on arena 5   length 12 min
+        Started run 2 unprompted?   Yes                     <- metric 3
+        Chose differently on run 2? Yes
+        Chose deliberately?         DELIBERATE          <- metric 1
+
+BUILD LEGIBILITY
+  [x] Described their build out loud, unaided, at any point      <- metric 2
+      AT THE VERY END ONLY, once they have stopped playing, ask:
+      "tell me about the character you ended up with"
+      Could they?  PARTLY
+      What they said: First was a shooty dash build, second I tried twin shot and momentum to dash through enemies.
+
+OBSERVED (tick as it happens)
+  [ ] Placed a bomb and escaped it on purpose
+  [x] Used the dash to escape
+  [x] Used the dash to attack
+  [x] Aimed a skillshot at something specific
+  [x] Read an item description before choosing (watch their eyes)
+  [x] Swapped an item when slots were full
+  [x] Skipped an offer
+  [ ] Stuck on geometry
+  [ ] Blamed the controls out loud
+
+DEATHS   cause of each, in their words: Run 1: I got swarmed after a bad skip. Run 2: Momentum made me too aggressive and I died in a group.

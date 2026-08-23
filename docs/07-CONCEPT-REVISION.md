@@ -107,6 +107,16 @@ The technical gates from `02-PROTOTYPE-SCOPE.md` §6 still apply. The feel gate 
 The item metric is the one that matters. If players pick items at random and cannot describe what
 their build does, the synergy pillar has not landed and no amount of content will fix it.
 
+> **Outcome (2026-08-23, 28 testers across three rounds): called, and not on the item metric.**
+> Metric 1 was never successfully measured — round 1 was too small, round 2 measured the controls,
+> and round 3's runs grew long enough that half the testers played one instead of two (§4o). It is
+> closed on converging evidence instead: **9 of 12 described their build unaided**, in playstyle
+> language they chose themselves — *"a walking artillery"*, *"a dash-bomb hybrid with pierce and
+> cooldown"* — with metric 4 at 100% making that session the first trustworthy one. Weaker than a
+> clean number on metric 1 and stated as such. **Touch is excluded from this: 0 of 3 could describe
+> a build**, which is an item-card legibility failure and is tracked as build work, not as an open
+> gate.
+
 ---
 
 ## 4. Revised milestone plan
@@ -122,8 +132,8 @@ their build does, the synergy pillar has not landed and no amount of content wil
 | **M5** | Item framework + three items + two passive slots | ✅ **complete, verified in play** |
 | **M6** | Run loop: arenas, item choice, death, restart | ✅ **complete, verified in play** |
 | — | *Gate enablement* — procedural sectors, feedback layer, run persistence, touch controls, three platforms, deployment | ✅ complete (§4e–§4l) |
-| — | **▶ VALIDATION GATE** — the question in §3 | 🟡 **round 1 (4 testers): onboarding blocked the measurement. Round 2 (12 testers): not passed — the controls blocked it, on gamepad and touch only (§4n). Round 3 pending** |
-| M7+ | Third skill, slots 3–4, bosses, meta, art, audio | **not started, and should not start until the gate reports** |
+| — | **▶ VALIDATION GATE** — the question in §3 | ✅ **called 2026-08-23 on 28 testers over three rounds.** Not on metric 1, which was never measurable; on 9/12 unaided build descriptions with metric 4 at 100% (§4o). Rounds stopped. **Touch item cards and the bomb-primacy question carry forward as build work** |
+| M7+ | Third skill, slots 3–4, bosses, meta, art, audio | **unblocked.** Note that M7's exit criterion in [04-ROADMAP](04-ROADMAP.md) — *"≥ 60% of playtesters change their loadout between runs"* — has the identical two-run flaw that sank metric 1, and needs redefining before it is measured |
 
 Audio (T-020) and screen shake (T-021) move behind the hybrid work. They add polish to a loop whose
 shape is about to change.
@@ -922,6 +932,71 @@ measuring controls that no longer exist.
 
 ---
 
+## 4o. Round 3: the controls stopped being the answer (2026-08-23)
+
+Full sheets and metric working in [10-PLAYTEST-PROTOCOL.md §10c](10-PLAYTEST-PROTOCOL.md).
+
+**12 testers. Metric 4 went from 62% to 100% — seventeen deaths, seventeen self-attributions, and
+nobody blamed the controls out loud on any device.** Metric 5 stayed at zero. §1 makes metric 4 the
+filter that says whether the rest of a session can be believed, so **round 3 is the first round
+whose other numbers mean anything.**
+
+The depth change is the clearest signal that the input work landed. Nothing was added between the
+rounds except controls that work:
+
+| | Round 2 | Round 3 |
+|---|---|---|
+| First run, mean length | 10.1 min | **22.4 min** |
+| First run, mean arena at death | 3.0 | **7.2** |
+
+**Metric 2 was measured for the first time and passes at 75%** (9/12 described their build unaided).
+The answers are specific — *"a dash-bomb hybrid with pierce and cooldown"*, *"like a walking
+artillery"* — and Leela's is metric 1 and metric 2 in one sentence: *"First run I had a long-range
+shot build with cooldown, but second run I went all-in on dash and bombs; way more fun."*
+
+**Metric 1 still cannot be called, and the reason has inverted.** Round 2 could not measure it
+because the controls ruined the session. Round 3 cannot measure it because **the game got good
+enough that half the testers played one long run instead of two short ones** — six of twelve, and
+they are the 26-to-34-minute runs reaching arenas 8, 9 and 10. A metric defined as *"picks
+differently on run 2"* has n = 6 against a floor of eight.
+
+**That is a measurement problem, not a design result, and it is now the thing blocking the gate.**
+The evidence for deliberate build-shaping is already sitting in the round unread: Farnsworth took
+nine items and skipped three across ten arenas. Metric 1 has to be re-defined to read choices
+*within* a run before round 4.
+
+### The one clean failure is touch, and it is the item cards
+
+Every RANDOM in the round is a touch tester, every touch tester is a RANDOM, and none of the three
+described their build spontaneously where 9 of 9 keyboard and gamepad testers did. Both metrics
+failing together is §7's *"they could not tell what the items do — interface first, then re-test"*
+branch, and it is not the controls: no touch tester blamed them and all three aimed a skillshot at
+something specific.
+
+The item cards are text-only at phone size. Round 1 and round 2 both recorded testers clicking item
+**names** expecting a description; this is the third round pointing at the same screen. **Icons on
+the cards, and legible descriptions on a phone, are now the gate's critical path** — and they are
+asset work, not code.
+
+### A finding that outranks the gate in the long run
+
+**"Placed a bomb and escaped it on purpose" fell from 12/12 in round 2 to 7/12.** Every build
+description in round 3 leads with dash, pierce or shot; Bomb Trail is the only bomb-flavoured item
+and sits mid-pack. Open question #3 asks whether the bomb stays the primary verb. **This is the
+first evidence and it says no** — the game is drifting toward a twin-stick shooter with bombs in it.
+A balance finding rather than a gate failure (§8), but it is the Bomberman half of the hybrid.
+
+> **Refined the same day by the captured insights ([14-INSIGHTS §1](14-INSIGHTS.md)), and the
+> reading above was half wrong.** Players report that bombs get roughly 80% of the kills and the
+> shot feels useless — the opposite of "the bomb is losing primacy". Both observations are true at
+> once: `EnemySystem` is greedy pursuit with **no awareness of live bombs**, so enemies walk into
+> blasts, and bombs kill *without the player having to execute the play*. The lethality of bombing
+> is total; the **skill** of bombing is what evaporated, which is what the 12/12 → 7/12 fall was
+> actually measuring. The game is not drifting into a twin-stick shooter — it is drifting into an
+> autopilot. Fix is on the enemy, not the bomb.
+
+---
+
 ## 5. Open questions
 
 1. **Does the third active skill earn its slot?** Three actives plus movement plus aim is a lot of
@@ -934,6 +1009,10 @@ measuring controls that no longer exist.
    is whether the *decisions* stay interesting deep into a run, which needs a playtest, not code.
 3. **Does the bomb stay the primary verb?** If the skillshot is more effective than bombing, the
    Bomberman layer becomes set dressing. Bombs must remain the highest-damage, highest-risk option.
+   **First evidence, and it is bad** (§4o): testers who placed a bomb and escaped it on purpose fell
+   from 12/12 in round 2 to 7/12 in round 3, and every build description in round 3 leads with dash,
+   pierce or shot. The better the controls got, the more the game became a twin-stick shooter. Not a
+   gate blocker, but the largest open design risk in the project.
 4. **What fills the Awakening meter?** Introduced by the lore update (GDD §3.1) with no mechanic
    behind it. Damage dealt rewards aggression, damage taken rewards recklessness, and chain size
    rewards the Bomberman layer — three different games. Not required before the gate.
