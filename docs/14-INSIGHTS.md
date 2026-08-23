@@ -196,6 +196,29 @@ the on-device log overlay — the readout that exists to diagnose device-only fa
 the control hints panel from 900×130 to 1700×160, the pause buttons from 320×84 to 360×96, the
 pause control from 170×84 to 190×88.
 
+### Found on device 2026-08-24 — the text was readable, and the card still could not be tapped
+
+First run on the S21 Ultra with the sizes above: **the `SHOT` button was sitting on the right-hand
+choice card.** The skill cluster is anchored to the bomb button in the bottom-right, which is where
+the third card is drawn, and nothing hid it while the overlay was up. The numbers are unambiguous —
+`SHOT` occupies x 468–599, y −137..−7 and the card x 310–890, y −170..310, so it is entirely
+inside it, as is the third slot when one is equipped.
+
+The visible half was the smaller half. `CreateOverlay()` runs before the skill cluster is built, so
+the cluster is a **later sibling and wins both the draw order and the raycast**: taps aimed at the
+right card were being taken by an invisible-in-intent skill button. A screen rebuilt specifically so
+that touch players could choose deliberately had a card they could not reliably choose.
+
+`TouchControlVisibility` now takes a `Covered` predicate from the match — true while the
+between-arena screen or the pause menu is up — and stands the whole cluster down. It is a predicate
+rather than a call because the class knows only about devices; what counts as covered is a question
+about the match. Two PlayMode tests hold it: one that the controls go and *come back*, one that no
+live control shares screen with a choice card however that is arranged.
+
+The general lesson is the same one as the dp figure, one level up: **the desktop view cannot show
+you this either.** On a monitor the cluster is hidden, because it is hidden off touch devices, so
+every screenshot of the fixed choice screen looked correct.
+
 ---
 
 ## 4. Cheap, real, and already a known bug class

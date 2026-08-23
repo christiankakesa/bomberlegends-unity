@@ -34,6 +34,26 @@ namespace BomberLegends.Gameplay.Ui
         private bool _forcedState;
         private bool _shown = true;
 
+        /// <summary>
+        /// Reports when something is covering the match, so the controls stand down.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Supplied by the match, which knows about the between-arena screen and the pause menu.
+        /// This class knows only about devices, and deliberately: what counts as "covered" is a
+        /// question about the match, not about which hand is on the phone.
+        /// </para>
+        /// <para>
+        /// Hiding them is not tidiness. The skill cluster is anchored to the bomb button in the
+        /// bottom-right, which is where the right-hand choice card is drawn, and the cluster is
+        /// built after the overlay — so it draws over the card and, being a raycast target, takes
+        /// the taps meant for it. The card could not be picked on the one input the screen was
+        /// rebuilt for. They are also dead while the match is stopped, and a live-looking control
+        /// that does nothing is its own bug.
+        /// </para>
+        /// </remarks>
+        public System.Func<bool>? Covered { get; set; }
+
         /// <summary>Follows the given tracker, toggling the supplied controls.</summary>
         public void Begin(ControlSchemeTracker devices, params GameObject?[] controls)
         {
@@ -53,13 +73,19 @@ namespace BomberLegends.Gameplay.Ui
             Apply(ShouldShow(), force: true);
         }
 
-        /// <summary>Pins visibility, overriding what the devices say.</summary>
+        /// <summary>
+        /// Pins visibility, overriding what the devices say.
+        /// </summary>
+        /// <remarks>
+        /// It does not override <see cref="Covered"/>. Forcing answers "which devices is this build
+        /// for", which is a different question from whether the match is currently behind a screen.
+        /// </remarks>
         public void Force(bool visible)
         {
             _forced = true;
             _forcedState = visible;
 
-            Apply(visible, force: true);
+            Apply(ShouldShow(), force: true);
         }
 
         private void Update()
@@ -70,10 +96,18 @@ namespace BomberLegends.Gameplay.Ui
             }
         }
 
-        private bool ShouldShow() => _forced
-            ? _forcedState
-            : _devices != null &&
-              ShouldShow(_devices.HasBeenUsed, _devices.Current, HasPointerHardware);
+        private bool ShouldShow()
+        {
+            if (Covered != null && Covered())
+            {
+                return false;
+            }
+
+            return _forced
+                ? _forcedState
+                : _devices != null &&
+                  ShouldShow(_devices.HasBeenUsed, _devices.Current, HasPointerHardware);
+        }
 
         /// <summary>
         /// The rule itself, separated from the devices so it can be stated and tested.

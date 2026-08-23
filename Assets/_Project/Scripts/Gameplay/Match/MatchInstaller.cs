@@ -271,7 +271,7 @@ namespace BomberLegends.Gameplay.Match
 
             InstallPauseMenu(overlay);
             InstallFeedback(context, projector);
-            InstallTouchControlVisibility(input);
+            InstallTouchControlVisibility(input, overlay);
 
             var readout = _runner.gameObject.AddComponent<Ui.SkillReadoutView>();
             readout.Begin(_skillButtons);
@@ -592,7 +592,7 @@ namespace BomberLegends.Gameplay.Match
         /// touch support with no hardware attached, so that test passed on WebGL and drew a
         /// thumbstick over a mouse-and-keyboard game.
         /// </remarks>
-        private void InstallTouchControlVisibility(IInputSource input)
+        private void InstallTouchControlVisibility(IInputSource input, RunOverlayView? overlay)
         {
             if (_runner == null || input is not CompositeInputSource composite)
             {
@@ -611,6 +611,11 @@ namespace BomberLegends.Gameplay.Match
             {
                 controls.Add(_skillButtons[i] != null ? _skillButtons[i].gameObject : null);
             }
+
+            // Set before Begin, so the first frame is already correct rather than showing a cluster
+            // for one frame and then taking it away.
+            visibility.Covered = () =>
+                (overlay != null && overlay.IsShowing) || (_pause != null && _pause.IsPaused);
 
             visibility.Begin(composite.Devices, controls.ToArray());
 

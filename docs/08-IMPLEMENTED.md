@@ -82,6 +82,7 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Keyboard + mouse aim | ✅ | `Shift` dash · `Q`/LMB shot · `E`/RMB slot 3 |
 | Gamepad + right-stick aim | 🧪 | `B` dash · `X` shot · `Y` slot 3 — **never played** |
 | Touch controls hidden off touch devices | ✅ | Added 2026-08-07 |
+| Touch controls stand down while a screen covers the match | ✅ | Found on device 2026-08-24: `SHOT` sat on the right choice card and took its taps |
 | Quit the application | ✅ | Hub QUIT; stops play mode in the Editor |
 | Gamepad / keyboard menu navigation | ✅ | Focus set on arrival, kept when lost, visibly highlighted |
 | Active-device arbitration | 🧪 | Last device *deliberately used* owns the whole tick, aim included |
