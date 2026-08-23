@@ -71,6 +71,12 @@ So the "four kills in five" figure has **two** causes, and only one of them is n
 is level generation, which promotes §6's block-clustering item from a cosmetic fix for a perception
 problem to a balance change — see §6.
 
+**Both are now built, 2026-08-24.** Clustering the blocks — same 55% density, laid down in short runs
+instead of tile by tile — took sealed placements from 36% to 17% measured over 200 seeds, with the
+uncorrelated distribution kept as the control row so the improvement is attributable. Write-up in
+[07-CONCEPT-REVISION §4q](07-CONCEPT-REVISION.md). What neither change can settle is whether bombing
+*feels* like a skill again; that is round 4's question.
+
 ---
 
 ## 2. Large arenas: a real problem, and the proposed solution is the wrong one
@@ -214,6 +220,11 @@ reads all four arms clearly. Raising bomb power would compound §1.
 > separate complaints — bombs kill everything, bombs break nothing, and the shot has no job — which
 > makes level generation a balance change rather than a presentation fix, and the next thing to do
 > after this.
+>
+> **Done 2026-08-24** ([07 §4q](07-CONCEPT-REVISION.md)). Blocks now land in runs, so a blast arm
+> meets a wall of them instead of open floor. Whether that is enough to retire *"a bomb only breaks
+> one block"* on its own, or whether the four-arm VFX is still needed, is now an observation to make
+> in round 4 rather than an argument to have here.
 
 ---
 
@@ -226,7 +237,7 @@ reads all four arms clearly. Raising bomb power would compound §1.
 | **Now** | Bomb capacity/cooldown in the readout | Known bug class, already fixed once for skills (§4) |
 | **Now** | Show the locked skill slots | Costs nothing, answers a real frustration (§4) |
 | ~~**M6**~~ **Done** | ~~Enemy blast awareness~~ **Built 2026-08-24** | The highest-leverage change in the set (§1) |
-| **Next** | **Block clustering in generation** | Promoted: two bombs in five still kill by level layout, not by play (§1, §6) |
+| ~~**Next**~~ **Done** | ~~Block clustering in generation~~ **Built 2026-08-24** | Sealed placements 36% → 17% at unchanged density (§1, §6) |
 | **M6** | Wake remaining Sentinels as an arena empties · camera pull-back at depth | Late-arena pacing (§2) |
 | **M6** | Offer-gating: no scaling items in the arena 1 pool | Overclock (§5) |
 | **M6** | Four-arm blast VFX | The bomb-power perception (§6) |
@@ -242,3 +253,9 @@ all screen-and-sound work that can proceed in parallel because none of them touc
 **Building it moved the next item.** Level generation is no longer a presentation fix waiting behind
 the interesting work; it is the remaining half of the same problem, and the bomb-flavoured pickups
 stay held until it lands.
+
+**Both halves have now landed, and what unblocks is a playtest rather than a feature.** The condition
+on the held items was never "clustering ships" — it was knowing what a bomb is worth once enemies
+avoid blasts and the level stops sealing pockets. That number exists only in automated runs so far.
+**Round 4 measures it; the Hold row is decided after, not now.** The four *Now* items are untouched by
+any of this and remain the parallel track.

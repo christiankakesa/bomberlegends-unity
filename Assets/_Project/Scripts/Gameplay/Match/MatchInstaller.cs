@@ -114,8 +114,13 @@ namespace BomberLegends.Gameplay.Match
         private int _arenaHeight = 15;
 
         [SerializeField, Range(0, 90)]
-        [Tooltip("Chance a free tile becomes a destructible block.")]
+        [Tooltip("Share of free tiles that become destructible blocks.")]
         private int _destructiblePercent = 55;
+
+        [SerializeField, Range(1, 8)]
+        [Tooltip("How long a run of blocks grows. 1 scatters them one by one, which chops the " +
+                 "maze into segments shorter than a blast and leaves enemies nowhere to run.")]
+        private int _blockClusterSize = 3;
 
         [SerializeField, Range(1, 12)]
         [Tooltip("Enemies in the first generated arena. One more is added per arena cleared.")]
@@ -469,6 +474,7 @@ namespace BomberLegends.Gameplay.Match
                 baseWidth: _arenaWidth,
                 baseHeight: _arenaHeight,
                 destructiblePercent: _destructiblePercent,
+                blockClusterSize: _blockClusterSize,
                 baseEnemies: _startingEnemies));
         }
 

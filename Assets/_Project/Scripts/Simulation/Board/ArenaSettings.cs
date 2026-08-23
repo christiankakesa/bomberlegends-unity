@@ -23,6 +23,7 @@ namespace BomberLegends.Simulation.Board
             int enemiesPerArena = 1,
             int maxEnemies = 12,
             int destructiblePercent = 55,
+            int blockClusterSize = 3,
             int minEnemyDistance = 9,
             int safePocketRadius = 2)
         {
@@ -35,6 +36,7 @@ namespace BomberLegends.Simulation.Board
             EnemiesPerArena = enemiesPerArena;
             MaxEnemies = maxEnemies;
             DestructiblePercent = destructiblePercent;
+            BlockClusterSize = blockClusterSize;
             MinEnemyDistance = minEnemyDistance;
             SafePocketRadius = safePocketRadius;
         }
@@ -63,8 +65,27 @@ namespace BomberLegends.Simulation.Board
         /// <summary>The most enemies an arena may hold.</summary>
         public int MaxEnemies { get; }
 
-        /// <summary>Chance in a hundred that a free tile becomes a destructible block.</summary>
+        /// <summary>Share of free tiles, in percent, that become destructible blocks.</summary>
         public int DestructiblePercent { get; }
+
+        /// <summary>
+        /// How many tiles a run of destructible blocks grows to before a new one is started.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Density is set by <see cref="DestructiblePercent"/>; this decides how that budget is
+        /// distributed. At 1 the blocks land independently of one another, which is the failure
+        /// this exists to fix: uncorrelated blocks are salt and pepper, and they chop the maze into
+        /// segments shorter than a blast. A bomb then fills a whole segment, so an enemy caught in
+        /// it has nowhere to go and the kill was decided by the layout rather than by the player.
+        /// </para>
+        /// <para>
+        /// Growing the same budget into runs leaves the floor between them open. The corridors get
+        /// longer, an enemy has somewhere to run to, and a blast arm meets a run of blocks instead
+        /// of empty floor — which is also what makes a bomb look like it breaks more than one.
+        /// </para>
+        /// </remarks>
+        public int BlockClusterSize { get; }
 
         /// <summary>
         /// How far from spawn an enemy must start.
@@ -104,6 +125,7 @@ namespace BomberLegends.Simulation.Board
             enemiesPerArena: 1,
             maxEnemies: 12,
             destructiblePercent: 55,
+            blockClusterSize: 3,
             minEnemyDistance: 9,
             safePocketRadius: 2);
 
@@ -141,6 +163,11 @@ namespace BomberLegends.Simulation.Board
             if (DestructiblePercent < 0 || DestructiblePercent > 100)
             {
                 throw new ArgumentException("Destructible density must be a percentage.");
+            }
+
+            if (BlockClusterSize < 1)
+            {
+                throw new ArgumentException("A run of blocks is at least one block long.");
             }
 
             if (MinEnemyDistance < 1 || SafePocketRadius < 1)

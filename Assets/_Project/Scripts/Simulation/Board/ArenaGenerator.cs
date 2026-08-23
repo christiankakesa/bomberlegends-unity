@@ -251,6 +251,23 @@ namespace BomberLegends.Simulation.Board
             return reachable;
         }
 
+        /// <summary>
+        /// Fills the board to its destructible density, in runs rather than one tile at a time.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The density is a budget, and this spends it in connected runs of
+        /// <see cref="ArenaSettings.BlockClusterSize"/>. Rolling each tile independently instead —
+        /// which is what this used to do — spreads the same number of blocks evenly enough to cut
+        /// the maze into segments shorter than a blast, and a bomb that fills a whole segment kills
+        /// whatever is standing in it no matter how well that thing plays.
+        /// </para>
+        /// <para>
+        /// Seeds are drawn by partial shuffle rather than by re-rolling a position until an unused
+        /// one turns up: every tile is offered exactly once, so the loop cannot spin as the board
+        /// fills, and the work stays proportional to the board.
+        /// </para>
+        /// </remarks>
         private static void ScatterDestructibles(
             TileType[] tiles,
             int width,
@@ -261,30 +278,123 @@ namespace BomberLegends.Simulation.Board
             ref DeterministicRandom random)
         {
             var pocket = settings.SafePocketRadius;
+            var candidates = new GridCoord[width * height];
+            var available = 0;
 
             for (var y = 1; y < height - 1; y++)
             {
                 for (var x = 1; x < width - 1; x++)
                 {
-                    var index = (y * width) + x;
-
-                    if (!reachable[index] || tiles[index] != TileType.Empty)
+                    if (IsScatterable(tiles, width, spawn, pocket, reachable, x, y))
                     {
-                        continue;
-                    }
-
-                    // The pocket stays open, or the guaranteed escape route is filled back in.
-                    if (IntMath.Abs(x - spawn.X) <= pocket && IntMath.Abs(y - spawn.Y) <= pocket)
-                    {
-                        continue;
-                    }
-
-                    if (random.Chance(settings.DestructiblePercent))
-                    {
-                        tiles[index] = TileType.Destructible;
+                        candidates[available++] = new GridCoord(x, y);
                     }
                 }
             }
+
+            if (available == 0)
+            {
+                return;
+            }
+
+            var budget = available * settings.DestructiblePercent / 100;
+
+            for (var i = 0; i < available && budget > 0; i++)
+            {
+                var pick = i + random.NextInt(available - i);
+                (candidates[i], candidates[pick]) = (candidates[pick], candidates[i]);
+
+                var seed = candidates[i];
+
+                // Already swallowed by a run that grew out of an earlier seed.
+                if (tiles[(seed.Y * width) + seed.X] != TileType.Empty)
+                {
+                    continue;
+                }
+
+                budget -= GrowBlockRun(
+                    tiles, width, spawn, pocket, reachable, seed,
+                    settings.BlockClusterSize, budget, ref random);
+            }
+        }
+
+        /// <summary>Whether a tile may be filled with a destructible block.</summary>
+        private static bool IsScatterable(
+            TileType[] tiles, int width, GridCoord spawn, int pocket, bool[] reachable, int x, int y)
+        {
+            var index = (y * width) + x;
+
+            if (!reachable[index] || tiles[index] != TileType.Empty)
+            {
+                return false;
+            }
+
+            // The pocket stays open, or the guaranteed escape route is filled back in.
+            return IntMath.Abs(x - spawn.X) > pocket || IntMath.Abs(y - spawn.Y) > pocket;
+        }
+
+        /// <summary>
+        /// Lays a run of blocks from a seed tile, wandering one step at a time.
+        /// </summary>
+        /// <remarks>
+        /// A walk rather than a blob on purpose: it produces broken wall segments, which read as
+        /// structure and give a blast arm something to bite, where a square clump would just be a
+        /// bigger pillar. It stops early at a dead end, which is what keeps a run from doubling back
+        /// through ground it has already filled.
+        /// </remarks>
+        /// <returns>How many blocks were actually placed.</returns>
+        private static int GrowBlockRun(
+            TileType[] tiles,
+            int width,
+            GridCoord spawn,
+            int pocket,
+            bool[] reachable,
+            GridCoord seed,
+            int length,
+            int budget,
+            ref DeterministicRandom random)
+        {
+            if (length > budget)
+            {
+                length = budget;
+            }
+
+            var tile = seed;
+            var placed = 0;
+
+            while (placed < length)
+            {
+                tiles[(tile.Y * width) + tile.X] = TileType.Destructible;
+                placed++;
+
+                // Offset the scan by a random amount so a run has no directional bias; scanning
+                // from north every time would comb every arena the same way.
+                var turn = random.NextInt(Directions.Cardinals.Length);
+                var stepped = false;
+
+                for (var i = 0; i < Directions.Cardinals.Length; i++)
+                {
+                    var direction = Directions.Cardinals[(turn + i) % Directions.Cardinals.Length];
+                    var offset = direction.ToOffset();
+                    var next = new GridCoord(tile.X + offset.X, tile.Y + offset.Y);
+
+                    if (!IsScatterable(tiles, width, spawn, pocket, reachable, next.X, next.Y))
+                    {
+                        continue;
+                    }
+
+                    tile = next;
+                    stepped = true;
+                    break;
+                }
+
+                if (!stepped)
+                {
+                    break;
+                }
+            }
+
+            return placed;
         }
 
         /// <summary>Places enemies on open ground, far enough away to be seen before they arrive.</summary>

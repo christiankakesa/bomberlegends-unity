@@ -1065,6 +1065,52 @@ Lowering the fill is a design decision with wide consequences — item drops, re
 identity — so it is recorded here rather than taken. What is taken is a floor under it: a test asserts
 the sealed fraction may not grow.
 
+---
+
+## 4q. Block clustering (2026-08-24)
+
+**The density was never the problem. The distribution was.**
+
+`ScatterDestructibles` rolled every eligible tile independently at 55%, and independent rolls produce
+salt and pepper: blocks spread evenly enough to cut the maze into segments shorter than a blast. A
+bomb then fills a whole segment, and the enemy standing in it dies regardless of how well it plays —
+which is the "kills decided by the level" half of §4p, and, at the same time, why *"a bomb only breaks
+one block"* feels true. Most arms face open floor because the blocks are not next to each other.
+
+**The fix spends the same budget in runs.** `DestructiblePercent` now sets a target count over the
+eligible tiles, and `GrowBlockRun` lays that budget down as short random walks of
+`ArenaSettings.BlockClusterSize`. Seeds are drawn by the partial shuffle `PlaceEnemies` already uses,
+so the loop cannot spin as the board fills.
+
+| `blockClusterSize` | Placements that seal a pocket | Floor that is destructible |
+|---|---|---|
+| **1** *(the old scatter)* | **36%** | 51% |
+| **3** *(shipping)* | **17%** | 51% |
+| 5 | 15% | 51% |
+
+Measured over 200 seeds. **The first row is the control**: cluster size 1 is uncorrelated placement,
+and it reproduces the 41%/40% baseline recorded above, so the halving is attributable to distribution
+and to nothing else. **The fill column is the claim that mattered** — it does not move, so this is a
+distribution change and not the density cut that was deliberately left untaken.
+
+Five buys two more points for visibly longer walls; three was taken. The non-monotonic bumps at four
+and six look like parity against the lattice styles rather than a trend, and were not chased.
+
+### Tests
+
+Two, in `ArenaGeneratorTests`, guarding the two things that could quietly rot:
+
+- **Density is independent of clustering.** If a clustered board also held fewer blocks, the
+  improvement would be a difficulty cut wearing a disguise.
+- **Blocks actually adjoin.** Counting *lone* blocks rather than total adjacency: at 55% fill,
+  scattered blocks already touch by accident, so total adjacency moves only 1.34× and discriminates
+  poorly, while lone blocks go **14% → 0%** because a block placed in a run has a neighbour by
+  construction. The test asserts the scattered control stays above 10% as well, so it cannot pass by
+  losing its basis for comparison.
+
+The `EnemyThreatTests` ratchet moved with the fix, from `≤41` to `≤20`. A ratchet left at the old
+number would not notice this being undone.
+
 ### Tests
 
 Ten, in `EnemyThreatTests`. The load-bearing ones are the counterfactual — the same bomb with fear at
@@ -1094,9 +1140,11 @@ promised in a comment.
    pierce or shot. **Re-read once the insights arrived**: the bomb had not lost primacy at all — it
    was getting roughly four kills in five while nothing on the board understood what it was, so the
    *skill* of bombing evaporated rather than its power. Enemies now run from bombs about to go off
-   (§4p), which should give the shot a job and make bomb-and-escape a play again. **Not answered:**
-   two placements in five still seal a pocket with no way out, so the level generator is still
-   killing for the player. Re-measure in the next round rather than tuning further.
+   (§4p), which should give the shot a job and make bomb-and-escape a play again. **Both halves are
+   now built:** block clustering (§4q) took sealed placements from two in five to roughly one in six
+   at unchanged density, so the level is no longer doing most of the killing either. **Still not
+   answered** — both changes are measured in automated runs, and whether bombing feels like a skill
+   again is a playtest question. Re-measure in the next round rather than tuning further.
 4. **What fills the Awakening meter?** Introduced by the lore update (GDD §3.1) with no mechanic
    behind it. Damage dealt rewards aggression, damage taken rewards recklessness, and chain size
    rewards the Bomberman layer — three different games. Not required before the gate.

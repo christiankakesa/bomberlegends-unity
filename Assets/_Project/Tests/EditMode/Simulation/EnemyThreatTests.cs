@@ -352,9 +352,13 @@ namespace BomberLegends.Tests.EditMode.Simulation
             // Measured rather than argued: 41% at the shipping density, 26% at 45, 14% at 35 and 6%
             // at 25. Lowering the fill is a design decision and belongs with the level generation
             // work, not here. What belongs here is a floor under it — this number must not grow.
+            //
+            // Fixed 2026-08-24 by clustering the blocks instead of lowering the density: 41% -> 19%
+            // at the same 55% fill. The ceiling moved down with it, because a ratchet left at the
+            // old number would not notice the fix being undone.
             var current = SealedPlacementPercent(ArenaSettings.Default, range: 2, seeds: 20);
 
-            Assert.That(current, Is.LessThanOrEqualTo(41),
+            Assert.That(current, Is.LessThanOrEqualTo(20),
                 $"{current}% of bomb placements now leave nothing an enemy can do about it, which " +
                 "is worse than when enemies were taught to run; the generator has grown denser");
         }

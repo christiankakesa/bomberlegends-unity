@@ -331,6 +331,128 @@ namespace BomberLegends.Tests.EditMode.Simulation
             }
         }
 
+        // ---------- how the blocks are distributed ----------
+
+        [Test]
+        public void ClusteringChangesWhereTheBlocksGoAndNotHowManyThereAre()
+        {
+            // The whole point of clustering is that it is not a difficulty change. Blocks in runs
+            // leave the floor between them open, which is what gives a cornered enemy somewhere to
+            // run — but if the board also quietly held fewer blocks, the improvement would just be
+            // a density cut wearing a disguise, and lowering the density is a separate decision
+            // nobody has taken.
+            var scattered = 0;
+            var clustered = 0;
+
+            for (var seed = 1u; seed <= Seeds; seed++)
+            {
+                scattered += CountBlocks(Generate(seed, settings: WithCluster(1)));
+                clustered += CountBlocks(Generate(seed, settings: WithCluster(3)));
+            }
+
+            // Not equality: a run stops at a dead end, so the last one placed can come up short.
+            var drift = System.Math.Abs(scattered - clustered) * 100 / scattered;
+
+            Assert.That(drift, Is.LessThanOrEqualTo(3),
+                $"clustered boards hold {clustered} blocks against {scattered} scattered — that is " +
+                "a density change, not a distribution change");
+        }
+
+        [Test]
+        public void BlocksActuallyEndUpNextToEachOther()
+        {
+            // Guards the mechanism rather than its effect. The sealed-placement measurement in
+            // EnemyThreatTests says the fix works; this says *why* it works, so a refactor that
+            // quietly returns to rolling each tile on its own fails here first, with a clear reason.
+            //
+            // The lone block is the right thing to count. Total adjacency barely moves — at 55%
+            // fill, scattered blocks already touch by accident — but a block placed as part of a
+            // run has a neighbour by construction, so the only lone blocks left are runs that died
+            // at their seed. Measured across these seeds: 14% of blocks stand alone when scattered,
+            // and none do when clustered.
+            var scattered = LoneBlockPercent(WithCluster(1));
+            var clustered = LoneBlockPercent(WithCluster(3));
+
+            Assert.That(scattered, Is.GreaterThanOrEqualTo(10),
+                $"only {scattered}% of scattered blocks stand alone, so this comparison no longer " +
+                "has a control and the clustered number below proves nothing");
+
+            Assert.That(clustered, Is.LessThanOrEqualTo(2),
+                $"{clustered}% of blocks stand alone against {scattered}% scattered; the runs are " +
+                "not forming");
+        }
+
+        /// <summary>What share of destructible blocks have no destructible neighbour.</summary>
+        private static int LoneBlockPercent(ArenaSettings settings)
+        {
+            var blocks = 0;
+            var lone = 0;
+
+            for (var seed = 1u; seed <= Seeds; seed++)
+            {
+                var board = Generate(seed, settings: settings).CreateBoard();
+
+                for (var y = 0; y < board.Height; y++)
+                {
+                    for (var x = 0; x < board.Width; x++)
+                    {
+                        var tile = new GridCoord(x, y);
+
+                        if (board[tile] != TileType.Destructible)
+                        {
+                            continue;
+                        }
+
+                        blocks++;
+
+                        if (!HasBlockNeighbour(board, tile))
+                        {
+                            lone++;
+                        }
+                    }
+                }
+            }
+
+            return blocks == 0 ? 0 : lone * 100 / blocks;
+        }
+
+        private static bool HasBlockNeighbour(BoardState board, GridCoord tile)
+        {
+            for (var i = 0; i < Directions.Cardinals.Length; i++)
+            {
+                var neighbour = tile.Neighbour(Directions.Cardinals[i]);
+
+                if (board.Contains(neighbour) && board[neighbour] == TileType.Destructible)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static ArenaSettings WithCluster(int size) => new ArenaSettings(
+            destructiblePercent: 55, blockClusterSize: size);
+
+        private static int CountBlocks(in LevelLayout layout)
+        {
+            var board = layout.CreateBoard();
+            var blocks = 0;
+
+            for (var y = 0; y < board.Height; y++)
+            {
+                for (var x = 0; x < board.Width; x++)
+                {
+                    if (board[new GridCoord(x, y)] == TileType.Destructible)
+                    {
+                        blocks++;
+                    }
+                }
+            }
+
+            return blocks;
+        }
+
         // ---------- settings ----------
 
         [Test]
@@ -344,6 +466,8 @@ namespace BomberLegends.Tests.EditMode.Simulation
                 () => new ArenaSettings(maxEnemies: 999).Validate());
             Assert.Throws<System.ArgumentException>(
                 () => new ArenaSettings(destructiblePercent: 140).Validate());
+            Assert.Throws<System.ArgumentException>(
+                () => new ArenaSettings(blockClusterSize: 0).Validate());
         }
     }
 }
