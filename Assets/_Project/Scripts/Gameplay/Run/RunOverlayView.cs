@@ -147,7 +147,7 @@ namespace BomberLegends.Gameplay.Run
 
             _skip?.gameObject.SetActive(true);
             _restart?.gameObject.SetActive(false);
-            _panel.SetActive(true);
+            Reveal();
 
             FocusFirstChoice();
         }
@@ -168,7 +168,7 @@ namespace BomberLegends.Gameplay.Run
 
             _skip?.gameObject.SetActive(true);
             _restart?.gameObject.SetActive(false);
-            _panel.SetActive(true);
+            Reveal();
 
             FocusFirstChoice();
         }
@@ -225,10 +225,32 @@ namespace BomberLegends.Gameplay.Run
 
             _skip?.gameObject.SetActive(false);
             _restart?.gameObject.SetActive(true);
-            _panel.SetActive(true);
+            Reveal();
 
             SetKeeperFallback(_restart != null ? _restart.gameObject : null);
             UiFocus.Select(_restart != null ? _restart.gameObject : null);
+        }
+
+        /// <summary>
+        /// Shows the panel, and puts it above everything else drawn on this canvas.
+        /// </summary>
+        /// <remarks>
+        /// The ordering is not belt and braces. Sibling order decides both what draws on top and
+        /// what a tap lands on, and this panel is created during installation while the on-screen
+        /// controls are created after it — so it began life underneath them. That is what put the
+        /// SHOT button on the right-hand choice card and let it take the taps meant for the card.
+        /// The controls now stand down while the overlay is up, which answers that case; claiming
+        /// the top here answers the next one, for whatever gets added to this canvas later.
+        /// </remarks>
+        private void Reveal()
+        {
+            if (_panel == null)
+            {
+                return;
+            }
+
+            _panel.transform.SetAsLastSibling();
+            _panel.SetActive(true);
         }
 
         /// <summary>Hides the overlay and returns control to the match.</summary>

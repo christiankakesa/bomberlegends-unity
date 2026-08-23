@@ -148,6 +148,49 @@ namespace BomberLegends.Tests.PlayMode
             }
         }
 
+        [UnityTest]
+        public IEnumerator TheOverlayDrawsAboveAnythingElseOnTheCanvas()
+        {
+            _root = PhoneCanvas.Build(PhoneCanvas.GalaxyS21Ultra, out _);
+            var canvas = _root.GetComponent<Canvas>();
+
+            var overlay = _root.AddComponent<RunOverlayView>();
+            overlay.Build(canvas);
+
+            // Created after the overlay, exactly as the match creates them, so they are later
+            // siblings and the overlay starts underneath. Two more stand in for whatever else ends
+            // up on this canvas next; the point of the assertion is that it does not matter what.
+            var anchor = BuildBombButtonAnchor(canvas);
+            TouchControlsBuilder.Build(anchor, SkillLoadout.Of(
+                new SkillSlot { Id = SkillId.Dash, MaxCharges = 1, Charges = 1 }));
+
+            Control("SomethingAddedLater");
+            Control("SomethingAddedLaterStill");
+
+            var panel = canvas.transform.Find("RunOverlay");
+            Assert.That(panel, Is.Not.Null, "the overlay no longer builds a panel named RunOverlay");
+
+            overlay.ShowChoices(Offers(), arenaNumber: 3);
+            yield return null;
+
+            // Stated against every sibling rather than against a known index, because the defect
+            // was never about a particular number: it was about the overlay being built before the
+            // things that end up covering it.
+            for (var i = 0; i < canvas.transform.childCount; i++)
+            {
+                var sibling = canvas.transform.GetChild(i);
+
+                if (sibling == panel)
+                {
+                    continue;
+                }
+
+                Assert.That(panel!.GetSiblingIndex(), Is.GreaterThan(sibling.GetSiblingIndex()),
+                    $"{sibling.name} draws over the choice screen, so it also takes the taps " +
+                    "meant for whatever is underneath it");
+            }
+        }
+
         private GameObject Control(string name)
         {
             var control = new GameObject(name, typeof(RectTransform), typeof(Image));
