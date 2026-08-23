@@ -27,6 +27,29 @@ namespace BomberLegends.Tests.PlayMode
         /// <summary>The device this project is verified on, in landscape.</summary>
         public static readonly Vector2 GalaxyS21Ultra = new Vector2(3200f, 1440f);
 
+        /// <summary>
+        /// The screen shapes every layout has to survive, in physical pixels, landscape.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The scaler trades width against height at match 0.5, so the extremes of the aspect
+        /// range are what pin a layout down rather than any particular handset.
+        /// </para>
+        /// <para>
+        /// The tablet is in the list because it is the surprise. A 16:10 tablet in landscape is
+        /// <i>shorter</i> than 16:9, so it gains canvas height and loses canvas width: 1819 units
+        /// across, narrower than the 1920 of a 16:9 phone and far narrower than the 2200 of a
+        /// 21:9 one. It had been assumed a phone was tightest horizontally. It is not, and the
+        /// right-hand choice card clears its edge by only about 20 units.
+        /// </para>
+        /// </remarks>
+        public static readonly Vector2[] Shapes =
+        {
+            new Vector2(1920f, 1080f),  // 16:9, the reference shape
+            new Vector2(2520f, 1080f),  // 21:9, tightest vertically at 943 units
+            new Vector2(2400f, 1504f),  // the RedMagic tablet, tightest across at 1819 units
+        };
+
         /// <summary>Physical pixels per dp at that resolution.</summary>
         /// <remarks>
         /// Density 600, as the device reports it. The phone ships in FHD+ and so renders at

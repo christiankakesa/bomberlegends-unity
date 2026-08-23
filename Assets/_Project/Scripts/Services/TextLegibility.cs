@@ -26,6 +26,30 @@ namespace BomberLegends.Services
     /// cent lower than the real one.
     /// </para>
     /// <para>
+    /// Three devices have been measured over adb, and the floor is set by the worst of them:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description>
+    /// Galaxy S21 Ultra — 1440x3200 at density 600, a 384 dp wide screen. Scale 1.4907 in
+    /// landscape, <b>0.3975 dp per unit</b>: the binding device, and the one the floor comes from.
+    /// </description></item>
+    /// <item><description>
+    /// Solana Seeker 2 — 1200x2670 at density 480, 400 dp wide. Scale 1.2430, 0.4143 dp per unit,
+    /// so its own floor would be 34 units. More forgiving than the S21 because a wider screen in
+    /// dp buys more eye per canvas unit.
+    /// </description></item>
+    /// <item><description>
+    /// RedMagic tablet (nubia NP05J) — 1504x2400 at density 360, 668 dp wide. Scale 1.3194,
+    /// 0.5864 dp per unit, floor 24 units. Tablets are the easy case for legibility and the hard
+    /// case for layout; see the shapes in the tests, where this one is the narrowest canvas.
+    /// </description></item>
+    /// </list>
+    /// <para>
+    /// Nothing here should be relaxed to suit whichever device is on the desk. The floor is the
+    /// worst measured device, not the current one, and a phone narrower in dp than 384 would raise
+    /// it again rather than lower it.
+    /// </para>
+    /// <para>
     /// This lives in one place because the alternative was already tried. Every screen picked its
     /// own sizes by eye on a monitor, where they looked correct, and at the touch gate none of
     /// three testers could describe the build they were playing: the item descriptions were

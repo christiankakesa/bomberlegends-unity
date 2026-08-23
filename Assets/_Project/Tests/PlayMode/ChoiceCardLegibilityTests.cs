@@ -66,14 +66,11 @@ namespace BomberLegends.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator TheCardsFitTheNarrowestPhoneThisShipsOn()
+        public IEnumerator TheCardsFitTheNarrowestCanvasThisShipsOn()
         {
-            // The scaler trades width for height: a longer phone gains canvas width and loses
-            // canvas height, so a 21:9 handset is the one that runs out of room vertically while a
-            // 16:9 one is tightest across. Both are checked rather than argued about.
-            var shapes = new[] { new Vector2(1920f, 1080f), new Vector2(2520f, 1080f) };
-
-            foreach (var shape in shapes)
+            // The shapes are shared, and one of them is a tablet: it is shorter than 16:9, so it
+            // is the narrowest canvas of the set rather than the roomiest. See PhoneCanvas.Shapes.
+            foreach (var shape in PhoneCanvas.Shapes)
             {
                 var view = BuildOverlay(shape, out _);
                 var canvasRect = _root!.GetComponent<RectTransform>().rect;

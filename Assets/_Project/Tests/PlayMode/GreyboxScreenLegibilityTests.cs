@@ -158,14 +158,11 @@ namespace BomberLegends.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator NothingOnTheseScreensRunsOffANarrowPhone()
+        public IEnumerator NothingOnTheseScreensRunsOffTheNarrowestCanvas()
         {
-            // The scaler trades width for height: a longer phone gains canvas width and loses
-            // canvas height, so a 21:9 handset is the one that runs out of room vertically while a
-            // 16:9 one is tightest across. Both are checked rather than argued about.
-            var shapes = new[] { new Vector2(1920f, 1080f), new Vector2(2520f, 1080f) };
-
-            foreach (var shape in shapes)
+            // Shared with the choice-card test, and worth reading before adding a screen: the
+            // tightest canvas across is the tablet, not a phone. See PhoneCanvas.Shapes.
+            foreach (var shape in PhoneCanvas.Shapes)
             {
                 _root = PhoneCanvas.Build(shape, out var scale);
                 var canvas = _root.GetComponent<Canvas>();
