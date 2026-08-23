@@ -997,6 +997,86 @@ A balance finding rather than a gate failure (§8), but it is the Bomberman half
 
 ---
 
+## 4p. Enemies learn what a bomb is (2026-08-24)
+
+The fix for [14-INSIGHTS §1](14-INSIGHTS.md): the highest-leverage change identified in the whole
+insight set, and the one every bomb-flavoured idea below it was waiting on.
+
+### What changed
+
+`EnemySystem` was greedy pursuit with no concept of a bomb. It now reads a **`ThreatGrid`**, rebuilt
+every tick between the blast and the enemies, which stores for each tile *how many steps it is from
+somewhere the fire will not reach*. Zero means safe; anything else is the shortest way out.
+
+A distance field rather than a set of dangerous tiles, because knowing a tile is dangerous tells an
+enemy to leave and not **which way** — and a greedy guess dithers at exactly the moment the player is
+watching. One breadth-first sweep outward from every safe tile answers both questions at once, and
+walking the number downhill is always the shortest exit however many blasts overlap.
+
+Three rules follow from it, and nothing else in the simulation changed:
+
+| | |
+|---|---|
+| Safety outranks pursuit outright | never weighed against it: no amount of chasing is worth dying for |
+| Momentum never carries an enemy into fire | committing to a heading is an optimisation, and a bomb laid since invalidates it |
+| An enemy clear of the fire **holds** rather than backing off | a blast is a wall that will not be there in a moment; giving up ground to it costs more than waiting — and this is what lets a player use a bomb as a wall |
+
+### The dial is the whole design: `EnemyBombFearTicks`
+
+**Only bombs close to going off count**, at forty-five ticks of a ninety-tick fuse. Fear a bomb from
+the moment it lands and enemies simply never come near one again — which trades one broken extreme
+for the other and would make bombs stop killing anything not already cornered.
+
+The number is arithmetic, not taste: an enemy at the far end of a starting blast needs three tiles of
+travel to get clear, which is thirty-eight ticks at its speed. So it escapes **with a clear path** and
+dies **without one**, which is the exchange the game is supposed to be about. That margin narrows
+every time the player takes a blast-range item, which is exactly the payoff a range item should have.
+
+Zero restores the old oblivious behaviour and is kept reachable: a mob that does not understand bombs
+is a legitimate archetype, just not the only one.
+
+**Dormant Sentinels are exempt.** Something that has not noticed the player has no reason to know what
+a bomb is, and bombing what has not seen you coming is the whole reward for approaching an arena
+carefully.
+
+### Found on the way in: the arena is doing a lot of the killing
+
+The mechanism works, and measuring it in generated arenas turned up something that outranks it.
+
+**At the shipping density, two bomb placements in five cover a pocket of floor with no walkable tile
+outside it at all.** The blast fills a corridor segment bounded by destructible blocks, and there is
+nowhere to run to. Every enemy death in the automated runs was of this kind — not one died because it
+was too slow, which incidentally confirms forty-five ticks is a generous window.
+
+| `destructiblePercent` | Bomb placements that seal a pocket |
+|---|---|
+| **55** *(shipping)* | **41%** |
+| 45 | 26% |
+| 35 | 14% |
+| 25 | 6% |
+
+So enemy blast awareness is necessary and **not sufficient**. Two out of five bombs still kill by
+level generation rather than by play, which is a large part of what the "four kills in five come from
+bombs" report was measuring — and the same density is why *"a bomb only breaks one block"* feels true
+while [14-INSIGHTS §6](14-INSIGHTS.md) shows the rules destroy up to four. One cause, three
+complaints.
+
+Lowering the fill is a design decision with wide consequences — item drops, readability, arena
+identity — so it is recorded here rather than taken. What is taken is a floor under it: a test asserts
+the sealed fraction may not grow.
+
+### Tests
+
+Ten, in `EnemyThreatTests`. The load-bearing ones are the counterfactual — the same bomb with fear at
+zero still kills the enemy where it stands, so the fix is provably doing the work — and
+`WhatEnemiesFearIsExactlyWhatTheBlastWillReach`, which detonates a bomb and compares the predicted
+footprint against what actually burned. The threat projection walks the same arms as `BlastSystem`
+but cannot share its code, because the blast also destroys and ignites as it goes; an enemy fearing
+the wrong tiles would be worse than one fearing nothing, so the agreement is proved rather than
+promised in a comment.
+
+---
+
 ## 5. Open questions
 
 1. **Does the third active skill earn its slot?** Three actives plus movement plus aim is a lot of
@@ -1011,8 +1091,12 @@ A balance finding rather than a gate failure (§8), but it is the Bomberman half
    Bomberman layer becomes set dressing. Bombs must remain the highest-damage, highest-risk option.
    **First evidence, and it is bad** (§4o): testers who placed a bomb and escaped it on purpose fell
    from 12/12 in round 2 to 7/12 in round 3, and every build description in round 3 leads with dash,
-   pierce or shot. The better the controls got, the more the game became a twin-stick shooter. Not a
-   gate blocker, but the largest open design risk in the project.
+   pierce or shot. **Re-read once the insights arrived**: the bomb had not lost primacy at all — it
+   was getting roughly four kills in five while nothing on the board understood what it was, so the
+   *skill* of bombing evaporated rather than its power. Enemies now run from bombs about to go off
+   (§4p), which should give the shot a job and make bomb-and-escape a play again. **Not answered:**
+   two placements in five still seal a pocket with no way out, so the level generator is still
+   killing for the player. Re-measure in the next round rather than tuning further.
 4. **What fills the Awakening meter?** Introduced by the lore update (GDD §3.1) with no mechanic
    behind it. Damage dealt rewards aggression, damage taken rewards recklessness, and chain size
    rewards the Bomberman layer — three different games. Not required before the gate.

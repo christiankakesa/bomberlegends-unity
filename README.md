@@ -37,16 +37,25 @@ menu if you ever need raw play mode.
 ### Tests
 
 ```bash
-"/mnt/c/Program Files/Unity/Hub/Editor/6000.3.10f1/Editor/Unity.exe" -batchmode -nographics -projectPath "C:\Users\chris\workspace\games\bomber-legends" -runTests -testPlatform EditMode -testResults "C:\Users\chris\AppData\Local\Temp\results.xml" -logFile -
+./tools/unity test
 ```
 
-Swap `EditMode` for `PlayMode` for the integration suite.
+`test -p` runs the PlayMode suite, `test --all` runs both, and a bare argument filters:
+`./tools/unity test EnemyThreatTests`. Results and the full editor log land in `Logs/`.
+
+The script exists for one reason above the others: **a compile error aborts the run before the
+test runner writes anything**, so a results file left over from last time reports a confident pass
+over broken code. It deletes the file first, every time, and refuses to run at all while the Editor
+holds the project lock.
 
 ### Android build
 
 ```bash
-"/mnt/c/Program Files/Unity/Hub/Editor/6000.3.10f1/Editor/Unity.exe" -batchmode -quit -nographics -projectPath "C:\Users\chris\workspace\games\bomber-legends" -buildTarget Android -executeMethod BomberLegends.Editor.AndroidBuildTool.BuildDevelopment -logFile -
+./tools/unity build android
 ```
+
+`build webgl` and `build windows` do the same for the other targets; `--release` switches from the
+development build to the release one.
 
 Output lands in `Builds/Android/`. IL2CPP, ARM64, ASTC, landscape-only, min SDK 26. The development
 build is signed with Unity's debug keystore; a release keystore is required before any store upload.
@@ -70,7 +79,7 @@ These rules are enforced by `AssemblyGraphTests` (EditMode). Breaking the graph 
 a code review. Run the tests with:
 
 ```bash
-"/mnt/c/Program Files/Unity/Hub/Editor/6000.3.10f1/Editor/Unity.exe" -batchmode -nographics -projectPath "C:\Users\chris\workspace\games\bomber-legends" -runTests -testPlatform EditMode -testResults "C:\Users\chris\AppData\Local\Temp\results.xml" -logFile -
+./tools/unity test AssemblyGraphTests
 ```
 
 C# nullable reference types are enabled project-wide through `Assets/csc.rsp`.
@@ -96,6 +105,7 @@ LocalPackages/       vendored package tarballs (see "Known environment issue")
 Packages/            UPM manifest
 ProjectSettings/     project configuration (committed)
 docs/                design and engineering documentation
+tools/               batchmode wrappers — `tools/unity test`, `tools/unity build`
 ```
 
 Scripts are organised **by feature**, not by type. See

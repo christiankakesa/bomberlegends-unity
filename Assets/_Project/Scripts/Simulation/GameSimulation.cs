@@ -69,6 +69,7 @@ namespace BomberLegends.Simulation
                 Bombs = new BombBuffer(config.MaxBombs),
                 BombGrid = new BombGrid(layout.Width, layout.Height),
                 BlastGrid = new BlastGrid(layout.Width, layout.Height),
+                Threats = new ThreatGrid(layout.Width, layout.Height),
                 Projectiles = new ProjectileBuffer(config.MaxProjectiles),
                 Random = new DeterministicRandom(seed)
             };
@@ -157,10 +158,16 @@ namespace BomberLegends.Simulation
             // 6. Blasts — age existing fire, then resolve detonations and everything they chain into.
             BlastSystem.Tick(ref _state, _config, _detonationQueue, queued, _events);
 
-            // 7. Enemies — pursue, colliding with the world exactly as the player does.
+            // 7. Threats — project every fuse that is nearly out onto the tiles it will cover.
+            //    Between the blast and the enemies on purpose: it must see fire that has just been
+            //    painted, and the enemies must see it before they choose where to step.
+            ThreatSystem.Tick(ref _state, _config);
+
+            // 8. Enemies — pursue, colliding with the world exactly as the player does, and get
+            //    out of the way of anything about to go off.
             EnemySystem.Tick(ref _state, _config, _events);
 
-            // 8. Damage — read a finished picture of what is on fire and who is touching whom.
+            // 9. Damage — read a finished picture of what is on fire and who is touching whom.
             //    Must follow the blast, or it would judge a half-resolved explosion.
             DamageSystem.Tick(ref _state, _config, _events);
 

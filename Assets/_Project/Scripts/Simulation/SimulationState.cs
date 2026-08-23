@@ -50,6 +50,17 @@ namespace BomberLegends.Simulation
         /// <summary>How much longer each tile stays lethal.</summary>
         public BlastGrid BlastGrid;
 
+        /// <summary>
+        /// How far each tile is from somewhere a blast will not reach.
+        /// </summary>
+        /// <remarks>
+        /// Derived rather than authoritative: rebuilt from the board, the bombs and the fire at the
+        /// start of every enemy update, and therefore left out of the state hash. It lives here
+        /// rather than inside the enemy system because it is a property of the board, and the
+        /// player's own read-out of where it is unsafe to stand will want the same answer.
+        /// </remarks>
+        public ThreatGrid Threats;
+
         /// <summary>Every skillshot in flight.</summary>
         public ProjectileBuffer Projectiles;
 

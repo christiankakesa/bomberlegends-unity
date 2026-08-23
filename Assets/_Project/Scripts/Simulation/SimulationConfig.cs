@@ -37,6 +37,7 @@ namespace BomberLegends.Simulation
             int enemyRadius = 320,
             int maxEnemies = 32,
             int enemyAggroRadius = 7,
+            int enemyBombFearTicks = 45,
             int dashSpeedPerTick = 500,
             int dashDurationTicks = 6,
             int dashCooldownTicks = 60,
@@ -74,6 +75,7 @@ namespace BomberLegends.Simulation
             EnemyRadius = enemyRadius;
             MaxEnemies = maxEnemies;
             EnemyAggroRadius = enemyAggroRadius;
+            EnemyBombFearTicks = enemyBombFearTicks;
             DashSpeedPerTick = dashSpeedPerTick;
             DashDurationTicks = dashDurationTicks;
             DashCooldownTicks = dashCooldownTicks;
@@ -219,6 +221,33 @@ namespace BomberLegends.Simulation
         /// consistent with everything else that reasons about the grid.
         /// </remarks>
         public int EnemyAggroRadius { get; }
+
+        /// <summary>
+        /// How long before a bomb goes off an alerted enemy starts running from it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Enemies used to walk into explosions, and playtesters reported roughly four kills in
+        /// five coming from bombs while the aimed shot felt useless. The bomb was not winning
+        /// fights so much as winning them unattended, so the answer is fear rather than a smaller
+        /// blast: a bomb should kill because the player cut off the way out, not because nothing
+        /// on the board knew to leave.
+        /// </para>
+        /// <para>
+        /// The exact value is the whole design. Fear a bomb from the moment it lands and enemies
+        /// simply never come near one again, which breaks the game in the opposite direction.
+        /// Forty-five ticks is a second and a half of a three-second fuse: an enemy at the far end
+        /// of a starting blast needs three tiles of travel to get clear, which is thirty-eight
+        /// ticks at its default speed, so it escapes with a clear path and dies without one. That
+        /// margin narrows every time the player takes a blast-range item, which is exactly the
+        /// payoff a range item should have.
+        /// </para>
+        /// <para>
+        /// Zero restores the old oblivious behaviour, which is worth keeping reachable: a mob that
+        /// does not understand bombs is a legitimate enemy archetype, just not the only one.
+        /// </para>
+        /// </remarks>
+        public int EnemyBombFearTicks { get; }
 
         /// <summary>Sub-tile units the player covers each tick of a dash.</summary>
         public int DashSpeedPerTick { get; }
@@ -438,6 +467,12 @@ namespace BomberLegends.Simulation
             {
                 throw new ArgumentException(
                     "Enemies must wake at some distance, or an arena can never be cleared.");
+            }
+
+            if (EnemyBombFearTicks < 0)
+            {
+                throw new ArgumentException(
+                    "Bomb fear must not be negative; zero already means enemies ignore bombs.");
             }
 
             if (DashSpeedPerTick <= 0 || DashDurationTicks <= 0)

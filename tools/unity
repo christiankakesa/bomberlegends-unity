@@ -1,0 +1,256 @@
+#!/usr/bin/env bash
+#
+# tools/unity — batchmode Unity for this project, without the ceremony.
+#
+# The Unity CLI is Unity.exe itself; there is nothing to install. What this wraps is the four
+# things that go wrong every time it is driven by hand from WSL:
+#
+#   1. A stale results file. A compile error aborts the run before the test runner writes
+#      anything, so whatever is left on disk is the *previous* run — and reading it reports a
+#      confident pass over broken code. This deletes it first, every time.
+#   2. The Editor holding the project lock, which fails with a short and unhelpful log.
+#   3. Windows paths. The editor is a Windows binary and needs C:\ paths; the shell is not.
+#   4. Reading a 400-line log to find out whether 468 tests passed.
+#
+# Usage:
+#   tools/unity test [-p|--playmode] [-a|--all] [filter]
+#   tools/unity build <android|webgl|windows> [--release]
+#
+# Set UNITY_EDITOR to override the editor binary; otherwise it is resolved from
+# ProjectSettings/ProjectVersion.txt, so upgrading the project upgrades this too.
+
+set -uo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOG_DIR="$REPO/Logs"
+
+# Lines worth showing while a run is in progress. Everything else goes to the log file only:
+# Unity prints thousands of lines per run and none of the rest has ever helped.
+readonly INTERESTING='error CS[0-9]|Compilation failed|Multiple Unity instances|Aborting batchmode|Test run completed|Error building Player|BuildFailedException|Build (succeeded|failed|completed)|\[Build\]|Failed to activate|No valid Unity Editor license'
+
+UNITY_STATUS=0
+
+die() {
+    printf '\n%s: %s\n\n' "$(basename "$0")" "$1" >&2
+    exit 1
+}
+
+usage() {
+    sed -n '3,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    exit "${1:-0}"
+}
+
+editor_version() {
+    local file="$REPO/ProjectSettings/ProjectVersion.txt"
+    [[ -f $file ]] || die "no ProjectVersion.txt — is $REPO really the project root?"
+    sed -n 's/^m_EditorVersion: *//p' "$file" | head -1 | tr -d '\r'
+}
+
+editor_binary() {
+    if [[ -n ${UNITY_EDITOR:-} ]]; then
+        printf '%s' "$UNITY_EDITOR"
+        return
+    fi
+
+    local version hub path
+    version="$(editor_version)"
+    hub="/mnt/c/Program Files/Unity/Hub/Editor"
+    path="$hub/$version/Editor/Unity.exe"
+
+    if [[ ! -f $path ]]; then
+        printf 'The project wants Unity %s, which is not installed.\n' "$version" >&2
+        printf 'Installed:\n' >&2
+        ls "$hub" 2>/dev/null | sed 's/^/  /' >&2
+        die "install it from the Hub, or set UNITY_EDITOR to a specific Unity.exe"
+    fi
+
+    printf '%s' "$path"
+}
+
+# The Editor holds an exclusive lock on the project. Batchmode does not say so clearly — it
+# writes a few lines and exits — so the check is worth more than it looks. Never kill it: the
+# person at the keyboard may have unsaved scene changes.
+assert_editor_closed() {
+    command -v tasklist.exe >/dev/null 2>&1 || return 0
+
+    if tasklist.exe /FI "IMAGENAME eq Unity.exe" /NH 2>/dev/null | tr -d '\r' | grep -q 'Unity\.exe'; then
+        die "the Unity Editor is open and holds the project lock. Close it and run this again."
+    fi
+}
+
+run_unity() {
+    local log="$1"
+    shift
+
+    local rc
+    rc="$(mktemp)"
+
+    (
+        "$EDITOR_BINARY" -batchmode -nographics -projectPath "$WIN_REPO" "$@" -logFile - 2>&1
+        echo $? > "$rc"
+    ) | tee "$log" | grep --line-buffered -E "$INTERESTING"
+
+    UNITY_STATUS="$(cat "$rc")"
+    rm -f "$rc"
+}
+
+summarise_tests() {
+    local results="$1" log="$2" platform="$3"
+
+    if [[ ! -f $results ]]; then
+        printf '\n%s produced no results at all. That is almost always one of:\n' "$platform"
+        printf '  - a compile error (below, and in %s)\n' "${log#"$REPO"/}"
+        printf '  - the Editor holding the project lock\n\n'
+        grep -oE 'error CS[0-9]+.*' "$log" | sort -u | head -20 | sed 's/^/  /'
+        printf '\n'
+        return 1
+    fi
+
+    python3 - "$results" "$platform" <<'PY'
+import sys, xml.etree.ElementTree as ET
+
+results, platform = sys.argv[1], sys.argv[2]
+root = ET.parse(results).getroot()
+
+def count(name):
+    return int(root.get(name) or 0)
+
+failures = [tc for tc in root.iter('test-case') if tc.get('result') != 'Passed']
+
+for case in failures:
+    message = case.find('.//message')
+    first = ''
+    if message is not None and message.text:
+        first = message.text.strip().splitlines()[0]
+    print(f"  FAIL  {case.get('fullname') or case.get('name')}")
+    if first:
+        print(f"        {first}")
+
+failed = count('failed')
+mark = 'ok' if failed == 0 else 'FAILED'
+print(f"{mark}  {platform}: {count('passed')}/{count('total')} passed, "
+      f"{failed} failed, {count('skipped')} skipped")
+
+sys.exit(1 if failed else 0)
+PY
+}
+
+run_suite() {
+    local platform="$1" filter="${2:-}"
+    local results="$LOG_DIR/test-$platform.xml"
+    local log="$LOG_DIR/test-$platform.log"
+
+    mkdir -p "$LOG_DIR"
+
+    # The reason this script exists. Leave it in place and a compile error reports the previous
+    # run's pass, which is worse than no result at all.
+    rm -f "$results"
+
+    local args=( -runTests -testPlatform "$platform" -testResults "$WIN_LOG_DIR\\test-$platform.xml" )
+    [[ -n $filter ]] && args+=( -testFilter "$filter" )
+
+    printf '\n%s%s\n' "$platform" "${filter:+ matching \"$filter\"}"
+    run_unity "$log" "${args[@]}"
+    summarise_tests "$results" "$log" "$platform"
+}
+
+cmd_test() {
+    local platform=EditMode both=0 filter=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -p|--playmode) platform=PlayMode ;;
+            -a|--all)      both=1 ;;
+            -h|--help)     usage ;;
+            -*)            die "unknown option $1" ;;
+            *)             filter="$1" ;;
+        esac
+        shift
+    done
+
+    assert_editor_closed
+
+    local status=0
+
+    if (( both )); then
+        run_suite EditMode "$filter" || status=1
+        run_suite PlayMode "$filter" || status=1
+    else
+        run_suite "$platform" "$filter" || status=1
+    fi
+
+    return "$status"
+}
+
+cmd_build() {
+    local target="${1:-}" flavour=BuildDevelopment
+    shift || true
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --release) flavour=BuildRelease ;;
+            -h|--help) usage ;;
+            *)         die "unknown option $1" ;;
+        esac
+        shift
+    done
+
+    local build_target tool output
+
+    case "$target" in
+        android) build_target=Android; tool=AndroidBuildTool; output=Builds/Android ;;
+        webgl)   build_target=WebGL;   tool=WebGLBuildTool;   output=Builds/WebGL ;;
+        windows) build_target=Win64;   tool=WindowsBuildTool; output=Builds/Windows ;;
+        "")      die "which target? android, webgl or windows" ;;
+        *)       die "unknown target '$target' — android, webgl or windows" ;;
+    esac
+
+    # Standing reminder, put here so it outlives whoever remembers it. The application ID is
+    # permanent once a build is published to a store, and the development keystore is Unity's
+    # shared debug one.
+    if [[ $target == android && $flavour == BuildRelease ]]; then
+        printf '\n  Before any store upload: confirm the application ID is final — it cannot be\n'
+        printf '  changed after the first publish — and that a real release keystore is in use.\n'
+    fi
+
+    assert_editor_closed
+    mkdir -p "$LOG_DIR"
+
+    local log="$LOG_DIR/build-$target.log"
+
+    printf '\n%s %s\n' "$target" "${flavour#Build}"
+    run_unity "$log" -quit -buildTarget "$build_target" \
+        -executeMethod "BomberLegends.Editor.$tool.$flavour"
+
+    if [[ $UNITY_STATUS -ne 0 ]]; then
+        printf '\nFAILED  exit %s — see %s\n' "$UNITY_STATUS" "${log#"$REPO"/}"
+        return 1
+    fi
+
+    printf '\nok  %s\n' "$output"
+    du -sh "$REPO/$output" 2>/dev/null | sed 's/^/    /'
+}
+
+main() {
+    local command="${1:-help}"
+    shift || true
+
+    case "$command" in
+        test)          ;;
+        build)         ;;
+        -h|--help|help) usage ;;
+        *)             printf 'unknown command: %s\n' "$command" >&2; usage 1 ;;
+    esac
+
+    command -v wslpath >/dev/null 2>&1 || die "wslpath is missing; this expects WSL"
+    command -v python3 >/dev/null 2>&1 || die "python3 is missing; it reads the test results"
+
+    EDITOR_BINARY="$(editor_binary)" || exit 1
+    WIN_REPO="$(wslpath -w "$REPO")"
+    mkdir -p "$LOG_DIR"
+    WIN_LOG_DIR="$(wslpath -w "$LOG_DIR")"
+
+    "cmd_$command" "$@"
+}
+
+main "$@"

@@ -54,6 +54,23 @@ Cheap, deterministic and unit-testable: it is one system in the engine-free simu
 > **This must land before any bomb buff.** Two of the four pickup ideas below amplify a verb that is
 > already dominant, and they are held on exactly this reasoning.
 
+### Built, 2026-08-24 — and it is not sufficient
+
+Done: enemies read a threat grid and run from bombs about to go off, hold at the edge of fire rather
+than walking in, and are exempt while dormant so stealth-bombing survives. Full write-up in
+[07-CONCEPT-REVISION §4p](07-CONCEPT-REVISION.md); ten tests, including the counterfactual that the
+same bomb with fear switched off still kills the enemy where it stands.
+
+**Measuring it in generated arenas turned up the other half of the problem.** At the shipping
+`destructiblePercent` of 55, **two bomb placements in five cover a pocket of floor with no walkable
+tile outside it** — the blast fills a corridor segment bounded by blocks, and fear cannot help an
+enemy with nowhere to go. Every death in the automated runs was of that kind. At 35% fill it is 14%,
+at 25% it is 6%.
+
+So the "four kills in five" figure has **two** causes, and only one of them is now fixed. The other
+is level generation, which promotes §6's block-clustering item from a cosmetic fix for a perception
+problem to a balance change — see §6.
+
 ---
 
 ## 2. Large arenas: a real problem, and the proposed solution is the wrong one
@@ -192,6 +209,12 @@ most arms face open floor.
 it actually lives: block clustering in generation so arms have something to hit, and blast VFX that
 reads all four arms clearly. Raising bomb power would compound §1.
 
+> **Upgraded after §1 was built.** The same 55% scatter that makes a bomb look like it breaks one
+> block is what seals two placements in five into an inescapable pocket. It is one cause behind three
+> separate complaints — bombs kill everything, bombs break nothing, and the shot has no job — which
+> makes level generation a balance change rather than a presentation fix, and the next thing to do
+> after this.
+
 ---
 
 ## 7. Where these land
@@ -202,15 +225,20 @@ reads all four arms clearly. Raising bomb power would compound §1.
 | **Now** | Bomb drop audio · dash audio | Asset work, and one is the core verb (§4) |
 | **Now** | Bomb capacity/cooldown in the readout | Known bug class, already fixed once for skills (§4) |
 | **Now** | Show the locked skill slots | Costs nothing, answers a real frustration (§4) |
-| **M6** | **Enemy blast awareness** | The highest-leverage change in the set (§1) |
+| ~~**M6**~~ **Done** | ~~Enemy blast awareness~~ **Built 2026-08-24** | The highest-leverage change in the set (§1) |
+| **Next** | **Block clustering in generation** | Promoted: two bombs in five still kill by level layout, not by play (§1, §6) |
 | **M6** | Wake remaining Sentinels as an arena empties · camera pull-back at depth | Late-arena pacing (§2) |
 | **M6** | Offer-gating: no scaling items in the arena 1 pool | Overclock (§5) |
-| **M6** | Block clustering in generation · four-arm blast VFX | The bomb-power perception (§6) |
+| **M6** | Four-arm blast VFX | The bomb-power perception (§6) |
 | **M7** | Explosive Shot · long-range bomb | New skills, into the existing framework (§6) |
 | **M7** | Slots 3–4 | Already scoped |
 | **Hold** | Bomb supercharge · raising bomb power | Revisit after enemy blast awareness (§1, §6) |
 | **Declined** | Minimap / zoom as a feature | Take the pacing problem instead (§2) |
 
 **The order matters more than the list.** Enemy blast awareness changes what every bomb-flavoured
-idea below it is worth, so it goes first among the gameplay changes — and the four *Now* items are
+idea below it is worth, so it went first among the gameplay changes — and the four *Now* items are
 all screen-and-sound work that can proceed in parallel because none of them touch the simulation.
+
+**Building it moved the next item.** Level generation is no longer a presentation fix waiting behind
+the interesting work; it is the remaining half of the same problem, and the bomb-flavoured pickups
+stay held until it lands.

@@ -25,6 +25,8 @@ Legend — ✅ built and played · 🧪 built, not yet played · ⬜ not built
 | Health, immunity window | ✅ | Own blast 34, enemy contact 10, 30-tick immunity |
 | Pursuing enemy | ✅ | Greedy tile chase, ties broken by the run's own RNG |
 | Enemy lane centring | ✅ | Fixes wedging on pillar corners |
+| Enemy blast awareness | ✅ | `ThreatGrid` distance field; alerted enemies run, hold at the edge, dormant ones are exempt |
+| `EnemyBombFearTicks` | 🧪 | 45 of a 90-tick fuse; zero restores the oblivious mob as an archetype |
 | Arena clear condition | ✅ | Every spawned enemy dead |
 
 ## Skills
@@ -173,10 +175,13 @@ essentially unchanged.
 A larger single opponent ending a run of arenas.
 
 **Open question before building:** what makes it a boss. Health alone produces a long fight, not a
-hard one. The strongest available lever is the one the M3 verdict identified — **danger awareness**:
-an opponent that reads `BlastGrid` and refuses to walk into fire cannot be beaten by the trap that
-works on every basic mob, which forces a genuinely different plan.
+hard one. Danger awareness *was* the strongest lever here — and **it has been spent**: every alerted
+enemy now refuses to walk into fire, so it is the floor rather than the ceiling. A boss needs a
+different axis. The nearest one still unused is making it *deny space* rather than merely survive it.
 
 ### Enemy variety
 Mobs differentiated by behaviour rather than statistics: a bomb-avoider, a charger, a ranged one.
-The same danger-awareness lever applies, and `BlastGrid` already answers the question in one read.
+The bomb-avoider **is now the default**, which inverts this list: the interesting archetype is the one
+that does *not* care, and `EnemyBombFearTicks: 0` already produces it without a line of new code. A
+mob that walks into your trap is a different threat from one that reads it, and the pair is more
+variety than either alone. Everything else here still needs building.
