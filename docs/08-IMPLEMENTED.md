@@ -1,6 +1,7 @@
 # What is actually built
 
-**Updated 2026-08-24 · 470 EditMode + 17 PlayMode tests green, zero warnings · device-verified on a Galaxy S21 Ultra**
+**Updated 2026-08-24 · 470 EditMode + 27 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
+Ultra, a Solana Seeker 2 and a RedMagic (NP05J) tablet**
 
 A plain inventory of what exists in the project right now, so proposals can be validated against
 reality rather than against memory. Design rationale lives in
@@ -76,13 +77,14 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 |---|---|---|
 | 3D greybox, follower camera | ✅ | Camera distance scales with arena width |
 | Pooled views for bombs, blasts, debris, shots | ✅ | Prewarmed; growth mid-match is an error |
-| HUD: arena, health, enemies, charges, build | ✅ | |
-| Item choice screen, phone-legible | 🧪 | Body text 9 → 14.3 dp, `TAKE`/`GIVE UP` on the card, `CHOOSE ONE` headline; **not yet seen by a tester** |
-| Every other greybox screen, phone-legible | 🧪 | Pause menu, control hints, touch buttons, pause control, hub QUIT, device log — all were 9–13 dp; **not yet seen by a tester** |
+| HUD: arena, health, enemies, bombs, charges, build | ✅ | Bombs read as a count, or as the countdown to the next one |
+| HUD build on its own line | ✅ | The single line wanted 2320 units against the 1740 a tablet has, and the build was the end that fell off |
+| Item choice screen, phone-legible | ✅ | Body text 9 → 14.3 dp, `TAKE`/`GIVE UP` on the card, `CHOOSE ONE` headline; read and tapped cleanly on all three devices 2026-08-24 |
+| Every other greybox screen, phone-legible | ✅ | Pause menu, control hints, touch buttons, pause control, hub QUIT, device log — all were 9–13 dp; verified on all three devices 2026-08-24 |
 | Keyboard + mouse aim | ✅ | `Shift` dash · `Q`/LMB shot · `E`/RMB slot 3 |
 | Gamepad + right-stick aim | 🧪 | `B` dash · `X` shot · `Y` slot 3 — **never played** |
 | Touch controls hidden off touch devices | ✅ | Added 2026-08-07 |
-| Touch controls stand down while a screen covers the match | ✅ | Found on device 2026-08-24: `SHOT` sat on the right choice card and took its taps |
+| Touch controls stand down while a screen covers the match | ✅ | Found on device 2026-08-24: `SHOT` sat on the right choice card and took its taps. Fixed twice — the controls stand down, and the overlay now outranks them — and the card takes its own taps on all three devices |
 | Quit the application | ✅ | Hub QUIT; stops play mode in the Editor |
 | Gamepad / keyboard menu navigation | ✅ | Focus set on arrival, kept when lost, visibly highlighted |
 | Active-device arbitration | 🧪 | Last device *deliberately used* owns the whole tick, aim included |

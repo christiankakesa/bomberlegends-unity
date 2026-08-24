@@ -954,6 +954,15 @@ passed* — it is *the gate was superseded by better evidence, on two of three d
    not a design one, and it now carries forward as build work — the item cards are text-only at
    phone size. **It is not closed, it is relocated.** Verify it with three people on a phone for ten
    minutes, not with another twelve-tester round.
+
+   > **The interface half is closed (2026-08-24).** The cards were resized from the device rather
+   > than by eye, and the defect underneath the round-3 failure was found: the `SHOT` button sat on
+   > top of the right-hand choice card and swallowed the taps meant for it. Fixed twice over — the
+   > controls stand down while a screen is up, and the overlay now raises itself above whatever
+   > shares its canvas — and verified on a Galaxy S21 Ultra, a Solana Seeker 2 and a RedMagic
+   > (NP05J) tablet. **What is still unobserved is the design half**: whether a player on a phone,
+   > now that the cards can be read and tapped, chooses deliberately. That is the ten-minute check
+   > with three people, and it no longer has a known defect standing in front of it.
 2. **The bomb.** Bomb-and-escape fell from 12/12 to 7/12 while every build description led with
    dash, pierce or shot. The gate never asked this and it matters more than the gate did: it decides
    whether this is a Bomberman hybrid or a twin-stick shooter. Settle it before content is built on

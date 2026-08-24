@@ -310,9 +310,9 @@ reads all four arms clearly. Raising bomb power would compound §1.
 
 | | Item | Why here |
 |---|---|---|
-| ~~**Now**~~ **Built** | ~~Skill choice screen~~ **2026-08-24, unverified by testers** | The gate's carried-forward failure (§3) |
+| ~~**Now**~~ **Done** | ~~Skill choice screen~~ **2026-08-24, device-verified on all three targets** | The gate's carried-forward failure (§3) |
 | **Now** | Bomb drop audio · dash audio | Asset work, and one is the core verb (§4) |
-| **Now** | Bomb capacity/cooldown in the readout | Known bug class, already fixed once for skills (§4) |
+| ~~**Now**~~ **Done** | ~~Bomb capacity/cooldown in the readout~~ **2026-08-24** | Known bug class, already fixed once for skills (§4). Measuring it found the readout running off the side of every target screen, taking the build with it |
 | **Now** | Show the locked skill slots | Costs nothing, answers a real frustration (§4) |
 | ~~**M6**~~ **Done** | ~~Enemy blast awareness~~ **Built 2026-08-24** | The highest-leverage change in the set (§1) |
 | ~~**Next**~~ **Done** | ~~Block clustering in generation~~ **Built 2026-08-24** | Sealed placements 36% → 17% at unchanged density (§1, §6) |

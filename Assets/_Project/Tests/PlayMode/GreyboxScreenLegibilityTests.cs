@@ -4,6 +4,11 @@ using BomberLegends.Gameplay.Match;
 using BomberLegends.Gameplay.Ui;
 using BomberLegends.Input;
 using BomberLegends.Services;
+using BomberLegends.Core;
+using BomberLegends.Simulation;
+using BomberLegends.Simulation.Board;
+using BomberLegends.Simulation.Items;
+using BomberLegends.Simulation.Run;
 using BomberLegends.Simulation.Skills;
 using BomberLegends.UI.Screens;
 using NUnit.Framework;
@@ -157,6 +162,61 @@ namespace BomberLegends.Tests.PlayMode
             AssertLabelsFitTheirRects(button.gameObject, "the in-match pause control");
         }
 
+        /// <summary>
+        /// The readout that is on screen for the whole match, at its longest.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The one screen this audit had missed, and the one with the most to lose: it is drawn
+        /// over the arena for every second of play, and it is a single line that grows every time
+        /// something is added to it. It has already been clipped once on a device — it wrapped onto
+        /// a second line the box then cut off, taking the charges and the whole build with it —
+        /// which is why the view forces overflow. Overflow trades a clipped line for one that can
+        /// run off the side instead, so the length is what has to be held.
+        /// </para>
+        /// <para>
+        /// Measured on a real run rather than an authored string: a bomb on the board, both skills
+        /// spent, two items held and an arena number in double digits is the fullest the line gets
+        /// today, and every part of it comes from the code that ships.
+        /// </para>
+        /// </remarks>
+        [UnityTest]
+        public IEnumerator TheMatchReadoutFitsEveryScreenAtItsLongest()
+        {
+            // The device the floor comes from goes first, on its own: dp is a claim about a real
+            // screen, and the other two shapes in the set are aspect ratios rather than handsets.
+            _root = PhoneCanvas.Build(PhoneCanvas.GalaxyS21Ultra, out var deviceScale);
+            BuildFullestReadout(_root.GetComponent<Canvas>());
+
+            yield return null;
+
+            AssertEveryWordIsReadable(_root, deviceScale, "the match readout");
+            TearDown();
+
+            foreach (var shape in PhoneCanvas.Shapes)
+            {
+                _root = PhoneCanvas.Build(shape, out var scale);
+
+                var label = BuildFullestReadout(_root.GetComponent<Canvas>())
+                    .GetComponent<Text>();
+
+                yield return null;
+
+                // The label is inset 40 units from the left, and the top-right corner of a match
+                // holds the pause control, so the same inset is the least that has to stay clear
+                // on the other side.
+                const float Inset = 40f;
+                var available = shape.x / scale - Inset * 2f;
+
+                Assert.That(label.preferredWidth, Is.LessThanOrEqualTo(available),
+                    $"on a {shape.x}x{shape.y} screen the readout needs " +
+                    $"{label.preferredWidth:F0} units and has {available:F0}: " +
+                    $"\"{label.text}\"");
+
+                TearDown();
+            }
+        }
+
         [UnityTest]
         public IEnumerator NothingOnTheseScreensRunsOffTheNarrowestCanvas()
         {
@@ -257,6 +317,92 @@ namespace BomberLegends.Tests.PlayMode
                         $"the {half.y:F0} a {shape.x}x{shape.y} screen has");
                 }
             }
+        }
+
+        /// <summary>
+        /// Draws the readout at its longest: arena in double digits, a bomb on the board, both
+        /// skills spent and the two roomiest items held.
+        /// </summary>
+        private static MatchHudView BuildFullestReadout(Canvas canvas)
+        {
+            var hud = BuildMatchReadout(canvas);
+            hud.ArenaNumber = 12;
+
+            var run = new GameRun(
+                SimulationConfig.Default,
+                new[] { CrowdedArena },
+                seed: 1u,
+                startingItems: TheTwoLongestItemNames);
+
+            // One tick spends both skills and puts the only bomb on the board, so all three
+            // counters show a countdown rather than a digit.
+            run.Current.Tick(new PlayerIntent(
+                0, 0, IntentButtons.Bomb | IntentButtons.Skill1 | IntentButtons.Skill2));
+
+            hud.Render(run.Current);
+
+            return hud;
+        }
+
+        /// <summary>An arena crowded enough to put two digits in the enemy count.</summary>
+        private static LevelLayout CrowdedArena => LevelLayout.Parse(
+            "###############",
+            "#EEEEEEEEEEEE.#",
+            "#.............#",
+            "#......P......#",
+            "#.............#",
+            "###############");
+
+        /// <summary>
+        /// The two items whose names take the most room, which is what the line has to survive.
+        /// </summary>
+        /// <remarks>
+        /// Read out of the catalogue rather than named here, so an item renamed or added is
+        /// measured without anybody remembering to come back to this test.
+        /// </remarks>
+        private static ItemId[] TheTwoLongestItemNames
+        {
+            get
+            {
+                var all = (ItemId[])ItemCatalog.All.Clone();
+                System.Array.Sort(all, (a, b) =>
+                    ItemCatalog.Name(b).Length.CompareTo(ItemCatalog.Name(a).Length));
+
+                return new[] { all[0], all[1] };
+            }
+        }
+
+        /// <summary>
+        /// Builds the match readout the way the scene authors it.
+        /// </summary>
+        /// <remarks>
+        /// Duplicated from <c>SceneScaffolder.CreateHud</c> for the reason <see cref="PhoneCanvas"/>
+        /// gives for duplicating the scaler: the scaffolder is editor-only, and if the two drift
+        /// this stops measuring the shipped readout — which is worth a comment on both sides.
+        /// </remarks>
+        private static MatchHudView BuildMatchReadout(Canvas canvas)
+        {
+            var host = new GameObject("Readout", typeof(Text), typeof(MatchHudView));
+            host.transform.SetParent(canvas.transform, false);
+
+            var rect = host.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(40f, -30f);
+            rect.sizeDelta = new Vector2(1700f, 70f);
+
+            var text = host.GetComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 42;
+            text.alignment = TextAnchor.UpperLeft;
+
+            var field = typeof(MatchHudView).GetField(
+                "_output", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, "MatchHudView no longer has an _output to write to");
+            field!.SetValue(host.GetComponent<MatchHudView>(), text);
+
+            return host.GetComponent<MatchHudView>();
         }
 
         private Canvas BuildCanvas(out float scale)
