@@ -165,6 +165,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: BomberLegends.Bootstrap::BomberLegends.Bootstrap.GameBootstrap
   _loadingScreen: {fileID: 2024866032}
   _saveLifecycle: {fileID: 68498418}
+  _mixer: {fileID: 24100000, guid: 829bdf46b1ec8214d8a9d3ef57cec6ab, type: 2}
   _targetFrameRate: 60
   _allowScreenSleep: 0
 --- !u!81 &68498420

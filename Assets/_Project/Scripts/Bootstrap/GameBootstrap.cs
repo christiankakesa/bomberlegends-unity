@@ -6,6 +6,7 @@ using BomberLegends.Services.Save;
 using BomberLegends.Services.Scenes;
 using BomberLegends.Services.Settings;
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace BomberLegends.Bootstrap
 {
@@ -34,6 +35,12 @@ namespace BomberLegends.Bootstrap
         [SerializeField]
         [Tooltip("Flushes the save when the application is backgrounded or quits.")]
         private SaveLifecycleHandler? _saveLifecycle;
+
+        [SerializeField]
+        [Tooltip(
+            "The project audio mixer. Bus levels are set on its exposed parameters, so Master sits " +
+            "above the rest by construction. Leaving it empty falls back to per-source multipliers.")]
+        private AudioMixer? _mixer;
 
         [Header("Application")]
         [SerializeField, Range(30, 120)]
@@ -68,7 +75,7 @@ namespace BomberLegends.Bootstrap
             var save = new SaveService(repository);
             // Hosted beneath the bootstrap object, which survives every scene change, so voices are
             // pooled once for the whole session rather than rebuilt per match.
-            var audio = new AudioService(transform);
+            var audio = new AudioService(transform, mixer: _mixer);
             var assets = new UnavailableAssetService();
             var analytics = new NullAnalyticsService();
             var scenes = new SceneService(_loadingScreen);

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using BomberLegends.Core;
 using BomberLegends.Data.Audio;
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace BomberLegends.Services.Audio
 {
@@ -16,9 +17,14 @@ namespace BomberLegends.Services.Audio
     /// the CPU at the exact moment the game is at its most demanding.
     /// </para>
     /// <para>
-    /// Bus levels are applied as plain multipliers rather than through an <c>AudioMixer</c>, because
-    /// no mixer asset exists yet. The interface does not expose the difference, so introducing one
-    /// later changes this class and nothing that calls it.
+    /// Bus levels go through an <c>AudioMixer</c> when one is supplied, and fall back to plain
+    /// multipliers when it is not — which is what every test does, and what a scene missing the
+    /// reference does rather than falling silent. The interface does not expose the difference.
+    /// </para>
+    /// <para>
+    /// The mixer is not decoration. Buses are a <i>graph</i> there: Master is the parent of the
+    /// other five, so lowering it lowers everything by construction. The multiplier fallback cannot
+    /// express that — it applies one bus per sound and Master reaches nothing but the music.
     /// </para>
     /// </remarks>
     public sealed class AudioService : IAudioService
@@ -31,14 +37,25 @@ namespace BomberLegends.Services.Audio
         private readonly Dictionary<SfxDefinition, int> _live = new Dictionary<SfxDefinition, int>();
         private readonly SfxDefinition?[] _playing;
         private readonly float[] _freeAt;
+        private readonly AudioMixer? _mixer;
+        private readonly AudioMixerGroup?[] _groups = new AudioMixerGroup?[BusCount];
 
         private AudioSource? _music;
         private MusicDefinition? _currentTrack;
         private uint _pitchSeed = 0x9E3779B9u;
 
         /// <summary>Creates the service and its pool beneath the given transform.</summary>
-        public AudioService(Transform parent, int voices = 16)
+        /// <param name="parent">Where the voice objects are hosted.</param>
+        /// <param name="voices">How many sounds may overlap.</param>
+        /// <param name="mixer">
+        /// The project mixer. Optional: without one, bus levels are applied as multipliers on each
+        /// source instead, which is correct but cannot express Master sitting above the rest.
+        /// </param>
+        public AudioService(Transform parent, int voices = 16, AudioMixer? mixer = null)
         {
+            _mixer = mixer;
+            ResolveGroups();
+
             for (var i = 0; i < BusCount; i++)
             {
                 _busVolumes[i] = 1f;
@@ -116,7 +133,8 @@ namespace BomberLegends.Services.Audio
             var source = _sources[voice];
 
             source.clip = clip;
-            source.volume = definition.Volume * _busVolumes[(int)definition.Bus];
+            source.outputAudioMixerGroup = _groups[(int)definition.Bus];
+            source.volume = definition.Volume * SourceLevel(definition.Bus);
             source.pitch = 1f + Spread(definition.PitchVariation);
 
             // Flat, always. See the note on the position parameter: spatialising against a listener
@@ -142,7 +160,8 @@ namespace BomberLegends.Services.Audio
 
             _currentTrack = definition;
             _music.clip = definition.Clip;
-            _music.volume = definition.Volume * _busVolumes[(int)AudioBus.Music];
+            _music.outputAudioMixerGroup = _groups[(int)AudioBus.Music];
+            _music.volume = definition.Volume * SourceLevel(AudioBus.Music);
             _music.Play();
         }
 
@@ -158,9 +177,17 @@ namespace BomberLegends.Services.Audio
         {
             _busVolumes[(int)bus] = Mathf.Clamp01(normalized01);
 
+            if (_mixer != null)
+            {
+                // The graph takes it from here: a level set on Master reaches every sound beneath
+                // it, including ones already playing, which a per-source multiplier cannot do.
+                _mixer.SetFloat(ParameterFor(bus), Decibels(_busVolumes[(int)bus]));
+                return;
+            }
+
             if (bus is AudioBus.Music or AudioBus.Master && _music != null && _currentTrack != null)
             {
-                _music.volume = _currentTrack.Volume * _busVolumes[(int)AudioBus.Music];
+                _music.volume = _currentTrack.Volume * SourceLevel(AudioBus.Music);
             }
         }
 
@@ -181,6 +208,96 @@ namespace BomberLegends.Services.Audio
             _lastPlayed.Clear();
             StopMusic(0f);
         }
+
+        /// <summary>
+        /// The exposed mixer parameter carrying a bus's level.
+        /// </summary>
+        /// <remarks>
+        /// By convention rather than by reference, because a mixer's exposed parameters are strings
+        /// and there is nothing to bind to. <see cref="ResolveGroups"/> reports any that are missing
+        /// at start-up rather than leaving a slider that silently does nothing.
+        /// </remarks>
+        public static string ParameterFor(AudioBus bus) => bus switch
+        {
+            AudioBus.Master => "MasterVolume",
+            AudioBus.Music => "MusicVolume",
+            AudioBus.Sfx => "SfxVolume",
+            AudioBus.Ui => "UiVolume",
+            AudioBus.Voice => "VoiceVolume",
+            AudioBus.Ambience => "AmbienceVolume",
+            _ => "MasterVolume"
+        };
+
+        /// <summary>
+        /// A normalised level as the mixer wants it.
+        /// </summary>
+        /// <remarks>
+        /// Mixer levels are decibels, and loudness is logarithmic — halving a linear multiplier is
+        /// not halving what a player hears. Silence is a floor rather than negative infinity because
+        /// the mixer's own suspend threshold sits at −80.
+        /// </remarks>
+        public static float Decibels(float normalized01) =>
+            normalized01 <= 0.0001f ? -80f : Mathf.Log10(normalized01) * 20f;
+
+        /// <summary>Finds the group for each bus, and says so when one is missing.</summary>
+        private void ResolveGroups()
+        {
+            if (_mixer == null)
+            {
+                return;
+            }
+
+            var groups = _mixer.FindMatchingGroups(string.Empty);
+
+            for (var bus = 0; bus < BusCount; bus++)
+            {
+                var wanted = ((AudioBus)bus).ToString();
+
+                for (var i = 0; i < groups.Length; i++)
+                {
+                    if (groups[i] != null && groups[i].name == wanted)
+                    {
+                        _groups[bus] = groups[i];
+                        break;
+                    }
+                }
+
+                if (_groups[bus] == null)
+                {
+                    Debug.LogWarning(
+                        $"[Audio] The mixer has no '{wanted}' group; that bus falls back to Master.");
+                }
+                else if (!_mixer.GetFloat(ParameterFor((AudioBus)bus), out _))
+                {
+                    Debug.LogWarning(
+                        $"[Audio] '{ParameterFor((AudioBus)bus)}' is not exposed on the mixer; the " +
+                        $"{wanted} slider will do nothing.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// What a source must apply itself, on top of whatever the graph is already doing.
+        /// </summary>
+        /// <remarks>
+        /// With a mixer that is nothing: the bus owns the level. Without one it is the bus level
+        /// times Master's, so the root still reaches every sound — which the version before this
+        /// got wrong, applying one bus per sound and letting Master touch only the music.
+        /// </remarks>
+        private float SourceLevel(AudioBus bus) =>
+            _mixer != null
+                ? 1f
+                : CombinedLevel(bus, _busVolumes[(int)bus], _busVolumes[(int)AudioBus.Master]);
+
+        /// <summary>
+        /// What a sound on <paramref name="bus"/> plays at when there is no mixer graph to do it.
+        /// </summary>
+        /// <remarks>
+        /// Master multiplies into every other bus, which is what the graph would have done for free.
+        /// A sound already on Master is not multiplied by it twice.
+        /// </remarks>
+        public static float CombinedLevel(AudioBus bus, float busLevel, float masterLevel) =>
+            bus == AudioBus.Master ? masterLevel : busLevel * masterLevel;
 
         /// <summary>Whether the effect's own limits allow another instance right now.</summary>
         private bool MayPlay(SfxDefinition definition)

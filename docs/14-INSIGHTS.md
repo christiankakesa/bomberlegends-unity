@@ -348,7 +348,7 @@ reads all four arms clearly. Raising bomb power would compound §1.
 | | Item | Why here |
 |---|---|---|
 | ~~**Now**~~ **Done** | ~~Skill choice screen~~ **2026-08-24, device-verified on all three targets** | The gate's carried-forward failure (§3) |
-| **Now** | Bomb drop audio · dash audio | Asset work, and one is the core verb (§4) |
+| **Now** | Bomb drop audio · dash audio | Asset work, and one is the core verb (§4). **Deferred 2026-08-24**: the placeholders stay for now, and the bomb drop was retuned to survive a phone speaker instead |
 | ~~**Now**~~ **Done** | ~~Bomb capacity/cooldown in the readout~~ **2026-08-24** | Known bug class, already fixed once for skills (§4). Measuring it found the readout running off the side of every target screen, taking the build with it |
 | ~~**Now**~~ **Done** | ~~Show the locked skill slots~~ **2026-08-24** | Costs nothing, answers a real frustration (§4). Also the cheapest evidence for open question #1: someone asking for the third skill before being offered it says it earns its slot |
 | ~~**M6**~~ **Done** | ~~Enemy blast awareness~~ **Built 2026-08-24** | The highest-leverage change in the set (§1) |

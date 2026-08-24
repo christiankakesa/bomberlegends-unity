@@ -165,6 +165,63 @@ namespace BomberLegends.Tests.EditMode.Gameplay
         }
 
         [Test]
+        public void TheBombGoingDownSurvivesAPhoneSpeaker()
+        {
+            // The sound the player makes more often than any other, on hardware that moves almost
+            // no air below 400 Hz. A clip whose level collapses under a 300 Hz high-pass is one the
+            // player on the primary target platform cannot hear at all.
+            var clip = ProceduralClips.Thump();
+
+            var data = new float[clip.samples];
+            clip.GetData(data, 0);
+
+            var kept = Rms(HighPassed(data, 300f)) / Rms(data);
+
+            Assert.That(kept, Is.GreaterThan(0.6f),
+                $"only {kept:P0} of the bomb-drop survives a 300 Hz high-pass; a phone plays what is left");
+
+            Object.DestroyImmediate(clip);
+        }
+
+        /// <summary>
+        /// The signal with everything below <paramref name="hertz"/> taken out of it.
+        /// </summary>
+        /// <remarks>
+        /// A one-pole high-pass, which is far cruder than any real speaker's roll-off and is meant
+        /// to be: it stands in for the question "is there anything here a small driver can move?"
+        /// and nothing more.
+        /// </remarks>
+        private static float[] HighPassed(float[] data, float hertz)
+        {
+            const float SampleRate = 44100f;
+
+            var interval = 1f / SampleRate;
+            var constant = 1f / (2f * Mathf.PI * hertz);
+            var alpha = constant / (constant + interval);
+
+            var output = new float[data.Length];
+
+            for (var i = 1; i < data.Length; i++)
+            {
+                output[i] = alpha * (output[i - 1] + data[i] - data[i - 1]);
+            }
+
+            return output;
+        }
+
+        private static float Rms(float[] data)
+        {
+            var total = 0.0;
+
+            for (var i = 0; i < data.Length; i++)
+            {
+                total += (double)data[i] * data[i];
+            }
+
+            return Mathf.Sqrt((float)(total / Mathf.Max(1, data.Length)));
+        }
+
+        [Test]
         public void GeneratedClipsAreAudibleRatherThanEmpty()
         {
             var clip = ProceduralClips.Hurt();

@@ -35,6 +35,8 @@ namespace BomberLegends.Editor
     {
         private const string SceneDirectory = "Assets/_Project/Scenes";
 
+        private const string MixerPath = "Assets/_Project/Settings/Audio/MainMixer.mixer";
+
         /// <summary>Creates or replaces Bootstrap, Hub and Match, then registers them for building.</summary>
         [MenuItem("Bomber Legends/Scenes/Rebuild Scene Scaffolding")]
         public static void Rebuild()
@@ -78,6 +80,11 @@ namespace BomberLegends.Editor
             var serialized = new SerializedObject(bootstrap);
             serialized.FindProperty("_loadingScreen").objectReferenceValue = loadingScreen;
             serialized.FindProperty("_saveLifecycle").objectReferenceValue = lifecycle;
+
+            // Loaded by path rather than created: the mixer is authored, and a scaffolder that
+            // made its own would quietly replace the one whose exposed parameters are wired up.
+            serialized.FindProperty("_mixer").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<UnityEngine.Audio.AudioMixer>(MixerPath);
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             return SaveScene(scene, SceneService.NameOf(SceneId.Bootstrap));
