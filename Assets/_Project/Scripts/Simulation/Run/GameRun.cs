@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using BomberLegends.Core;
 using BomberLegends.Simulation.Board;
 using BomberLegends.Simulation.Items;

@@ -49,7 +49,8 @@ namespace BomberLegends.Simulation
             int maxProjectiles = 16,
             int itemSlots = 2,
             int arenaClearHealing = 25,
-            int playerLaneAssistPerTick = 130)
+            int playerLaneAssistPerTick = 130,
+            int arenaTailShare = 50)
         {
             MoveSpeedPerTick = moveSpeedPerTick;
             LaneSnapPerTick = laneSnapPerTick;
@@ -88,6 +89,7 @@ namespace BomberLegends.Simulation
             ItemSlots = itemSlots;
             ArenaClearHealing = arenaClearHealing;
             PlayerLaneAssistPerTick = playerLaneAssistPerTick;
+            ArenaTailShare = arenaTailShare;
         }
 
         /// <summary>Sub-tile units the player advances each tick while moving.</summary>
@@ -327,6 +329,28 @@ namespace BomberLegends.Simulation
         /// </remarks>
         public int PlayerLaneAssistPerTick { get; }
 
+        /// <summary>
+        /// How much of an arena, in percent, counts as its tail.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Sentinels are dormant until approached, which is what turns an arena into a sequence of
+        /// encounters rather than one swarm. At depth it has the opposite effect: a board of 651
+        /// tiles with three enemies left on it is a search, not a fight, and round 3 reported that
+        /// four separate times.
+        /// </para>
+        /// <para>
+        /// Across the tail, <see cref="EnemyAggroRadius"/> grows from its own value to the width and
+        /// height of the board together, so the last few survivors end up noticing the player
+        /// wherever they are. The arena closes in as it empties instead of thinning out.
+        /// </para>
+        /// <para>
+        /// 50 leaves the first half of every arena playing exactly as it did. 0 makes an arena a
+        /// hunt from its first kill; 100 restores plain dormancy and turns the whole thing off.
+        /// </para>
+        /// </remarks>
+        public int ArenaTailShare { get; }
+
         /// <summary>The loadout a player starts a run with, before any item touches it.</summary>
         public Skills.SkillLoadout CreateStartingLoadout() =>
             Skills.SkillLoadout.Of(
@@ -513,6 +537,11 @@ namespace BomberLegends.Simulation
             if (PlayerLaneAssistPerTick < 0)
             {
                 throw new ArgumentException("Lane assist must not be negative.");
+            }
+
+            if (ArenaTailShare < 0 || ArenaTailShare > 100)
+            {
+                throw new ArgumentException("An arena's tail must be a share of it, from 0 to 100.");
             }
 
             if (PlayerRadius <= 0 || PlayerRadius >= Core.SubTilePoint.HalfTile)

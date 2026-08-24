@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using BomberLegends.Core;
 using BomberLegends.Simulation;
 using BomberLegends.Simulation.Board;

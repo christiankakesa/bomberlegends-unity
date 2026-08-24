@@ -583,8 +583,8 @@ MonoBehaviour:
   _smoothing: 0.16
   _margin: 2
   _scaleDistanceWithArena: 1
-  _referenceArenaWidth: 25
-  _maxDistanceScale: 1.35
+  _referenceArenaWidth: 21
+  _maxDistanceScale: 1.5
 --- !u!20 &308759534
 Camera:
   m_ObjectHideFlags: 0

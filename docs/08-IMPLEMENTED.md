@@ -1,6 +1,6 @@
 # What is actually built
 
-**Updated 2026-08-24 · 483 EditMode + 28 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
+**Updated 2026-08-24 · 489 EditMode + 28 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
 Ultra, a Solana Seeker 2 and a RedMagic (NP05J) tablet**
 
 A plain inventory of what exists in the project right now, so proposals can be validated against
@@ -28,6 +28,7 @@ Legend — ✅ built and played · 🧪 built, not yet played · ⬜ not built
 | Enemy lane centring | ✅ | Fixes wedging on pillar corners |
 | Enemy blast awareness | ✅ | `ThreatGrid` distance field; alerted enemies run, hold at the edge, dormant ones are exempt |
 | `EnemyBombFearTicks` | 🧪 | 45 of a 90-tick fuse; zero restores the oblivious mob as an archetype |
+| The arena closes in as it empties | ✅ | Waking distance grows across an arena's tail until the last survivors hunt from anywhere on the board. `ArenaTailShare` 50; 0 hunts from the first kill, 100 is plain dormancy |
 | Arena clear condition | ✅ | Every spawned enemy dead |
 
 ## Skills
@@ -76,7 +77,7 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 
 | Feature | State | Notes |
 |---|---|---|
-| 3D greybox, follower camera | ✅ | Camera distance scales with arena width |
+| 3D greybox, follower camera | ✅ | Distance scales with arena width against the **first** arena's 21 tiles, so depth is framed in proportion: 17 units at arena 1, 25 at 31 tiles wide |
 | Pooled views for bombs, blasts, debris, shots | ✅ | Prewarmed; growth mid-match is an error |
 | HUD: arena, health, enemies, bombs, charges, build | ✅ | Bombs read as a count, or as the countdown to the next one. The counters line is **full**: 1706 units against the 1739 a tablet has |
 | HUD build on its own line | ✅ | The single line wanted 2320 units against the 1740 a tablet has, and the build was the end that fell off |

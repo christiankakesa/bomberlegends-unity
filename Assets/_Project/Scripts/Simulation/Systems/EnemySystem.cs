@@ -35,6 +35,13 @@ namespace BomberLegends.Simulation.Systems
     /// unplayable in testing. Waking on proximity turns the same enemies into a sequence of
     /// encounters the player chooses to start, and makes the maze worth reading.
     /// </para>
+    /// <para>
+    /// <b>How far they notice grows as the arena empties.</b> Dormancy at depth turns the end of an
+    /// arena into a search across 651 tiles for the three enemies still on it, which round 3
+    /// reported four separate times. Across the arena's tail the radius opens out until the
+    /// survivors notice the player anywhere on the board — the sector closing in rather than
+    /// thinning out. See <see cref="AggroRadius"/> and <c>docs/14-INSIGHTS.md</c> §2.
+    /// </para>
     /// </remarks>
     public static class EnemySystem
     {
@@ -45,6 +52,14 @@ namespace BomberLegends.Simulation.Systems
             SimEventBuffer events)
         {
             var target = state.Player.Position;
+
+            // Read once for the whole sweep: it is a property of the arena, not of an enemy.
+            var noticeRadius = AggroRadius(
+                config.EnemyAggroRadius,
+                state.Enemies.AliveCount,
+                state.SpawnedEnemyCount,
+                state.Board.Width + state.Board.Height,
+                config.ArenaTailShare);
 
             for (var slot = 0; slot < state.Enemies.Capacity; slot++)
             {
@@ -60,7 +75,7 @@ namespace BomberLegends.Simulation.Systems
                 // walked up to reacts on the same tick rather than a tick late.
                 if (!enemy.IsAlerted)
                 {
-                    if (enemy.Tile.ManhattanDistanceTo(state.Player.Tile) > config.EnemyAggroRadius)
+                    if (enemy.Tile.ManhattanDistanceTo(state.Player.Tile) > noticeRadius)
                     {
                         // Dormant: still takes damage and still blocks, but does not hunt.
                         state.Enemies[slot] = enemy;
@@ -121,6 +136,57 @@ namespace BomberLegends.Simulation.Systems
 
                 state.Enemies[slot] = enemy;
             }
+        }
+
+        /// <summary>
+        /// How far a Sentinel notices the player, given how much of the arena is left.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Holds at <paramref name="baseRadius"/> while the arena is still full, then opens out
+        /// across its tail until it spans <paramref name="boardReach"/> — the width and height
+        /// together, which is the furthest apart two tiles can be. The last survivor of a cleared
+        /// arena therefore hunts from anywhere on the board.
+        /// </para>
+        /// <para>
+        /// A rule rather than a branch inside the sweep, so the shape of the curve can be read and
+        /// tested without a match: the interesting decision here is the number, not the plumbing.
+        /// </para>
+        /// <para>
+        /// Deliberately monotonic in the number cleared. An enemy that has woken never sleeps again,
+        /// so a radius that could shrink would only mean the arena stopped waking new ones — never
+        /// that the pressure came off — and would be a worse thing to reason about for no gain.
+        /// </para>
+        /// </remarks>
+        /// <param name="baseRadius">How far a Sentinel notices while the arena is still full.</param>
+        /// <param name="alive">Enemies still standing.</param>
+        /// <param name="spawned">Enemies the arena began with.</param>
+        /// <param name="boardReach">The furthest apart two tiles on this board can be.</param>
+        /// <param name="tailShare">
+        /// What share of the arena counts as its tail. See <see cref="SimulationConfig.ArenaTailShare"/>.
+        /// </param>
+        public static int AggroRadius(
+            int baseRadius, int alive, int spawned, int boardReach, int tailShare)
+        {
+            // A sandbox with nothing in it, a tail switched off, or a board already inside the
+            // radius: every one of them means there is nothing to open out.
+            var span = tailShare * spawned;
+            if (span <= 0 || boardReach <= baseRadius)
+            {
+                return baseRadius;
+            }
+
+            // Scaled by a hundred on both sides so the share stays a share and no division rounds
+            // before the ratio is formed.
+            var into = span - (alive * 100);
+            if (into <= 0)
+            {
+                return baseRadius;
+            }
+
+            return into >= span
+                ? boardReach
+                : baseRadius + ((boardReach - baseRadius) * into / span);
         }
 
         /// <summary>

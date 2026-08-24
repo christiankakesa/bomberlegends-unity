@@ -1,4 +1,4 @@
-﻿using BomberLegends.Simulation.Skills;
+using BomberLegends.Simulation.Skills;
 
 namespace BomberLegends.Simulation.Items
 {

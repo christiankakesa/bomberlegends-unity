@@ -56,12 +56,14 @@ namespace BomberLegends.Gameplay.Camera
         private bool _scaleDistanceWithArena = true;
 
         [SerializeField, Range(10f, 60f)]
-        [Tooltip("Arena width, in tiles, that the configured distance is tuned for.")]
-        private float _referenceArenaWidth = 25f;
+        [Tooltip(
+            "Arena width, in tiles, that the configured distance is tuned for. The first arena, so " +
+            "that every later one is pulled back in proportion to how much larger it actually is.")]
+        private float _referenceArenaWidth = 21f;
 
         [SerializeField, Range(1f, 2f)]
         [Tooltip("Ceiling on how far the automatic pull-back may go, as a multiple of the distance.")]
-        private float _maxDistanceScale = 1.35f;
+        private float _maxDistanceScale = 1.5f;
 
         private Vector3 _focus;
         private float _appliedDistance;
@@ -210,9 +212,17 @@ namespace BomberLegends.Gameplay.Camera
         /// How far back to sit for an arena of this size.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// A fixed distance that frames a small arena well leaves a large one feeling claustrophobic,
         /// but scaling without a ceiling turns the player into a speck. The cap keeps the character
         /// readable however large the arena grows.
+        /// </para>
+        /// <para>
+        /// The reference is the <b>first</b> arena's width rather than a value between the first and
+        /// the last. Referencing the middle meant the largest arena sat 24% further back than the
+        /// smallest when it is 48% wider, so depth framed steadily tighter — half of what round 3
+        /// reported as large arenas being hard to read. The ceiling was never what limited it.
+        /// </para>
         /// </remarks>
         private float ResolveDistance(int boardWidth)
         {

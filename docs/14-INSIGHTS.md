@@ -121,6 +121,30 @@ a feature.
 **Verdict: accept the problem, decline the minimap, revisit zoom only if the wake-up does not fix
 the pacing.**
 
+> **Built 2026-08-24, and the camera half was diagnosed wrong here.**
+>
+> **The wake-up.** `EnemySystem.AggroRadius` grows the noticing distance across an arena's tail:
+> nothing changes until half the Sentinels are dead, then it opens out until the last survivors
+> notice the player from anywhere on the board. Tuned by `SimulationConfig.ArenaTailShare` (50 by
+> default; 0 makes an arena a hunt from its first kill, 100 restores plain dormancy). A three-enemy
+> first sector is untouched until its last enemy, so the opening breath dormancy bought is intact.
+>
+> **The camera.** Raising `_maxDistanceScale` would have done nothing — **the ceiling was never
+> binding**. The reference width was 25, between the first arena's 21 and the last one's 31, so the
+> largest arena sat 1.24× back while being 1.48× wider: depth framed steadily *tighter*, which is
+> the opposite of what the note assumed. The reference is now the first arena's own width, so the
+> pull-back is proportional to how much larger an arena actually is — 17 → 25 units at depth,
+> against 21 before, and arena 1 unchanged by construction.
+>
+> **What this cannot tell you.** Both halves make the tail busier, and a busier tail is a harder
+> one. Round 3 died at a mean arena of 7.2; if round 4 dies materially earlier, `ArenaTailShare` is
+> the dial and this is the reason to reach for it.
+>
+> **Played eight arenas on 2026-08-24 and it reads as intended.** That is the author playing his own
+> build, which is worth recording and is not evidence: it says the tail is no longer a walk, and it
+> says nothing at all about the difficulty question above, because the person playing knew where the
+> enemies were coming from. Round 4 still owns that.
+
 ---
 
 ## 3. The skill choice screen — a fourth independent signal
@@ -329,7 +353,7 @@ reads all four arms clearly. Raising bomb power would compound §1.
 | ~~**Now**~~ **Done** | ~~Show the locked skill slots~~ **2026-08-24** | Costs nothing, answers a real frustration (§4). Also the cheapest evidence for open question #1: someone asking for the third skill before being offered it says it earns its slot |
 | ~~**M6**~~ **Done** | ~~Enemy blast awareness~~ **Built 2026-08-24** | The highest-leverage change in the set (§1) |
 | ~~**Next**~~ **Done** | ~~Block clustering in generation~~ **Built 2026-08-24** | Sealed placements 36% → 17% at unchanged density (§1, §6) |
-| **M6** | Wake remaining Sentinels as an arena empties · camera pull-back at depth | Late-arena pacing (§2) |
+| ~~**M6**~~ **Done** | ~~Wake remaining Sentinels as an arena empties · camera pull-back at depth~~ **Built 2026-08-24** | Late-arena pacing (§2) |
 | ~~**M6**~~ **Done** | ~~Offer-gating: no scaling items in the arena 1 pool~~ **Built 2026-08-24** | Overclock (§5) |
 | **M6** | Four-arm blast VFX | The bomb-power perception (§6) |
 | **M7** | Explosive Shot · long-range bomb | New skills, into the existing framework (§6) |

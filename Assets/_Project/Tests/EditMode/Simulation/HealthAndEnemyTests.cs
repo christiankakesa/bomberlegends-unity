@@ -1,7 +1,9 @@
 using BomberLegends.Core;
 using BomberLegends.Simulation;
+using BomberLegends.Simulation.Actors;
 using BomberLegends.Simulation.Board;
 using BomberLegends.Simulation.Events;
+using BomberLegends.Simulation.Systems;
 using NUnit.Framework;
 
 namespace BomberLegends.Tests.EditMode.Simulation
@@ -600,6 +602,129 @@ namespace BomberLegends.Tests.EditMode.Simulation
                         $"seed {seed} began with a Sentinel already hunting");
                 }
             }
+        }
+
+        /// <summary>The living enemy standing furthest from the player.</summary>
+        private static EnemyState TheFurthestSentinel(GameSimulation simulation)
+        {
+            var furthest = default(EnemyState);
+            var distance = -1;
+
+            for (var slot = 0; slot < simulation.State.Enemies.Capacity; slot++)
+            {
+                var enemy = simulation.State.Enemies[slot];
+                if (!enemy.IsActive)
+                {
+                    continue;
+                }
+
+                var away = enemy.Tile.ManhattanDistanceTo(simulation.State.Player.Tile);
+                if (away > distance)
+                {
+                    distance = away;
+                    furthest = enemy;
+                }
+            }
+
+            Assume.That(distance, Is.GreaterThanOrEqualTo(0), "the arena is already empty");
+
+            return furthest;
+        }
+
+        [Test]
+        public void TheNoticingDistanceOpensOutAcrossAnArenasTail()
+        {
+            // The arena that reported the problem: 31 x 21, twelve Sentinels, and a tail spent
+            // walking rather than fighting.
+            const int Base = 7;
+            const int Reach = 52;
+
+            int Radius(int alive) =>
+                EnemySystem.AggroRadius(Base, alive, spawned: 12, boardReach: Reach, tailShare: 50);
+
+            Assert.That(Radius(12), Is.EqualTo(Base), "a full arena must open exactly as it did");
+            Assert.That(Radius(7), Is.EqualTo(Base));
+            Assert.That(Radius(6), Is.EqualTo(Base), "the first half must play as it always did");
+
+            Assert.That(Radius(3), Is.GreaterThan(Radius(6)));
+            Assert.That(Radius(1), Is.GreaterThan(Radius(3)));
+        }
+
+        [Test]
+        public void TheLastSentinelInALargeArenaNoticesFromAcrossIt()
+        {
+            // The point of the whole change: the tail is a fight, not a search. Asserted against
+            // the board's own width so it stays true if the arena sizes move.
+            const int Width = 31;
+            const int Height = 21;
+
+            var radius = EnemySystem.AggroRadius(
+                baseRadius: 7, alive: 1, spawned: 12, boardReach: Width + Height, tailShare: 50);
+
+            Assert.That(radius, Is.GreaterThanOrEqualTo(Width),
+                "the last survivor must notice the player from further than the arena is wide");
+        }
+
+        [Test]
+        public void ASmallArenaKeepsItsOpeningBreath()
+        {
+            // Three Sentinels is the first sector. Killing one must not turn the other two into a
+            // swarm, which is the exact failure dormancy was introduced to fix.
+            int Radius(int alive) =>
+                EnemySystem.AggroRadius(7, alive, spawned: 3, boardReach: 36, tailShare: 50);
+
+            Assert.That(Radius(3), Is.EqualTo(7));
+            Assert.That(Radius(2), Is.EqualTo(7), "one kill of three must change nothing");
+            Assert.That(Radius(1), Is.GreaterThan(7), "the last one may still come to you");
+        }
+
+        [Test]
+        public void ATailOfNothingIsPlainDormancy()
+        {
+            // The switch that turns the whole behaviour off, which is what a tuning session needs
+            // before it can say whether the behaviour is worth having.
+            for (var alive = 12; alive >= 1; alive--)
+            {
+                Assert.That(
+                    EnemySystem.AggroRadius(7, alive, spawned: 12, boardReach: 52, tailShare: 0),
+                    Is.EqualTo(7));
+            }
+        }
+
+        [Test]
+        public void AnArenaThatSpawnedNothingIsNotADivisionByZero()
+        {
+            Assert.That(
+                EnemySystem.AggroRadius(7, alive: 0, spawned: 0, boardReach: 52, tailShare: 50),
+                Is.EqualTo(7));
+        }
+
+        [Test]
+        public void ClearingMostOfAnArenaWakesWhatIsLeftOfIt()
+        {
+            // Four Sentinels, three of them inside one blast. The fourth starts outside the waking
+            // distance and the player never moves, so the only thing that can reach it is the
+            // arena emptying.
+            var simulation = new GameSimulation(
+                Config(range: 4, enemySpeed: 1),
+                LevelLayout.Parse(
+                    "##################",
+                    "#P.EEE.......E...#",
+                    "#................#",
+                    "##################"),
+                seed: 1u);
+
+            simulation.Tick(Bomb);
+
+            Assume.That(TheFurthestSentinel(simulation).IsAlerted, Is.False,
+                "the far Sentinel must begin asleep, or this measures nothing");
+
+            Advance(simulation, Fuse + 5);
+
+            Assume.That(simulation.State.Enemies.AliveCount, Is.EqualTo(1),
+                "the blast must leave exactly one alive");
+            Assert.That(TheFurthestSentinel(simulation).IsAlerted, Is.True,
+                "the last Sentinel in an emptied arena must come looking");
         }
 
         [Test]
