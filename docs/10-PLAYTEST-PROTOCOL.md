@@ -14,7 +14,7 @@ Five numbers, and they are not equally important.
 
 | # | Metric | Threshold | What a failure indicts |
 |---|---|---|---|
-| 1 | **Deliberately picks a different item on run 2** | ≥ 60% | **The synergy pillar** — the whole v2.0 bet |
+| 1 | **Picks an item deliberately rather than at random** | ≥ 60% of offers | **The synergy pillar** — the whole v2.0 bet |
 | 2 | Can describe their build unprompted | ≥ 50% | Item legibility |
 | 3 | Voluntary second run | ≥ 60% | The loop is not compelling |
 | 4 | Deaths blamed on self, not controls | ≥ 80% | Controls or feedback, not design |
@@ -23,6 +23,11 @@ Five numbers, and they are not equally important.
 **Metric 1 is the gate.** The others are supporting or diagnostic. Bomber Legends was rebuilt around
 one claim — *items change how you play* — and a tester who picks at random is saying that claim is
 not landing. Everything else can be fixed later; that cannot.
+
+**It is scored per offer, inside a single run, as of round 4.** It used to ask whether a tester
+picked differently on a second run, which cost the gate two rounds running — see [§5](#5-what-to-record).
+A run already produces nine or ten of these decisions; there was never any need to ask for a second
+one.
 
 **Metric 4 is a filter, not a verdict.** It exists to tell you whether the other four are
 trustworthy. If a quarter of deaths are blamed on the controls, the session measured the controls.
@@ -128,16 +133,23 @@ One sheet per tester. Most of it is filled in while watching, not afterwards.
 ```
 Tester ___   Date ___   Input: keyboard / gamepad / touch
 
-RUN 1   items taken: ______________________   died on arena ___   length ___ min
-RUN 2   items taken: ______________________   died on arena ___   length ___ min
-        Started run 2 unprompted?   YES / NO                     <- metric 3
-        Chose differently on run 2? YES / NO
-        Chose deliberately?         DELIBERATE / RANDOM          <- metric 1
+RUN 1   died on arena ___   length ___ min
+RUN 2   died on arena ___   length ___ min      (leave blank if there was none)
+        Started run 2 unprompted?   YES / NO                          <- metric 3
 
-BUILD LEGIBILITY
-  [ ] Described their build out loud, unaided, at any point      <- metric 2
-      AT THE VERY END ONLY, once they have stopped playing, ask:
-      "tell me about the character you ended up with"
+ITEM OFFERS — one line per offer, in the order they came, across every run
+ #  run arena  took, or SKIPPED       read?  paused?  said anything?   call
+ 1   1    1    ____________________   Y / N  Y / N    _____________    D / R / U   <- first pick
+ 2   1    2    ____________________   Y / N  Y / N    _____________    D / R / U
+ 3   1    3    ____________________   Y / N  Y / N    _____________    D / R / U
+ 4   1    4    ____________________   Y / N  Y / N    _____________    D / R / U
+ …                                                                    <- metric 1
+
+BUILD LEGIBILITY                                                      <- metric 2
+  [ ] STRICT: described their build out loud, unaided, during play, unasked
+      What they said: ____________________________________________
+  If and only if the strict box is empty, AT THE VERY END, once they have
+  stopped playing for good, ask: "tell me about the character you ended up with"
       Could they?  YES / PARTLY / NO
       What they said: ____________________________________________
 
@@ -146,31 +158,76 @@ OBSERVED (tick as it happens)
   [ ] Used the dash to escape
   [ ] Used the dash to attack
   [ ] Aimed a skillshot at something specific
-  [ ] Read an item description before choosing (watch their eyes)
   [ ] Swapped an item when slots were full
-  [ ] Skipped an offer
+  [ ] Asked for a third skill before the game offered one
   [ ] Stuck on geometry            <- metric 5, note where
   [ ] Blamed the controls out loud
+  [ ] Repeated a build on a later run — which, and did they say why:
+      ____________________________________________________________
 
 DEATHS   cause of each, in their words:
 ```
 
-**The two item questions are not the same question, and round 2 lost the gate by conflating them.**
-*Chose differently* is a fact you can read off the two item lists. *Chose deliberately* is the gate.
-A tester who repeats a build **because it worked** chose deliberately and differently is irrelevant;
-a tester who takes whatever card is nearest chose randomly however different the result looks.
+### Metric 1 is one line per offer, and the run is the unit that produces them
 
-Make the deliberate call on evidence, not impression: did they read the cards, hesitate, skip an
-offer, or say anything about why? A pick made in under two seconds without their eyes moving is
-random, whatever they say afterwards. **Skipping an offer is the single strongest evidence of
-deliberation the choice screen can produce** — nobody skips by accident.
+**The old sheet asked about run 2, and that is why the gate has never been called.** Round 2 lost it
+by conflating *chose differently* with *chose deliberately*; round 3 lost it because six testers had
+metric 1 filled in without ever starting a second run. Both failures come from the same place — a
+metric that needs two runs, collected from a game whose first run is twenty-two minutes.
 
-**Metric 2 has a strict reading and a fallback, and both go on the sheet.** The threshold is against
+**Every offer is an independent chance for the claim to show.** A tester who reaches arena ten makes
+nine or ten decisions about their build, and round 3 threw all of them away in favour of one
+comparison that mostly did not exist. Farnsworth took nine items and skipped three; not one of those
+twelve moments reached the sheet.
+
+So: **one line per offer, and the call is per pick.**
+
+```
+metric 1  =  D  /  (D + R)          U is not in the denominator
+```
+
+**The three codes, and they are not a matter of taste.**
+
+| | Means | Test |
+|---|---|---|
+| **D** | Deliberate | They read, paused, skipped, or said something about why |
+| **R** | Random | A pick made in under two seconds without their eyes moving |
+| **U** | Unobserved | **You did not see it.** Not "you saw it and found it hard to call" |
+
+**U is for missing data, never for a difficult judgement.** A pick you watched and cannot call is R —
+the definition above is behavioural and asks nothing about what was in their head. This is what the
+stray `MIXED` code in round 3 should have been split into, and it is why nothing on this sheet can be
+filled in from memory afterwards: a row you did not watch stays U, and a run with no offers has no
+rows at all.
+
+**Skipping an offer counts as deliberate.** It is the strongest evidence of deliberation the choice
+screen can produce — nobody skips by accident — and round 3 coded the clearest example of it, tester
+07, as RANDOM.
+
+**Report the first pick separately from the rest.** As of 2026-08-24 an offer made to a player
+carrying nothing withholds the items that only multiply a build ([14-INSIGHTS §5](14-INSIGHTS.md)),
+so round 3's first picks were partly measuring a pool containing an item nobody could use yet. If R
+now falls only on row 1, that is the pool. If it falls evenly down the sheet, that is the player.
+
+**Report the per-tester spread as well as the headline.** Scoring per pick lets one tester who
+reached arena twelve outweigh three who died in arena two, which is the correct unit for *"is an
+offer a decision?"* and the wrong one for *"do players find it a decision?"*. Both numbers go in the
+record; the gate is called on the per-pick one.
+
+**Repeating a build is not a failure and never was.** A tester who takes the same pairing again
+**because it worked** was deliberate about it. It is on the observation list, not the metric.
+
+**Metric 2 has a strict reading and a fallback, and they are exclusive.** The threshold is against
 the strict one — described unaided, during play, because nobody asked. That is what "legible" means.
 But round 2 produced *zero* readings of it across twelve testers, which is worse than a low number,
 so the end-of-session question exists to guarantee some answer. Ask it only once they have stopped
 playing for good: any earlier and it teaches them to narrate, which §10a already found destroys
 metric 3.
+
+**Ask the fallback only when the strict box is empty**, which is why the sheet nests it. Round 3
+produced a tester with the spontaneous box ticked *and* the asked question answered NO with nothing
+written down — two readings that cannot both be true, and no way after the fact to know which was
+the mistake.
 
 ---
 
@@ -208,6 +265,11 @@ ones.
 **Metric 1 fails but metric 2 passes.** They understood their build and still chose at random —
 which means the items are legible but not *differentiating*. That is a balance problem: the pairings
 are not producing playstyles distinct enough to be worth aiming for. Fixable, and expensive.
+
+> **Read row 1 before concluding that.** If the random picks are concentrated on the first offer and
+> the rest of the sheet is deliberate, the finding is about the opening moment — a player with no
+> build yet and nothing to reason from — and not about the items. That is a much cheaper problem,
+> and one already half-addressed by offer-gating.
 
 **Metrics 1 and 2 both fail.** They could not tell what items do. Interface first, then re-test.
 **Do not conclude anything about the design from this** — you would be reading a screen problem as a
@@ -899,29 +961,27 @@ uniformity is worth watching either way.
 
 ### Sheet problems to fix before round 4
 
-- **Metric 1 was filled in for six testers who had no run 2.** Leave it blank. A missing number is
-  honest; an invented one nearly produced a false pass here.
-- **A `MIXED` code appeared** (Kif) that the form does not offer. Either it is a real third state
-  worth adding or it is a DELIBERATE — decide before the round, not during it.
-- **Fry's metric 2 contradicts itself**: the spontaneous box is ticked and the asked question
-  answers NO with nothing written down. One of the two is wrong.
+- ~~**Metric 1 was filled in for six testers who had no run 2.**~~ **Structurally impossible from
+  2026-08-24**: the metric is now one line per offer, so a run that produced no offers produces no
+  rows, and there is nothing to invent. A missing number is honest; an invented one nearly produced
+  a false pass here.
+- ~~**A `MIXED` code appeared**~~ **Decided 2026-08-24**: the third state is **U**, and it means the
+  pick was not observed. A pick you watched and found hard to call is R — see [§5](#5-what-to-record).
+- ~~**Fry's metric 2 contradicts itself**~~ **Fixed 2026-08-24**: the fallback question is nested
+  under the strict box on the sheet, so the two readings can no longer both be filled in.
 
 ### What round 4 needs
 
-1. **Fix the item cards for touch first.** It is the only clean failure in the round, it is an
-   interface problem by §7's own decision table, and it has been visible in all three rounds.
-2. **Re-measure metric 1 inside a single run.** The evidence is already there and unread —
-   Farnsworth took nine items and skipped three across ten arenas, which is far richer build
-   intent than any two-run comparison. A metric that needs a second run cannot be collected from a
-   game whose first run is twenty-two minutes.
-
-   > **The first pick is no longer the same choice.** As of 2026-08-24 an offer made to a player
-   > carrying nothing withholds the items that only multiply a build ([14-INSIGHTS §5](14-INSIGHTS.md)).
-   > Round 3's first picks were partly a measurement of a pool that contained an item nobody could
-   > use yet, so **code the first pick separately from the rest** — if RANDOM now falls only on the
-   > first pick, that is the pool, and if it falls evenly, that is the player.
+1. ~~**Fix the item cards for touch first.**~~ **Done 2026-08-24**, device-verified on a Galaxy S21
+   Ultra, a Solana Seeker 2 and a RedMagic tablet. The interface half of §10d item 1 is closed; the
+   design half is still unobserved.
+2. ~~**Re-measure metric 1 inside a single run.**~~ **Done 2026-08-24** — [§5](#5-what-to-record) is
+   rewritten around one line per offer, with the three codes defined, the first pick reported
+   separately, and no question anywhere that needs a second run to answer.
 3. **Then re-run.** Metrics 4 and 5 are solved and metric 2 passes on two of three devices; what
    remains unanswered is the one the project exists to answer.
+
+**Both preconditions are met.** Nothing on this list is now waiting on the build.
 
 ---
 
