@@ -1,6 +1,6 @@
 # What is actually built
 
-**Updated 2026-08-24 · 496 EditMode + 28 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
+**Updated 2026-08-24 · 498 EditMode + 28 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
 Ultra, a Solana Seeker 2 and a RedMagic (NP05J) tablet**
 
 A plain inventory of what exists in the project right now, so proposals can be validated against
@@ -97,6 +97,7 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Audio: pooled service, voice limiting, pitch variation | ✅ | Generated placeholder sounds; no assets needed |
 | AudioMixer bus hierarchy | ✅ | `Settings/Audio/MainMixer` — Master over Music, Sfx, Ui, Voice, Ambience, each level an exposed parameter. Falls back to per-source multipliers when no mixer is assigned |
 | Bomb drop audible on a phone | ✅ | Retuned 2026-08-24: body, harmonics and a tap instead of a bare 150→80 Hz sine. Keeps 75% of its level through a 300 Hz high-pass, against 43% |
+| Placeholder mix levelled for a phone | ✅ | Every generated clip normalised to one loudness measured above 400 Hz, so a feedback volume states intent. The dash was 3.2× the bomb drop on a Seeker 2 and is now 0.6× |
 | Feedback table (event → sound + shake) | ✅ | Designer-editable asset; falls back to placeholders |
 | Camera kick scaled to the event | ✅ | View-only; never touches simulation state |
 | Android build pipeline | ✅ | Device-verified 2026-08-08; 86 MB dev APK |

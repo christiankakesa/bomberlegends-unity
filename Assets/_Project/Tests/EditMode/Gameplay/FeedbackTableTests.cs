@@ -183,6 +183,98 @@ namespace BomberLegends.Tests.EditMode.Gameplay
             Object.DestroyImmediate(clip);
         }
 
+        [Test]
+        public void EveryGeneratedClipArrivesAtTheSameLoudness()
+        {
+            // The contract the whole feedback table rests on. Without it a volume of 0.75 says
+            // nothing about how loud a sound is — only how loud it is relative to whatever its own
+            // synthesis happened to produce, which is not a thing anybody can mix with.
+            var clips = new[]
+            {
+                ProceduralClips.Thump(), ProceduralClips.Boom(), ProceduralClips.Crunch(),
+                ProceduralClips.Hurt(), ProceduralClips.Death(), ProceduralClips.Pop(),
+                ProceduralClips.Whoosh(), ProceduralClips.Shot(), ProceduralClips.Pickup(),
+                ProceduralClips.Fanfare()
+            };
+
+            try
+            {
+                foreach (var clip in clips)
+                {
+                    var data = Samples(clip);
+
+                    Assert.That(PhoneLoudness(data), Is.EqualTo(0.07f).Within(0.012f),
+                        $"{clip.name} is not levelled with the rest of the set");
+
+                    var peak = 0f;
+                    for (var i = 0; i < data.Length; i++)
+                    {
+                        peak = Mathf.Max(peak, Mathf.Abs(data[i]));
+                    }
+
+                    Assert.That(peak, Is.LessThanOrEqualTo(0.96f), $"{clip.name} clips");
+                }
+            }
+            finally
+            {
+                foreach (var clip in clips)
+                {
+                    Object.DestroyImmediate(clip);
+                }
+            }
+        }
+
+        [Test]
+        public void TheBombIsLouderThanTheThingsHeardAroundIt()
+        {
+            // Measured through the phone filter and multiplied by the mixed volume, because that
+            // is what a player gets. Before this the dash was 3.2x the bomb going down on a Seeker
+            // 2: turning the game up far enough to hear the core verb made everything else hurt.
+            var table = PlaceholderFeedback.CreateTable();
+            _created.Add(table);
+
+            var bomb = Heard(table, SimEventType.BombPlaced);
+
+            Assert.That(Heard(table, SimEventType.DashStarted), Is.LessThan(bomb),
+                "the dash must not drown the bomb going down");
+            Assert.That(Heard(table, SimEventType.ProjectileFired), Is.LessThan(bomb));
+            Assert.That(Heard(table, SimEventType.BlockDestroyed), Is.LessThan(bomb));
+
+            Assert.That(Heard(table, SimEventType.DamageTaken), Is.GreaterThan(bomb),
+                "and being hurt must still be above everything routine");
+            Assert.That(Heard(table, SimEventType.BombDetonated), Is.GreaterThan(bomb),
+                "an explosion is bigger than putting one down");
+        }
+
+        /// <summary>How loud an event's sound reaches a player, once the phone has had its say.</summary>
+        private static float Heard(FeedbackTable table, SimEventType type)
+        {
+            Assert.That(table.TryGet(type, out var entry), Is.True, $"{type} has no feedback");
+            Assert.That(entry.Sfx, Is.Not.Null, $"{type} has no sound");
+
+            var clip = entry.Sfx!.Clips[0];
+
+            try
+            {
+                return PhoneLoudness(Samples(clip)) * entry.Sfx.Volume;
+            }
+            finally
+            {
+                Object.DestroyImmediate(clip);
+            }
+        }
+
+        private static float[] Samples(AudioClip clip)
+        {
+            var data = new float[clip.samples];
+            clip.GetData(data, 0);
+
+            return data;
+        }
+
+        /// <summary>What a small speaker can move, as one number.</summary>
+        private static float PhoneLoudness(float[] data) => Rms(HighPassed(data, 400f));
+
         /// <summary>
         /// The signal with everything below <paramref name="hertz"/> taken out of it.
         /// </summary>

@@ -21,8 +21,14 @@ namespace BomberLegends.Data.Audio
             var table = ScriptableObject.CreateInstance<FeedbackTable>();
             table.hideFlags = HideFlags.HideAndDontSave;
 
+            // Every generated clip arrives at the same measured loudness, so these numbers are a
+            // statement about what matters rather than a correction for how each one came out.
+            // They read top to bottom as the mix: what must never be missed, then the core verb,
+            // then the things heard so often that being loud would make them a nuisance.
             var entries = new List<FeedbackEntry>
             {
+                // The verb. Heard more than anything else in the game, so it sits below the two
+                // warnings and above everything that is merely happening.
                 Entry(SimEventType.BombPlaced, Sfx(ProceduralClips.Thump(), volume: 0.75f)),
 
                 // Bound to the detonation, never to the blast tiles. One chain lights a hundred
@@ -31,10 +37,10 @@ namespace BomberLegends.Data.Audio
                     shake: 0.5f, seconds: 0.28f),
 
                 Entry(SimEventType.BlockDestroyed,
-                    Sfx(ProceduralClips.Crunch(), volume: 0.65f, maxConcurrent: 3, retrigger: 0.05f),
+                    Sfx(ProceduralClips.Crunch(), volume: 0.4f, maxConcurrent: 3, retrigger: 0.05f),
                     shake: 0.08f, seconds: 0.10f),
 
-                Entry(SimEventType.EnemyKilled, Sfx(ProceduralClips.Pop(), volume: 0.8f),
+                Entry(SimEventType.EnemyKilled, Sfx(ProceduralClips.Pop(), volume: 0.6f),
                     shake: 0.12f, seconds: 0.12f),
 
                 // The two that must never be missed. Loud, unique, and the only ones that shake
@@ -45,10 +51,13 @@ namespace BomberLegends.Data.Audio
                 Entry(SimEventType.PlayerDied, Sfx(ProceduralClips.Death(), volume: 0.95f, pitchVariation: 0f),
                     shake: 1f, seconds: 0.7f),
 
-                Entry(SimEventType.DashStarted, Sfx(ProceduralClips.Whoosh(), volume: 0.7f)),
-                Entry(SimEventType.ProjectileFired, Sfx(ProceduralClips.Shot(), volume: 0.65f)),
-                Entry(SimEventType.ItemAcquired, Sfx(ProceduralClips.Pickup())),
-                Entry(SimEventType.ArenaCleared, Sfx(ProceduralClips.Fanfare()))
+                // Heard constantly and made of pure noise, which fatigues faster than anything
+                // with a pitch. Below the verb on purpose: the dash was three times louder than
+                // the bomb going down on a phone, which is how a mix hides its own subject.
+                Entry(SimEventType.DashStarted, Sfx(ProceduralClips.Whoosh(), volume: 0.45f)),
+                Entry(SimEventType.ProjectileFired, Sfx(ProceduralClips.Shot(), volume: 0.55f)),
+                Entry(SimEventType.ItemAcquired, Sfx(ProceduralClips.Pickup(), volume: 0.6f)),
+                Entry(SimEventType.ArenaCleared, Sfx(ProceduralClips.Fanfare(), volume: 0.65f))
             };
 
             table.SetEntries(entries.ToArray());

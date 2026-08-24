@@ -25,6 +25,31 @@ namespace BomberLegends.Data.Audio
         private const int SampleRate = 44100;
 
         /// <summary>
+        /// The level every generated clip is brought to, measured the way a phone hears it.
+        /// </summary>
+        /// <remarks>
+        /// Chosen as the loudest the least co-operative clip reaches without the peak ceiling
+        /// biting. Every clip landing on the same number is the point: it means an
+        /// <c>SfxDefinition</c>'s volume says what a designer meant rather than compensating for
+        /// however loud a synthesis function happened to come out.
+        /// </remarks>
+        private const float TargetLoudness = 0.07f;
+
+        /// <summary>
+        /// Where a small speaker stops reproducing anything, near enough.
+        /// </summary>
+        /// <remarks>
+        /// Loudness is measured above this rather than across the whole spectrum, because energy
+        /// below it does not reach the player on the primary target platform. Judging these clips
+        /// by their raw level is what let the bomb drop sit three times quieter than the dash on a
+        /// Seeker 2 while both looked correct on a desk.
+        /// </remarks>
+        private const float SpeakerFloorHertz = 400f;
+
+        /// <summary>Loudest sample allowed, leaving headroom rather than touching full scale.</summary>
+        private const float PeakCeiling = 0.95f;
+
+        /// <summary>
         /// A knock with a bright edge on it: something has been put down.
         /// </summary>
         /// <remarks>
@@ -45,27 +70,46 @@ namespace BomberLegends.Data.Audio
         /// three quarters of its level, against the old one's two fifths.
         /// </para>
         /// </remarks>
-        public static AudioClip Thump() => Build("sfx_thump", 0.15f, (t, span) =>
+        public static AudioClip Thump() => Build("sfx_thump", 0.18f, (t, span) =>
         {
-            var body = Sine(t, Sweep(t, span, 300f, 150f)) * Decay(t, span, 12f);
+            var body = Sine(t, Sweep(t, span, 300f, 150f)) * Decay(t, span, 6f);
 
             var harmonics =
-                Sine(t, Sweep(t, span, 600f, 300f)) * 0.8f * Decay(t, span, 16f) +
-                Sine(t, Sweep(t, span, 900f, 450f)) * 0.45f * Decay(t, span, 22f);
+                Sine(t, Sweep(t, span, 600f, 300f)) * 0.9f * Decay(t, span, 8f) +
+                Sine(t, Sweep(t, span, 900f, 450f)) * 0.55f * Decay(t, span, 11f);
 
-            var tap = Noise(t) * Decay(t, span, 70f) * 0.5f;
+            var tap = Noise(t) * Decay(t, span, 80f) * 0.5f;
 
-            // Three layers summing past one on their own. Scaled to peak near the old clip's level
-            // so this is a change of colour and not a change of loudness.
-            return (body + harmonics + tap) * 0.58f;
+            return body + harmonics + tap;
         });
 
-        /// <summary>A heavy burst with a low body: an explosion.</summary>
+        /// <summary>
+        /// A heavy burst with a low body: an explosion.
+        /// </summary>
+        /// <remarks>
+        /// Had the same fault the bomb drop did — a 90 Hz body a phone cannot move, leaving the
+        /// noise on top to carry the whole thing, so the game's payoff arrived as a hiss. It gains
+        /// a mid layer for the same reason the knock did.
+        /// <para>
+        /// The saturation is doing real work rather than decorating. An explosion has an enormous
+        /// crest factor, and normalising one by loudness runs straight into the peak ceiling: this
+        /// clip could not reach the level of any other however hard it was driven. Rounding the
+        /// transient off buys the level back, and adds harmonics while it is there — which is what
+        /// saturation is for on an explosion anyway. It also replaces the hard clamp the old
+        /// version was hitting on every play, which is the ugly way of doing the same thing.
+        /// </para>
+        /// </remarks>
         public static AudioClip Boom() => Build("sfx_boom", 0.55f, (t, span) =>
         {
-            var body = Sine(t, Sweep(t, span, 90f, 40f)) * 0.8f;
+            var body = Sine(t, Sweep(t, span, 90f, 40f)) * 0.5f;
+
+            var mid =
+                Sine(t, Sweep(t, span, 220f, 100f)) * 0.5f * Decay(t, span, 6f) +
+                Sine(t, Sweep(t, span, 380f, 170f)) * 0.3f * Decay(t, span, 9f);
+
             var grit = Noise(t) * Decay(t, span, 9f) * 0.6f;
-            return (body + grit) * Decay(t, span, 4.5f);
+
+            return Saturate((body + mid + grit) * 1.6f) * Decay(t, span, 4.5f);
         });
 
         /// <summary>A short bright crack: something broke.</summary>
@@ -110,7 +154,15 @@ namespace BomberLegends.Data.Audio
             return Sine(t, step) * 0.4f * Decay(t, span, 2.6f);
         });
 
-        /// <summary>Builds a mono clip from a sample function.</summary>
+        /// <summary>
+        /// Builds a mono clip from a sample function, at the same loudness as every other.
+        /// </summary>
+        /// <remarks>
+        /// A sample function writes whatever level falls out of its layers, and is meant to: it
+        /// describes a <i>shape</i>. Levelling here is what lets the feedback table's volumes be a
+        /// statement about what matters — the hurt sound above the block breaking — instead of a
+        /// per-clip correction nobody can read as intent.
+        /// </remarks>
         private static AudioClip Build(string name, float seconds, Func<float, float, float> sample)
         {
             var count = Mathf.Max(1, Mathf.RoundToInt(seconds * SampleRate));
@@ -118,19 +170,89 @@ namespace BomberLegends.Data.Audio
 
             for (var i = 0; i < count; i++)
             {
-                var t = (float)i / SampleRate;
-                data[i] = Mathf.Clamp(sample(t, seconds), -1f, 1f);
+                data[i] = sample((float)i / SampleRate, seconds);
             }
 
             // Short fade at both ends. A waveform cut mid-cycle produces an audible click, which is
             // the single most common thing that makes generated audio sound broken rather than cheap.
             Taper(data);
+            Normalise(data);
 
             var clip = AudioClip.Create(name, count, 1, SampleRate, stream: false);
             clip.SetData(data, 0);
 
             return clip;
         }
+
+        /// <summary>
+        /// Scales the clip to <see cref="TargetLoudness"/> as heard through a small speaker, unless
+        /// its peak would reach the ceiling first.
+        /// </summary>
+        /// <remarks>
+        /// Two clips at the same loudness are the same loudness to a listener; two clips at the same
+        /// peak are not, which is why the peak is a limit here rather than the goal. A clip whose
+        /// crest factor stops it reaching the target lands under it, and the only honest answer for
+        /// that one is to give its own sample function less transient to fit around — which is what
+        /// the saturation in <see cref="Boom"/> is doing.
+        /// </remarks>
+        private static void Normalise(float[] data)
+        {
+            var loudness = LoudnessAboveSpeakerFloor(data);
+            if (loudness <= 0f)
+            {
+                return;
+            }
+
+            var peak = 0f;
+            for (var i = 0; i < data.Length; i++)
+            {
+                peak = Mathf.Max(peak, Mathf.Abs(data[i]));
+            }
+
+            var gain = TargetLoudness / loudness;
+            if (peak > 0f)
+            {
+                gain = Mathf.Min(gain, PeakCeiling / peak);
+            }
+
+            for (var i = 0; i < data.Length; i++)
+            {
+                data[i] = Mathf.Clamp(data[i] * gain, -1f, 1f);
+            }
+        }
+
+        /// <summary>
+        /// How loud the clip is once everything a phone cannot reproduce is taken out of it.
+        /// </summary>
+        /// <remarks>
+        /// A one-pole high-pass at <see cref="SpeakerFloorHertz"/> and the root mean square of what
+        /// survives. Far cruder than any real driver's roll-off, and meant to be: the question is
+        /// only "how much of this can a small speaker move", and a sharper filter would imply a
+        /// precision the answer does not have. Runs as a single streaming pass, so measuring a clip
+        /// costs no memory beyond the clip.
+        /// </remarks>
+        private static float LoudnessAboveSpeakerFloor(float[] data)
+        {
+            var interval = 1f / SampleRate;
+            var constant = 1f / (2f * Mathf.PI * SpeakerFloorHertz);
+            var alpha = constant / (constant + interval);
+
+            var filtered = 0f;
+            var previous = 0f;
+            var total = 0.0;
+
+            for (var i = 0; i < data.Length; i++)
+            {
+                filtered = alpha * (filtered + data[i] - previous);
+                previous = data[i];
+                total += (double)filtered * filtered;
+            }
+
+            return Mathf.Sqrt((float)(total / Mathf.Max(1, data.Length)));
+        }
+
+        /// <summary>Rounds a signal off towards full scale instead of cutting it there.</summary>
+        private static float Saturate(float value) => (float)Math.Tanh(value);
 
         private static void Taper(float[] data)
         {
