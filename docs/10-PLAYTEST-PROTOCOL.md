@@ -58,6 +58,34 @@ Not gate metrics, but this is the cheapest chance to answer them:
 
 Below six people, a percentage is theatre. Two testers behaving oddly move it twenty points.
 
+### One line per offer does not mean fewer testers
+
+Metric 1 now produces nine or ten rows per tester instead of one (§5), which looks like it should
+buy a smaller sample. It does not, and the reason matters.
+
+**Picks within one tester are not independent.** Someone who reads the cards reads them every time;
+someone who takes whatever is nearest takes whatever is nearest every time. Round 3 is the
+evidence — **12 of 12 read an item description before choosing**, which is a fact about people, not
+a coin landing the same way twelve times. Extra rows sharpen what you know about each individual.
+They do not multiply your sample of individuals, and the gate is a claim about players.
+
+**What the extra rows do buy is the end of missing data.** Round 3 ran 12 testers and produced 6
+usable metric 1 readings, because six never started a second run — below §2's own floor, which is
+why the gate could not be called. Every tester who reaches a single offer now contributes. The same
+twelve people yield roughly twice the evidence.
+
+### The number that actually binds is the device split
+
+§1 requires splitting every metric by input scheme before reading any of it, and round 2 is the
+worked example of why: its overall numbers hid a scheme passing at 100% next to two that failed.
+Twelve testers across three schemes is four each, which is directional per scheme by the table
+above. **Below twelve, the split stops being readable.**
+
+So if twelve people cannot be found, **cut schemes, not testers.** Eight testers on one scheme is a
+callable gate for that scheme; eight spread across three is three unreadable arms and no gate. Where
+it comes to that, concentrate on **touch**: it is the primary target, it carries round 3's one clean
+failure, and it was the thinnest arm of that round at three testers.
+
 **Who.** People who play games but have not played *this* one, and who have never heard you describe
 it. Anyone who has watched development cannot answer metric 2 — they already know what Bomb Trail
 does.
