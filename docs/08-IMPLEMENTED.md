@@ -1,6 +1,6 @@
 # What is actually built
 
-**Updated 2026-08-24 · 470 EditMode + 27 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
+**Updated 2026-08-24 · 483 EditMode + 28 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
 Ultra, a Solana Seeker 2 and a RedMagic (NP05J) tablet**
 
 A plain inventory of what exists in the project right now, so proposals can be validated against
@@ -64,6 +64,7 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Procedural arenas | ✅ | Three styles, seeded, connectivity and safe spawn guaranteed |
 | Block clustering | 🧪 | Density spent in runs, not per tile; sealed placements 36% → 17% at unchanged 55% fill |
 | Item offer after each clear | ✅ | Three drawn from the run's own RNG |
+| First-offer gating | 🧪 | An offer made to a player carrying nothing withholds the items that only multiply a build — Kinetic Core and Overclock. Classified from the effect, not by name |
 | Swap when slots are full | ✅ | Two-step: take, then give up |
 | Decline an offer | ✅ | |
 | Health carries between arenas | ✅ | +25 restored per clear — **the number most likely wrong** |

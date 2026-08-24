@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BomberLegends.Core;
 using BomberLegends.Simulation;
 using BomberLegends.Simulation.Board;
@@ -64,6 +64,35 @@ namespace BomberLegends.Tests.EditMode.Simulation
             }
 
             return arenas;
+        }
+
+        /// <summary>
+        /// A run standing at its second offer, with <paramref name="wanted"/> among the items on it.
+        /// </summary>
+        /// <remarks>
+        /// An offer is a shuffle, so a test that needs a named item has to find a seed that puts it
+        /// there. Still deterministic: the search runs the same generator and finds the same seed
+        /// every time.
+        /// </remarks>
+        private static GameRun RunOfferingOnTheSecondPick(ItemId wanted)
+        {
+            for (var seed = 1u; seed <= 200u; seed++)
+            {
+                var run = new GameRun(Config(), Arenas(4), seed);
+
+                ClearArena(run);
+                run.TryChoose(run.Offers[0]);
+                ClearArena(run);
+
+                if (run.Phase == RunPhase.Choosing &&
+                    System.Array.IndexOf(run.Offers.ToArray(), wanted) >= 0)
+                {
+                    return run;
+                }
+            }
+
+            throw new AssertionException(
+                $"no seed put {ItemCatalog.Name(wanted)} on the second offer");
         }
 
         private static PlayerIntent Bomb => new PlayerIntent(0, 0, IntentButtons.Bomb);
@@ -205,11 +234,12 @@ namespace BomberLegends.Tests.EditMode.Simulation
         [Test]
         public void AnItemsEffectCarriesToo_NotJustItsName()
         {
-            // Re-granting must reproduce the build, not merely list it.
-            var run = new GameRun(Config(), Arenas(3), seed: 1u);
+            // Re-granting must reproduce the build, not merely list it. Kinetic Core is the item
+            // whose effect reads cleanly off a single number, and it is held out of the first offer
+            // now, so the run takes something else first and this waits for the second.
+            var run = RunOfferingOnTheSecondPick(ItemId.KineticCore);
             var before = run.Current.State.Player.Skills[0].Magnitude;
 
-            ClearArena(run);
             run.TryChoose(ItemId.KineticCore);
 
             Assert.That(run.Current.State.Player.Skills[0].Magnitude, Is.EqualTo(before * 3 / 2));
@@ -346,6 +376,94 @@ namespace BomberLegends.Tests.EditMode.Simulation
 
             Assert.That(run.Current.State.Player.Skills[0].Power, Is.Zero,
                 "the discarded item's effect must be gone, not merely unlisted");
+        }
+
+        [Test]
+        public void TheFirstOfferHoldsBackWhatOnlyMultipliesABuild()
+        {
+            // Round 3 has Overclock taken by 8 of 12 testers and never on the first pick, where
+            // they called it useless (14-INSIGHTS §5). Swept across seeds because the offer is a
+            // shuffle: one seed passing says nothing about a rule.
+            for (var seed = 1u; seed <= 50u; seed++)
+            {
+                var run = new GameRun(Config(), Arenas(3), seed);
+
+                ClearArena(run);
+                Assume.That(run.Phase, Is.EqualTo(RunPhase.Choosing));
+
+                foreach (var offer in run.Offers.ToArray())
+                {
+                    Assert.That(ItemCatalog.ScalesWithTheBuild(offer), Is.False,
+                        $"seed {seed} offered {ItemCatalog.Name(offer)} to a player holding nothing");
+                }
+            }
+        }
+
+        [Test]
+        public void OnceThereIsABuild_TheHeldBackItemsAreOfferedAgain()
+        {
+            // The gate is about the moment and not about the item. If a multiplier never came back
+            // this would be a quiet deletion from the pool rather than a fix to the first pick.
+            var offeredLater = false;
+
+            for (var seed = 1u; seed <= 50u && !offeredLater; seed++)
+            {
+                var run = new GameRun(Config(itemSlots: 4), Arenas(4), seed);
+
+                ClearArena(run);
+                run.TryChoose(run.Offers[0]);
+                ClearArena(run);
+
+                foreach (var offer in run.Offers.ToArray())
+                {
+                    offeredLater |= ItemCatalog.ScalesWithTheBuild(offer);
+                }
+            }
+
+            Assert.That(offeredLater, Is.True,
+                "a scaling item must reach the second offer once there is a build to scale");
+        }
+
+        [Test]
+        public void AStartingBuildIsStillABuild()
+        {
+            // The starting-items aid grants real items, so that first offer is not made over
+            // nothing and there is no reason to withhold anything from it.
+            var offered = false;
+
+            for (var seed = 1u; seed <= 50u && !offered; seed++)
+            {
+                var run = new GameRun(
+                    Config(itemSlots: 4), Arenas(3), seed, new[] { ItemId.Momentum });
+
+                ClearArena(run);
+
+                foreach (var offer in run.Offers.ToArray())
+                {
+                    offered |= ItemCatalog.ScalesWithTheBuild(offer);
+                }
+            }
+
+            Assert.That(offered, Is.True);
+        }
+
+        [Test]
+        public void EnoughOfThePoolSurvivesTheFirstOfferGate()
+        {
+            // The gate must never be the reason a first offer is short. Asserted against the pool
+            // rather than against a run, so adding multipliers faster than concrete items fails
+            // here instead of quietly shrinking the first choice.
+            var concrete = 0;
+
+            foreach (var id in ItemCatalog.All)
+            {
+                if (!ItemCatalog.ScalesWithTheBuild(id))
+                {
+                    concrete++;
+                }
+            }
+
+            Assert.That(concrete, Is.GreaterThanOrEqualTo(GameRun.OfferCount));
         }
 
         [Test]

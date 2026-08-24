@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using BomberLegends.Core;
 using BomberLegends.Simulation.Board;
 using BomberLegends.Simulation.Items;
@@ -343,7 +343,13 @@ namespace BomberLegends.Simulation.Run
             }
         }
 
-        /// <summary>Fills the offer list with items not already held, and returns how many.</summary>
+        /// <summary>
+        /// Fills the offer list with items not already held, and returns how many.
+        /// </summary>
+        /// <remarks>
+        /// An offer made to a player carrying nothing holds back the items that only multiply what
+        /// is already there — see <see cref="ItemCatalog.ScalesWithTheBuild"/>.
+        /// </remarks>
         private int BuildOffers()
         {
             _offerCount = 0;
@@ -354,11 +360,30 @@ namespace BomberLegends.Simulation.Run
             var available = 0;
             Span<ItemId> candidates = stackalloc ItemId[32];
 
+            // A multiplier is worth what the build under it is worth, and the first offer is made
+            // over nothing at all. Gated on the build rather than on the arena number, so the
+            // starting-items development aid is treated as the build it is, and so a player who
+            // declines an offer is still spared the item that cannot mean anything to them yet.
+            var nothingToScale = _heldCount == 0;
+
             for (var i = 0; i < pool.Length && available < candidates.Length; i++)
             {
-                if (!Holds(pool[i]))
+                if (!Holds(pool[i]) && !(nothingToScale && ItemCatalog.ScalesWithTheBuild(pool[i])))
                 {
                     candidates[available++] = pool[i];
+                }
+            }
+
+            // A gate that leaves too little to choose between costs the player the decision, which
+            // is worse than the problem it solves. What was withheld goes back rather than lost.
+            if (nothingToScale && available < OfferCount)
+            {
+                for (var i = 0; i < pool.Length && available < candidates.Length; i++)
+                {
+                    if (!Holds(pool[i]) && ItemCatalog.ScalesWithTheBuild(pool[i]))
+                    {
+                        candidates[available++] = pool[i];
+                    }
                 }
             }
 

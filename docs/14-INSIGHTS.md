@@ -255,6 +255,19 @@ testers, just never first.
 Fix by gating the offer pool, not by rebalancing: keep cooldown reduction and other multipliers out
 of the arena 1 pool.
 
+> **Built 2026-08-24.** `ItemCatalog.ScalesWithTheBuild` classifies an item as a multiplier from its
+> effect — it names no skill and grafts no behaviour, so its worth is a function of how much build
+> is under it — and `GameRun.BuildOffers` withholds that class from an offer made to a player
+> carrying nothing. Two items qualify today: Overclock and **Kinetic Core**, which round 3 never
+> complained about. That second one is the rule's judgment rather than the data's, and it is the
+> thing to watch in round 4: gating by name would have fixed one complaint and left the next
+> multiplier to re-break it.
+>
+> **Gated on the build, not on the arena number.** A run that declines its first offer is still
+> carrying nothing, and the development starting-items aid is a real build, so both are handled by
+> reading `Held` rather than counting arenas. Seven of nine items survive the gate, and if that ever
+> fell below three the withheld items go back rather than the offer coming up short.
+
 > Worth noting for its own sake: a first pick where none of the options can mean anything yet is
 > precisely the kind of choice that gets coded RANDOM. Part of metric 1's difficulty may have been
 > the offer pool rather than the player.
@@ -317,7 +330,7 @@ reads all four arms clearly. Raising bomb power would compound §1.
 | ~~**M6**~~ **Done** | ~~Enemy blast awareness~~ **Built 2026-08-24** | The highest-leverage change in the set (§1) |
 | ~~**Next**~~ **Done** | ~~Block clustering in generation~~ **Built 2026-08-24** | Sealed placements 36% → 17% at unchanged density (§1, §6) |
 | **M6** | Wake remaining Sentinels as an arena empties · camera pull-back at depth | Late-arena pacing (§2) |
-| **M6** | Offer-gating: no scaling items in the arena 1 pool | Overclock (§5) |
+| ~~**M6**~~ **Done** | ~~Offer-gating: no scaling items in the arena 1 pool~~ **Built 2026-08-24** | Overclock (§5) |
 | **M6** | Four-arm blast VFX | The bomb-power perception (§6) |
 | **M7** | Explosive Shot · long-range bomb | New skills, into the existing framework (§6) |
 | **M7** | Slots 3–4 | Already scoped |

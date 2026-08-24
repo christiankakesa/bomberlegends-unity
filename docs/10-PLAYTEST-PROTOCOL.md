@@ -914,6 +914,12 @@ uniformity is worth watching either way.
    Farnsworth took nine items and skipped three across ten arenas, which is far richer build
    intent than any two-run comparison. A metric that needs a second run cannot be collected from a
    game whose first run is twenty-two minutes.
+
+   > **The first pick is no longer the same choice.** As of 2026-08-24 an offer made to a player
+   > carrying nothing withholds the items that only multiply a build ([14-INSIGHTS §5](14-INSIGHTS.md)).
+   > Round 3's first picks were partly a measurement of a pool that contained an item nobody could
+   > use yet, so **code the first pick separately from the rest** — if RANDOM now falls only on the
+   > first pick, that is the pool, and if it falls evenly, that is the player.
 3. **Then re-run.** Metrics 4 and 5 are solved and metric 2 passes on two of three devices; what
    remains unanswered is the one the project exists to answer.
 

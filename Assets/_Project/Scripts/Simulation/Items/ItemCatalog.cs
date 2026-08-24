@@ -1,4 +1,4 @@
-using BomberLegends.Simulation.Skills;
+﻿using BomberLegends.Simulation.Skills;
 
 namespace BomberLegends.Simulation.Items
 {
@@ -96,6 +96,46 @@ namespace BomberLegends.Simulation.Items
 
             _ => default
         };
+
+        /// <summary>
+        /// Whether the item is worth only as much as the build underneath it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// True for an item that names no skill and grafts no behaviour — a percentage spread over
+        /// whatever happens to be equipped. Its worth is a function of how much build there is, so
+        /// it is strongest last and weakest first, and over an empty build it is very nearly
+        /// nothing.
+        /// </para>
+        /// <para>
+        /// Read out of the effect rather than kept as a list of names, so an item added later is
+        /// classified by what it does instead of by whoever remembers to update the list.
+        /// </para>
+        /// <para>
+        /// Round 3 has Overclock taken by 8 of 12 testers and never on the first pick, with testers
+        /// calling it useless there. That is a good item at the wrong moment, which is an offer
+        /// problem and not a balance one — see <c>docs/14-INSIGHTS.md</c> §5.
+        /// </para>
+        /// </remarks>
+        public static bool ScalesWithTheBuild(ItemId id)
+        {
+            var effect = Effect(id);
+
+            // Naming a skill makes the item concrete: it does a stated thing to a thing you have.
+            if (effect.Target != SkillId.None)
+            {
+                return false;
+            }
+
+            // Anything given outright — a behaviour, damage, a banked use — is noticeable on a build
+            // of one. What is left is a multiplier, and a multiplier needs something to multiply.
+            return effect.AddTraits == SkillTraits.None &&
+                   effect.FlatPower == 0 &&
+                   effect.BonusCharges == 0 &&
+                   (effect.MagnitudePercent != 0 ||
+                    effect.CooldownPercent != 0 ||
+                    effect.DurationPercent != 0);
+        }
 
         /// <summary>
         /// What the item does, in the player's terms.

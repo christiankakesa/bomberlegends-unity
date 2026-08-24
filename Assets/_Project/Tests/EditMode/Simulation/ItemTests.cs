@@ -1,3 +1,4 @@
+﻿using System.Collections.Generic;
 using BomberLegends.Core;
 using BomberLegends.Simulation;
 using BomberLegends.Simulation.Board;
@@ -514,6 +515,44 @@ namespace BomberLegends.Tests.EditMode.Simulation
             // stay comfortably ahead of the slots or a run goes flat, which is exactly what the
             // M6 notes flagged as the binding constraint on run length.
             Assert.That(ItemCatalog.All.Length, Is.GreaterThanOrEqualTo(8));
+        }
+
+        [Test]
+        public void TheItemsThatNeedABuildAreExactlyTheOnesThatMultiplyEverything()
+        {
+            // The classification is derived from the effect, which means an item added later can
+            // join this class without anyone deciding to put it there. Naming the members turns
+            // that into a failing test and a conversation rather than a silent change to the
+            // first offer a player ever sees.
+            var scaling = new List<ItemId>();
+
+            foreach (var id in ItemCatalog.All)
+            {
+                if (ItemCatalog.ScalesWithTheBuild(id))
+                {
+                    scaling.Add(id);
+                }
+            }
+
+            Assert.That(scaling, Is.EquivalentTo(new[] { ItemId.KineticCore, ItemId.Overclock }));
+        }
+
+        [Test]
+        public void NamingASkillIsWhatMakesAPercentageWorthSomethingOnAnEmptyBuild()
+        {
+            // Quickstep and Overclock are the same shape of item — a cooldown percentage and
+            // nothing else. The difference is that one of them names the dash, so a player who has
+            // a dash can be told what it does to it.
+            Assert.That(ItemCatalog.ScalesWithTheBuild(ItemId.Quickstep), Is.False);
+            Assert.That(ItemCatalog.ScalesWithTheBuild(ItemId.Overclock), Is.True);
+        }
+
+        [Test]
+        public void AnEmptySlotIsNotAScalingItem()
+        {
+            // None has no effect at all, which reads as "changes no behaviour and names no skill"
+            // and would otherwise fall into the class by accident.
+            Assert.That(ItemCatalog.ScalesWithTheBuild(ItemId.None), Is.False);
         }
 
         [Test]
