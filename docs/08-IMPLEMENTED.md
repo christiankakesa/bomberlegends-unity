@@ -34,7 +34,7 @@ Legend — ✅ built and played · 🧪 built, not yet played · ⬜ not built
 
 | Feature | State | Notes |
 |---|---|---|
-| Three active slots | ✅ | Slot 3 is empty and waiting for content |
+| Three active slots | ✅ | Slot 3 is empty and waiting for content, and now says so: `LOCKED` in the readout and a dimmed, unpressable outline in the touch cluster |
 | Dash | ✅ | 3 tiles, commits to direction, collides normally, **no i-frames** |
 | Skillshot | ✅ | Aimed independently; stopped by blocks, not by bombs |
 | Charges and cooldowns | ✅ | Sequential recharge, one charge at a time |
@@ -77,7 +77,7 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 |---|---|---|
 | 3D greybox, follower camera | ✅ | Camera distance scales with arena width |
 | Pooled views for bombs, blasts, debris, shots | ✅ | Prewarmed; growth mid-match is an error |
-| HUD: arena, health, enemies, bombs, charges, build | ✅ | Bombs read as a count, or as the countdown to the next one |
+| HUD: arena, health, enemies, bombs, charges, build | ✅ | Bombs read as a count, or as the countdown to the next one. The counters line is **full**: 1706 units against the 1739 a tablet has |
 | HUD build on its own line | ✅ | The single line wanted 2320 units against the 1740 a tablet has, and the build was the end that fell off |
 | Item choice screen, phone-legible | ✅ | Body text 9 → 14.3 dp, `TAKE`/`GIVE UP` on the card, `CHOOSE ONE` headline; read and tapped cleanly on all three devices 2026-08-24 |
 | Every other greybox screen, phone-legible | ✅ | Pause menu, control hints, touch buttons, pause control, hub QUIT, device log — all were 9–13 dp; verified on all three devices 2026-08-24 |

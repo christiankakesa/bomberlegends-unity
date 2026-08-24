@@ -33,6 +33,24 @@ namespace BomberLegends.Gameplay.Match
         /// <summary>Where the readout leaves the counters and starts the build.</summary>
         private const string Break = "\n";
 
+        /// <summary>
+        /// What an empty skill slot says.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// One word rather than <c>SLOT 3 LOCKED</c>, which reads no better and is some 350 canvas
+        /// units wide. The counters line had about 250 to spare on the narrowest target screen, so
+        /// the longer wording would have cost the build its place on screen all over again.
+        /// </para>
+        /// <para>
+        /// <b>That spare room is now gone.</b> The line measures 1706 units at its longest against
+        /// the 1739 a tablet has. Whatever is added to it next — the fourth slot, a longer skill
+        /// name — does not fit, and the answer will be to restructure the readout rather than to
+        /// append to it. The width test fails the moment that is forgotten.
+        /// </para>
+        /// </remarks>
+        private const string LockedLabel = "LOCKED";
+
         private readonly StringBuilder _text = new StringBuilder(96);
         private readonly int[] _lastCharges = new int[SkillLoadout.SlotCount];
         private readonly int[] _lastTenths = new int[SkillLoadout.SlotCount];
@@ -97,13 +115,19 @@ namespace BomberLegends.Gameplay.Match
             {
                 var slot = simulation.State.Player.Skills[index];
 
-                if (!slot.IsEquipped)
-                {
-                    continue;
-                }
-
                 _lastCharges[index] = slot.Charges;
                 _lastTenths[index] = Tenths(slot);
+
+                // An empty slot is drawn rather than skipped. Testers asked why there were only
+                // two skills, which is not a complaint about the number — it is that the ceiling
+                // is unexplained. A slot that says it is locked turns a wall into a promise, and
+                // someone asking for the third before being offered it is the cheapest evidence
+                // there is that it earns its place.
+                if (!slot.IsEquipped)
+                {
+                    _text.Append("    ").Append(LockedLabel);
+                    continue;
+                }
 
                 _text.Append("    ").Append(Label(slot.Id)).Append(' ');
 

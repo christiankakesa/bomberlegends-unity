@@ -120,7 +120,10 @@ namespace BomberLegends.Tests.PlayMode
                 new SkillSlot { Id = SkillId.Dash, MaxCharges = 1, Charges = 1 },
                 new SkillSlot { Id = SkillId.Skillshot, MaxCharges = 1, Charges = 1 });
 
-            TouchControlsBuilder.Build(anchor, loadout);
+            // Two skills of three, so the cluster draws its empty slot as well. Touch is the one
+            // input where the word on the control is all there is, and that goes double for a
+            // control that does nothing yet.
+            TouchControlsBuilder.Build(anchor, loadout, out _);
 
             yield return null;
 

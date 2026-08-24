@@ -8,12 +8,23 @@ using UnityEngine.UI;
 namespace BomberLegends.Gameplay.Ui
 {
     /// <summary>
-    /// Builds the on-screen skill cluster: one drag-to-aim button per equipped skill.
+    /// Builds the on-screen skill cluster: one drag-to-aim button per equipped skill, and the
+    /// outline of each slot still to come.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Laid out in an arc inside thumb reach of the bomb button, and built at run time so no scene
-    /// has to be regenerated to change it. Slots holding no skill get no button rather than a dead
-    /// one — an unusable control in the middle of a thumb cluster is worse than a gap.
+    /// has to be regenerated to change it.
+    /// </para>
+    /// <para>
+    /// An empty slot used to be left out entirely, on the rule that a dead control in the middle of
+    /// a thumb cluster is worse than a gap. The rule stands and the conclusion was wrong: what is
+    /// drawn now is not a control. It takes no touches and carries no
+    /// <see cref="SkillTouchButton"/> — it is the <i>shape</i> of one, dimmed and labelled. The
+    /// gap said the cluster was finished at two, testers read that as the ceiling and asked why it
+    /// was there, and an unexplained ceiling is a worse thing to leave on screen than an empty
+    /// place with a name on it.
+    /// </para>
     /// </remarks>
     public static class TouchControlsBuilder
     {
@@ -21,6 +32,9 @@ namespace BomberLegends.Gameplay.Ui
         private static readonly Color IndicatorColour = new Color(0.55f, 0.85f, 1f, 0.55f);
         private static readonly Color CancelColour = new Color(0.55f, 0.16f, 0.20f, 0.80f);
         private static readonly Color CooldownColour = new Color(0.02f, 0.03f, 0.06f, 0.72f);
+
+        /// <summary>The skill colour, drained, so an empty slot reads as the same family of thing.</summary>
+        private static readonly Color LockedColour = new Color(0.20f, 0.38f, 0.58f, 0.30f);
 
         /// <summary>Diameter of a skill button, in canvas units.</summary>
         private const float ButtonSize = 130f;
@@ -57,12 +71,22 @@ namespace BomberLegends.Gameplay.Ui
             };
         }
 
-        /// <summary>Creates a button for every equipped skill.</summary>
-        public static SkillTouchButton[] Build(RectTransform anchor, in SkillLoadout loadout)
+        /// <summary>Creates a button for every equipped skill, and an outline for every empty slot.</summary>
+        /// <param name="anchor">The bomb button the cluster is laid out around.</param>
+        /// <param name="loadout">The skills the player is carrying.</param>
+        /// <param name="lockedSlots">
+        /// The outlines drawn for slots holding no skill. Handed back rather than forgotten because
+        /// they are part of the cluster and have to leave the screen with it: the controls stand
+        /// down while a choice screen or the pause menu is up, and anything left behind would be
+        /// drawn over the decision.
+        /// </param>
+        public static SkillTouchButton[] Build(
+            RectTransform anchor, in SkillLoadout loadout, out GameObject[] lockedSlots)
         {
             var offsets = OffsetsFor(anchor);
             var cancel = CreateCancelZone(anchor, offsets);
             var buttons = new System.Collections.Generic.List<SkillTouchButton>(SkillLoadout.SlotCount);
+            var locked = new System.Collections.Generic.List<GameObject>(SkillLoadout.SlotCount);
 
             for (var slot = 0; slot < SkillLoadout.SlotCount && slot < offsets.Length; slot++)
             {
@@ -70,12 +94,14 @@ namespace BomberLegends.Gameplay.Ui
 
                 if (!skill.IsEquipped)
                 {
+                    locked.Add(CreateLockedSlot(anchor, offsets[slot]));
                     continue;
                 }
 
                 buttons.Add(CreateSkillButton(anchor, offsets[slot], slot, skill.Id, cancel));
             }
 
+            lockedSlots = locked.ToArray();
             return buttons.ToArray();
         }
 
@@ -106,6 +132,38 @@ namespace BomberLegends.Gameplay.Ui
             button.Initialise(ButtonFor(slot), indicator, cancel, cooldown);
 
             return button;
+        }
+
+        /// <summary>
+        /// Draws a slot that is not a control yet.
+        /// </summary>
+        /// <remarks>
+        /// Explicitly not a raycast target. A thumb that lands here has to reach the board
+        /// underneath, or the promise would cost the player the tap they actually meant — which is
+        /// the defect the choice screen just spent two fixes on.
+        /// </remarks>
+        private static GameObject CreateLockedSlot(RectTransform anchor, Vector2 offset)
+        {
+            var host = new GameObject("LockedSlot", typeof(RectTransform));
+            host.transform.SetParent(anchor.parent, false);
+
+            var rect = host.GetComponent<RectTransform>();
+            rect.anchorMin = anchor.anchorMin;
+            rect.anchorMax = anchor.anchorMax;
+            rect.pivot = anchor.pivot;
+            rect.sizeDelta = new Vector2(ButtonSize, ButtonSize);
+            rect.anchoredPosition = anchor.anchoredPosition + offset;
+
+            var image = host.AddComponent<Image>();
+            image.color = LockedColour;
+            image.raycastTarget = false;
+
+            // A wider box than the circle it sits on: the word is longer than DASH or SHOT, and at
+            // the legibility floor it does not fit inside 130 units. The floor does not move.
+            GreyboxUi.CreateLabel(
+                host.transform, "LOCKED", LabelSize, Vector2.zero, new Vector2(ButtonSize * 1.7f, 60f));
+
+            return host;
         }
 
         private static RectTransform CreateIndicator(RectTransform parent)

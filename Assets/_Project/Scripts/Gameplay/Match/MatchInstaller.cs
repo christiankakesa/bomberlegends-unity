@@ -197,6 +197,7 @@ namespace BomberLegends.Gameplay.Match
         private GameContext? _context;
         private PauseController? _pause;
         private SkillTouchButton[] _skillButtons = System.Array.Empty<SkillTouchButton>();
+        private GameObject[] _lockedSlots = System.Array.Empty<GameObject>();
 
         /// <summary>When the on-screen controls are shown.</summary>
         private enum TouchControlMode
@@ -612,6 +613,13 @@ namespace BomberLegends.Gameplay.Match
                 controls.Add(_skillButtons[i] != null ? _skillButtons[i].gameObject : null);
             }
 
+            // The empty slots go too. They take no touches, so leaving them would not steal a tap
+            // — it would simply draw a promise across whatever screen the player is reading.
+            for (var i = 0; i < _lockedSlots.Length; i++)
+            {
+                controls.Add(_lockedSlots[i]);
+            }
+
             // Set before Begin, so the first frame is already correct rather than showing a cluster
             // for one frame and then taking it away.
             visibility.Covered = () =>
@@ -677,7 +685,7 @@ namespace BomberLegends.Gameplay.Match
             var anchor = _bombButton.GetComponent<RectTransform>();
 
             _skillButtons = anchor != null
-                ? TouchControlsBuilder.Build(anchor, loadout)
+                ? TouchControlsBuilder.Build(anchor, loadout, out _lockedSlots)
                 : System.Array.Empty<SkillTouchButton>();
 
             return _skillButtons;

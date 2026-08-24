@@ -92,13 +92,18 @@ namespace BomberLegends.Tests.PlayMode
                 new SkillSlot { Id = SkillId.Dash, MaxCharges = 1, Charges = 1 },
                 new SkillSlot { Id = SkillId.Skillshot, MaxCharges = 1, Charges = 1 });
 
-            var skills = TouchControlsBuilder.Build(anchor, loadout);
+            var skills = TouchControlsBuilder.Build(anchor, loadout, out var lockedSlots);
 
             var touchControls = new List<GameObject> { anchor.gameObject };
             for (var i = 0; i < skills.Length; i++)
             {
                 touchControls.Add(skills[i].gameObject);
             }
+
+            // The empty slot is in the list as well. It takes no touches, so it cannot steal a tap
+            // — but this test is about what shares screen with a decision, not only about what
+            // swallows it, and a promise drawn across the cards is still in the way.
+            touchControls.AddRange(lockedSlots);
 
             var devices = new ControlSchemeTracker();
             devices.ForceScheme(ControlScheme.Touch);
@@ -161,8 +166,10 @@ namespace BomberLegends.Tests.PlayMode
             // siblings and the overlay starts underneath. Two more stand in for whatever else ends
             // up on this canvas next; the point of the assertion is that it does not matter what.
             var anchor = BuildBombButtonAnchor(canvas);
-            TouchControlsBuilder.Build(anchor, SkillLoadout.Of(
-                new SkillSlot { Id = SkillId.Dash, MaxCharges = 1, Charges = 1 }));
+            TouchControlsBuilder.Build(
+                anchor,
+                SkillLoadout.Of(new SkillSlot { Id = SkillId.Dash, MaxCharges = 1, Charges = 1 }),
+                out _);
 
             Control("SomethingAddedLater");
             Control("SomethingAddedLaterStill");

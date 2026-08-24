@@ -106,6 +106,31 @@ namespace BomberLegends.Tests.EditMode.Gameplay
                 $"the bomb detonated and never came back to the readout: \"{output.text}\"");
         }
 
+        /// <summary>
+        /// The empty slot is named rather than left out.
+        /// </summary>
+        /// <remarks>
+        /// Testers asked why there were only two skills. That is not a complaint about the number
+        /// — it is that the ceiling was unexplained, and an unexplained ceiling reads as the end of
+        /// the game rather than as the part not built yet.
+        /// </remarks>
+        [Test]
+        public void TheSlotWithNoSkillInItSaysSo()
+        {
+            var simulation = OpenRoom();
+            var (hud, output) = BuildHud();
+
+            hud.Render(simulation);
+
+            Assert.That(output.text, Does.Contain("LOCKED"),
+                $"the third slot is empty and the readout does not mention it: \"{output.text}\"");
+
+            // Named after the skills it will join, not before them, or the promise would read as
+            // the first thing the player has.
+            Assert.That(output.text.IndexOf("LOCKED", System.StringComparison.Ordinal),
+                Is.GreaterThan(output.text.IndexOf("DASH", System.StringComparison.Ordinal)));
+        }
+
         private static GameSimulation OpenRoom() =>
             new GameSimulation(
                 SimulationConfig.Default,
