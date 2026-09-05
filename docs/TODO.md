@@ -1,5 +1,20 @@
 # Bomber Legends TODO
 
+- [ ] **Movement joystick: expand the touch hit-area to the whole bottom-left quarter of the screen.**
+  Found on device (S21 Ultra, 2026-09-05): sometimes the player doesn't move at all, and it's
+  because the press landed near the joystick but missed it, not because of any input-feel issue.
+  Root cause: `VirtualJoystick`'s own `RectTransform` — a 300×300 unit box anchored at (240, 240)
+  from the bottom-left corner (`SceneScaffolder.CreateJoystick`) — is the *only* clickable region.
+  `OnPointerDown` never fires for a press outside that box, so nothing recentres and nothing moves.
+  `VirtualJoystick` already supports recentring under the thumb wherever it presses
+  (`_recentreOnPress`), which is exactly the fix for "reaching for a circle you can't see" the
+  class's own doc comment describes — but that logic is unreachable outside the fixed 300×300 box.
+  Fix direction: make the raycast target cover the whole bottom-left quadrant (an invisible full-quadrant
+  hit rect, or grow the existing Image's rect to the quadrant while keeping the smaller visual
+  background/handle centred on the actual press), so a press anywhere in that quarter recentres the
+  stick and starts reporting movement. Files: `Assets/_Project/Scripts/Input/VirtualJoystick.cs`,
+  `Assets/_Project/Scripts/Editor/SceneScaffolder.cs` (`CreateJoystick`).
+
 - [ ] Sound with Minimax Music 3 (local AI)?
 - [ ] Theme & Juicy
   * [ ] Colors...
