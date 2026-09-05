@@ -58,6 +58,7 @@ namespace BomberLegends.Input
         private RectTransform _rect = null!;
         private Camera? _eventCamera;
         private Vector2 _origin;
+        private Vector2 _pressed;
         private Vector2 _current;
         private bool _castLatched;
         private Vector2 _latchedAim;
@@ -89,7 +90,8 @@ namespace BomberLegends.Input
             _latchedAim = Vector2.zero;
             IsAiming = false;
 
-            ShowIndicator(false);
+            ShowCancelZone(false);
+            ShowAimIndicator(false);
         }
 
         /// <summary>Whether a finger is currently down on it.</summary>
@@ -103,7 +105,8 @@ namespace BomberLegends.Input
         private void Awake()
         {
             _rect = GetComponent<RectTransform>();
-            ShowIndicator(false);
+            ShowCancelZone(false);
+            ShowAimIndicator(false);
         }
 
         private RectTransform Rect => _rect != null ? _rect : _rect = GetComponent<RectTransform>();
@@ -167,12 +170,21 @@ namespace BomberLegends.Input
             IsAiming = true;
             _eventCamera = eventData.pressEventCamera;
 
-            // Measured from the button rather than from the finger, so the knob tracks the thumb
-            // the way a stick does and the drag direction is unambiguous.
+            // Two reference points, because two different questions get asked on release. The aim
+            // is measured from the button, so the knob tracks the thumb the way a stick does and the
+            // drag direction is unambiguous. Whether it was a tap at all is measured from where the
+            // finger landed — a press that does not travel is a tap wherever on the button it fell.
+            // Measuring both from the centre made a still press anywhere outside a 26-pixel disc in
+            // the middle of a 200-pixel button fire as an aimed shot towards where the thumb landed.
             _origin = RectTransformUtility.WorldToScreenPoint(_eventCamera, Rect.position);
+            _pressed = eventData.position;
             _current = eventData.position;
 
-            ShowIndicator(true);
+            // The cancel zone has to exist from the first instant — a drag straight into it must
+            // work. The arrow does not: showing it on press and hiding it a frame later, on a tap
+            // that never leaves the tap threshold, reads as a flicker rather than as feedback. It
+            // turns on only once UpdateIndicator decides a drag is actually underway.
+            ShowCancelZone(true);
             UpdateIndicator();
         }
 
@@ -193,19 +205,20 @@ namespace BomberLegends.Input
             // asked about, so no release could ever land in it and cancelling would never work.
             var cancelled = IsOverCancelZone(_current);
 
-            ShowIndicator(false);
+            ShowCancelZone(false);
+            ShowAimIndicator(false);
 
             if (cancelled)
             {
                 return;
             }
 
-            var delta = _current - _origin;
-
             // A tap fires with no aim; the simulation then uses whichever way the player is facing.
-            _latchedAim = delta.magnitude < _tapThresholdPixels
-                ? Vector2.zero
-                : delta.normalized;
+            var travelled = (_current - _pressed).magnitude >= _tapThresholdPixels;
+
+            _latchedAim = travelled
+                ? (_current - _origin).normalized
+                : Vector2.zero;
 
             _castLatched = true;
         }
@@ -215,7 +228,8 @@ namespace BomberLegends.Input
             IsAiming = false;
             _castLatched = false;
             _latchedAim = Vector2.zero;
-            ShowIndicator(false);
+            ShowCancelZone(false);
+            ShowAimIndicator(false);
         }
 
         private Vector2 Clamped() => Vector2.ClampMagnitude(_current - _origin, _radiusPixels);
@@ -224,17 +238,20 @@ namespace BomberLegends.Input
             _cancelZone != null && _cancelZone.gameObject.activeInHierarchy &&
             RectTransformUtility.RectangleContainsScreenPoint(_cancelZone, screenPosition, _eventCamera);
 
-        private void ShowIndicator(bool visible)
+        private void ShowCancelZone(bool visible)
         {
-            if (_aimIndicator != null)
-            {
-                _aimIndicator.gameObject.SetActive(visible);
-            }
-
             if (_cancelZone != null)
             {
                 // The way out only exists while there is something to back out of.
                 _cancelZone.gameObject.SetActive(visible);
+            }
+        }
+
+        private void ShowAimIndicator(bool visible)
+        {
+            if (_aimIndicator != null)
+            {
+                _aimIndicator.gameObject.SetActive(visible);
             }
         }
 
@@ -245,13 +262,18 @@ namespace BomberLegends.Input
                 return;
             }
 
-            var delta = Clamped();
-
-            if (delta.sqrMagnitude <= Mathf.Epsilon)
+            // The same threshold the release decision uses. A wobble a real thumb cannot avoid
+            // must not flash the arrow on, only for the release a moment later to prove it was
+            // never an aim at all.
+            if ((_current - _pressed).magnitude < _tapThresholdPixels)
             {
-                _aimIndicator.localScale = new Vector3(1f, 0f, 1f);
+                ShowAimIndicator(false);
                 return;
             }
+
+            ShowAimIndicator(true);
+
+            var delta = Clamped();
 
             _aimIndicator.localRotation = Quaternion.Euler(
                 0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg - 90f);

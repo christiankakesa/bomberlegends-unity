@@ -28,7 +28,8 @@ namespace BomberLegends.Tests.EditMode.Gameplay
             }
         }
 
-        private SkillTouchButton CreateButton(RectTransform? cancelZone = null)
+        private SkillTouchButton CreateButton(
+            RectTransform? cancelZone = null, RectTransform? aimIndicator = null)
         {
             _root ??= new GameObject("TouchRoot", typeof(RectTransform));
 
@@ -36,9 +37,19 @@ namespace BomberLegends.Tests.EditMode.Gameplay
             host.transform.SetParent(_root.transform, false);
 
             var button = host.AddComponent<SkillTouchButton>();
-            button.Initialise(IntentButtons.Skill2, aimIndicator: null, cancelZone: cancelZone);
+            button.Initialise(IntentButtons.Skill2, aimIndicator: aimIndicator, cancelZone: cancelZone);
 
             return button;
+        }
+
+        private RectTransform CreateIndicator()
+        {
+            _root ??= new GameObject("TouchRoot", typeof(RectTransform));
+
+            var indicator = new GameObject("AimIndicator", typeof(RectTransform)).GetComponent<RectTransform>();
+            indicator.SetParent(_root.transform, false);
+
+            return indicator;
         }
 
         private static PointerEventData At(Vector2 position) =>
@@ -80,6 +91,81 @@ namespace BomberLegends.Tests.EditMode.Gameplay
 
             Assert.That(button.ConsumeCast(out var aim), Is.True);
             Assert.That(aim, Is.EqualTo(Vector2.zero), "a wobble must not be read as an aim");
+        }
+
+        // ---------- the arrow itself ----------
+
+        [Test]
+        public void AWobbleUnderTheThresholdNeverShowsTheArrow()
+        {
+            // Real thumbs cannot hold a pixel-perfect press, and the old code showed the arrow the
+            // instant the finger touched down. A tap that wobbled a few pixels then flashed the
+            // arrow on and off for a frame, reading as a glitch rather than as feedback.
+            var indicator = CreateIndicator();
+            var button = CreateButton(aimIndicator: indicator);
+
+            Press(button, Vector2.zero);
+            Assert.That(indicator.gameObject.activeSelf, Is.False,
+                "the arrow must not appear on press alone");
+
+            DragTo(button, new Vector2(6f, -4f));
+            Assert.That(indicator.gameObject.activeSelf, Is.False,
+                "a wobble under the tap threshold must not show the arrow");
+
+            Release(button, new Vector2(6f, -4f));
+            Assert.That(indicator.gameObject.activeSelf, Is.False, "and it must not stick on after release");
+        }
+
+        [Test]
+        public void CrossingTheThresholdShowsTheArrowAndReleasingHidesIt()
+        {
+            var indicator = CreateIndicator();
+            var button = CreateButton(aimIndicator: indicator);
+
+            Press(button, Vector2.zero);
+            DragTo(button, new Vector2(0f, 200f));
+            Assert.That(indicator.gameObject.activeSelf, Is.True,
+                "a real drag past the threshold must show the arrow");
+
+            Release(button, new Vector2(0f, 200f));
+            Assert.That(indicator.gameObject.activeSelf, Is.False);
+        }
+
+        [Test]
+        public void ATapAwayFromTheCentreIsStillATap()
+        {
+            // The button is some two hundred screen pixels across on a phone and a thumb lands
+            // wherever it lands. Whether a press was a tap is a question about how far the finger
+            // travelled, not about how far from the middle it happened to come down — measured from
+            // the centre, a still press anywhere outside a small disc fired as an aimed shot towards
+            // the thumb, which is not a control anyone can learn.
+            var button = CreateButton();
+
+            Press(button, new Vector2(60f, 0f));
+            Release(button, new Vector2(60f, 0f));
+
+            Assert.That(button.ConsumeCast(out var aim), Is.True);
+            Assert.That(aim, Is.EqualTo(Vector2.zero),
+                "a press that did not move must fire with no aim wherever it landed");
+        }
+
+        [Test]
+        public void ADragFromOffCentreStillAimsFromTheButton()
+        {
+            // The two measurements are deliberately different. A tap is judged by travel; an aim is
+            // read from the button's centre, so the knob tracks the thumb like a stick and the
+            // indicator on screen agrees with the shot that comes out.
+            var button = CreateButton();
+
+            Press(button, new Vector2(60f, 0f));
+            DragTo(button, new Vector2(60f, 200f));
+            Release(button, new Vector2(60f, 200f));
+
+            var expected = new Vector2(60f, 200f).normalized;
+
+            Assert.That(button.ConsumeCast(out var aim), Is.True);
+            Assert.That(aim.x, Is.EqualTo(expected.x).Within(0.001f));
+            Assert.That(aim.y, Is.EqualTo(expected.y).Within(0.001f));
         }
 
         // ---------- drag ----------

@@ -1,6 +1,6 @@
 # What is actually built
 
-**Updated 2026-09-05 · 513 EditMode + 28 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
+**Updated 2026-09-05 · 515 EditMode + 28 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
 Ultra, a Solana Seeker 2 and a RedMagic (NP05J) tablet**
 
 A plain inventory of what exists in the project right now, so proposals can be validated against
@@ -93,7 +93,7 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Gamepad / keyboard menu navigation | ✅ | Focus set on arrival, kept when lost, visibly highlighted |
 | Active-device arbitration | 🧪 | Last device *deliberately used* owns the whole tick, aim included |
 | Touch: analogue 360° movement | ✅ | Replaced the v1.0 four-way snapping |
-| Touch: drag-to-aim skill buttons | ✅ | Tap casts, drag aims, release fires, cancel zone aborts |
+| Touch: drag-to-aim skill buttons | ✅ | Tap casts, drag aims, release fires, cancel zone aborts. **Fixed 2026-09-05**: the tap decision was measured from the button's centre, so a still press anywhere outside a 26 px disc in a ~200 px button fired as an aimed shot towards the thumb; now measured from where the finger landed. Also fixed the same day: the aim arrow showed the instant a finger touched down, so an unavoidable thumb wobble under the tap threshold flashed it on and off on a plain tap; it now only appears once a real drag crosses that threshold — device-verified on a Galaxy S21 Ultra |
 | No UI selection during a match | ✅ | Enforced by test — Submit and Bomb share a button on a pad |
 | Pause menu | ✅ | Start / Escape / on-screen button; resume and quit to hub |
 | Audio: pooled service, voice limiting, pitch variation | ✅ | Generated placeholder sounds; no assets needed |
