@@ -1145,6 +1145,8 @@ promised in a comment.
    at unchanged density, so the level is no longer doing most of the killing either. **Still not
    answered** — both changes are measured in automated runs, and whether bombing feels like a skill
    again is a playtest question. Re-measure in the next round rather than tuning further.
+   **Author play cannot answer it** (2026-09-05): the person who set the fear window bombs inside
+   a window players do not know exists. See [15-AUTHOR-SESSIONS.md](15-AUTHOR-SESSIONS.md).
 4. **What fills the Awakening meter?** Introduced by the lore update (GDD §3.1) with no mechanic
    behind it. Damage dealt rewards aggression, damage taken rewards recklessness, and chain size
    rewards the Bomberman layer — three different games. Not required before the gate.

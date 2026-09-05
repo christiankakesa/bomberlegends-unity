@@ -101,6 +101,9 @@ nothing about whether the hybrid teaches itself.
 - Somewhere to write. One sheet per tester (§5).
 - **Clear the saved run between testers.** A run persists now, so tester B would resume tester A's.
   A fresh browser profile, a private window, or clearing site data all work.
+- **Write the build on the round header**: `Build: <short commit> · Release · WebGL`. Round 1 lost a
+  defect to *"tester likely on an older build"* (§10a), and the round-3 deploy recorded no source
+  commit at all, which is why one of its findings can no longer be read (§10d).
 - Decide gamepad, keyboard/mouse or touch in advance and keep it constant. Do not offer a choice
   mid-run, and balance the devices across the sample — round 2's result was invisible until it was
   split by device (§10b).
@@ -159,19 +162,19 @@ allowed to initiate.
 One sheet per tester. Most of it is filled in while watching, not afterwards.
 
 ```
-Tester ___   Date ___   Input: keyboard / gamepad / touch
+Tester ___   Date ___   Input: keyboard / gamepad / touch   Seed ___
 
 RUN 1   died on arena ___   length ___ min
 RUN 2   died on arena ___   length ___ min      (leave blank if there was none)
         Started run 2 unprompted?   YES / NO                          <- metric 3
 
 ITEM OFFERS — one line per offer, in the order they came, across every run
- #  run arena  took, or SKIPPED       read?  paused?  said anything?   call
- 1   1    1    ____________________   Y / N  Y / N    _____________    D / R / U   <- first pick
- 2   1    2    ____________________   Y / N  Y / N    _____________    D / R / U
- 3   1    3    ____________________   Y / N  Y / N    _____________    D / R / U
- 4   1    4    ____________________   Y / N  Y / N    _____________    D / R / U
- …                                                                    <- metric 1
+ #  run arena  offered            took, or SKIPPED    read?  paused?  said anything?  call
+ 1   1    1    ___ / ___ / ___    _________________   Y / N  Y / N    ____________    D / R / U  <- first pick
+ 2   1    2    ___ / ___ / ___    _________________   Y / N  Y / N    ____________    D / R / U
+ 3   1    3    ___ / ___ / ___    _________________   Y / N  Y / N    ____________    D / R / U
+ 4   1    4    ___ / ___ / ___    _________________   Y / N  Y / N    ____________    D / R / U
+ …                                                                                   <- metric 1
 
 BUILD LEGIBILITY                                                      <- metric 2
   [ ] STRICT: described their build out loud, unaided, during play, unasked
@@ -236,6 +239,11 @@ screen can produce — nobody skips by accident — and round 3 coded the cleare
 carrying nothing withholds the items that only multiply a build ([14-INSIGHTS §5](14-INSIGHTS.md)),
 so round 3's first picks were partly measuring a pool containing an item nobody could use yet. If R
 now falls only on row 1, that is the pool. If it falls evenly down the sheet, that is the player.
+
+**Write down what was offered, not only what was taken.** Row 1's reading — pool or player — cannot
+be made from the pick alone, and round 3 proved it: its sheets list what each tester took and
+nothing else, and they cannot now be read for the pool question at all (§10d). Three short names per
+row, from the cards on screen.
 
 **Report the per-tester spread as well as the headline.** Scoring per pick lets one tester who
 reached arena twelve outweigh three who died in arena two, which is the correct unit for *"is an
@@ -327,6 +335,7 @@ on this page. Write down what they said, exactly.
 | A previous tester's run resuming | Clear site data between sessions. |
 | Only three testers | Report it as directional. Do not call the gate. |
 | A dominant item pairing | Not a gate failure — a balance finding. Record which, and keep going. |
+| The developer playing his own build between rounds | Log it in [15-AUTHOR-SESSIONS.md](15-AUTHOR-SESSIONS.md). No round number, no metric: he cannot answer metrics 1–4, and a stuck-on-geometry incident is filed as a bug, never as a metric 5 reading. |
 
 ---
 
@@ -335,6 +344,9 @@ on this page. Write down what they said, exactly.
 Write the outcome into [07-CONCEPT-REVISION.md §3](07-CONCEPT-REVISION.md) with the sample size next
 to it. A gate result without its sample size is unreadable six months later, and this project has
 been careful about exactly that kind of record.
+
+Author sessions are not outcomes: they never enter 07 §3, and a round that follows them records on
+its header the build commit it ran on.
 
 ---
 
@@ -1071,6 +1083,38 @@ Nothing here retires the protocol. §1–§9 stand, the sheet in §5 is current,
 4 would need is metric 1 rewritten for a game whose first run is twenty-two minutes: measure
 build-shaping inside a run — swaps made in response to something, skips that hold a slot open,
 whether the build has an arc — not a comparison between two runs that testers no longer play.
+
+> **Pre-registered 2026-09-05 — n = 0. No outside tester has played this build.**
+>
+> Written before any round 4 data exists, so nothing here can have been moved after seeing it (§10b).
+> The developer is the only person playing between now and then; his sessions are logged in
+> [15-AUTHOR-SESSIONS.md](15-AUTHOR-SESSIONS.md) and move none of what follows (§8).
+>
+> **Frozen until round 4 is read:** `ArenaTailShare` 50 · `EnemyBombFearTicks` 45 ·
+> `BlockClusterSize` 3 · `ArenaClearHealing` 25 · destructible 55% · first-offer gating on · camera
+> reference the first arena's width. 14-INSIGHTS §2 names `ArenaTailShare` as the dial to reach for
+> *if round 4 dies materially earlier than 7.2* — after, not before.
+>
+> **Seed policy.** Rounds 1–3 ran on a fixed seed 1, which hands every tester the same first triple
+> and turns row 1 of the §5 sheet into a fact about three items. Round 4 uses a fresh seed per run,
+> shown on screen and written on the sheet with the offered triple per row. *(Depends on the
+> development tooling listed in 15-AUTHOR-SESSIONS.md; until it exists the seed is an Inspector
+> field.)*
+>
+> **Round 3's first picks cannot be read for the pool question.** With seed 1 fixed since 2026-08-05
+> and `GameRun.Restart` re-seeding the offer generator, every fresh run should have shown one first
+> triple — yet the round-3 sheets record eight distinct first-taken items across twelve testers.
+> Either the deployed build was not built from the committed scene — the deploy of 2026-08-23
+> records no source commit; source commits are recorded only from 2026-08-24 — or the *items taken*
+> lists are not in offer order. Round 3 is not re-read over this (§10b). It is why the §5 sheet now
+> records the offered triple and the seed.
+>
+> **What round 4 is expected to move, and which way** — directions only, against round 3's numbers,
+> restricted to what the §5 sheet records: first-run arena at death later than 7.2, or the tail is too
+> hard and `ArenaTailShare` is the dial; bomb-and-escape above 7/12 now that enemies fear bombs and
+> the level clusters, or the verb question is answered badly; R on row 1 no more frequent than on
+> rows 2+, or the first-pick problem was never the pool; at least one tester asking for a third skill
+> before being offered one, or open question #1 stays open.
 
 ---
 

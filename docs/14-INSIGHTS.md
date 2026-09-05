@@ -90,10 +90,14 @@ Four mentions of one thing, which makes it the most-reported item in the set. It
 
 | Arena | Board | Enemies | Tiles per enemy |
 |---|---|---|---|
-| 1 | 21 × 15 | 3 | 105 |
-| 5 | 29 × 21 | 7 | 87 |
-| 7 | 31 × 21 *(capped)* | 9 | 72 |
-| 10 | 31 × 21 | 12 | 54 |
+| 1 | 21 × 15 | 4 | 79 |
+| 5 | 29 × 21 | 8 | 76 |
+| 7 | 31 × 21 *(capped)* | 10 | 65 |
+| 9+ | 31 × 21 | 12 *(capped)* | 54 |
+
+*(Corrected 2026-09-05: this table first read 3 enemies at arena 1 from `ArenaSettings.Default`,
+but the scene ships `_startingEnemies: 4`, so the cap of 12 is reached at arena 9, not 10. The
+argument is unchanged.)*
 
 651 tiles, 55% of them destructible, and **Sentinels are dormant until approached** — so they do not
 come to you. The tail of a late arena is a search task, not a combat task.
@@ -144,6 +148,9 @@ the pacing.**
 > build, which is worth recording and is not evidence: it says the tail is no longer a walk, and it
 > says nothing at all about the difficulty question above, because the person playing knew where the
 > enemies were coming from. Round 4 still owns that.
+>
+> That sentence is now the standard for every author session, and they have a log of their own:
+> [15-AUTHOR-SESSIONS.md](15-AUTHOR-SESSIONS.md).
 
 ---
 
@@ -358,7 +365,7 @@ reads all four arms clearly. Raising bomb power would compound §1.
 | **M6** | Four-arm blast VFX | The bomb-power perception (§6) |
 | **M7** | Explosive Shot · long-range bomb | New skills, into the existing framework (§6) |
 | **M7** | Slots 3–4 | Already scoped |
-| **Hold** | Bomb supercharge · raising bomb power | Revisit after enemy blast awareness (§1, §6) |
+| **Hold** | Bomb supercharge · raising bomb power | Revisit after enemy blast awareness (§1, §6). **Author play cannot move this row**; it waits for outside data |
 | **Declined** | Minimap / zoom as a feature | Take the pacing problem instead (§2) |
 
 **The order matters more than the list.** Enemy blast awareness changes what every bomb-flavoured
