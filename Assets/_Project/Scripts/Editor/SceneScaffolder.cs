@@ -37,6 +37,9 @@ namespace BomberLegends.Editor
 
         private const string MixerPath = "Assets/_Project/Settings/Audio/MainMixer.mixer";
 
+        /// <summary>The canvas every interface position on this screen is measured against.</summary>
+        private static readonly Vector2 ReferenceResolution = new Vector2(1920f, 1080f);
+
         /// <summary>Creates or replaces Bootstrap, Hub and Match, then registers them for building.</summary>
         [MenuItem("Bomber Legends/Scenes/Rebuild Scene Scaffolding")]
         public static void Rebuild()
@@ -328,20 +331,48 @@ namespace BomberLegends.Editor
         /// <summary>
         /// Builds the on-screen thumbstick in the bottom-left thumb zone.
         /// </summary>
+        /// <remarks>
+        /// Three objects, not one. The listening area is the whole bottom-left quarter of the
+        /// screen and is invisible; the circle inside it is what gets drawn and moves to meet the
+        /// thumb; the knob rides inside the circle. Built as one 300-unit object, the stick only
+        /// answered a press that had already landed on it, and a thumb that came down an inch away
+        /// moved nothing at all.
+        /// </remarks>
         private static VirtualJoystick CreateJoystick(Transform parent)
         {
-            var stickObject = new GameObject("Joystick", typeof(Image), typeof(VirtualJoystick));
-            stickObject.transform.SetParent(parent, false);
+            var zoneObject = new GameObject("Joystick", typeof(Image), typeof(VirtualJoystick));
+            zoneObject.transform.SetParent(parent, false);
 
-            var rect = stickObject.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.zero;
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(300f, 300f);
-            rect.anchoredPosition = new Vector2(240f, 240f);
+            // A quarter of the 1920 x 1080 reference canvas, hard against the corner. The bomb
+            // button starts at 1560 and the readout is along the top, so nothing else is under it.
+            var zone = zoneObject.GetComponent<RectTransform>();
+            zone.anchorMin = Vector2.zero;
+            zone.anchorMax = Vector2.zero;
+            zone.pivot = new Vector2(0.5f, 0.5f);
+            zone.sizeDelta = ReferenceResolution * 0.5f;
+            zone.anchoredPosition = zone.sizeDelta * 0.5f;
+
+            // Invisible, and still the thing that takes the press: a quarter of the screen tinted
+            // over the board would read as a panel rather than as somewhere to put a thumb.
+            var area = zoneObject.GetComponent<Image>();
+            area.color = new Color(1f, 1f, 1f, 0f);
+
+            var stickObject = new GameObject("Stick", typeof(Image));
+            stickObject.transform.SetParent(zoneObject.transform, false);
+
+            var stick = stickObject.GetComponent<RectTransform>();
+            stick.anchorMin = new Vector2(0.5f, 0.5f);
+            stick.anchorMax = new Vector2(0.5f, 0.5f);
+            stick.pivot = new Vector2(0.5f, 0.5f);
+            stick.sizeDelta = new Vector2(300f, 300f);
+
+            // Resting where the whole stick used to sit, so an idle screen looks unchanged and the
+            // control is still discoverable by a player who has not learned it can be pressed.
+            stick.anchoredPosition = new Vector2(240f, 240f) - zone.anchoredPosition;
 
             var background = stickObject.GetComponent<Image>();
             background.color = new Color(1f, 1f, 1f, 0.12f);
+            background.raycastTarget = false;
 
             var handleObject = new GameObject("Handle", typeof(Image));
             handleObject.transform.SetParent(stickObject.transform, false);
@@ -350,8 +381,9 @@ namespace BomberLegends.Editor
             handleObject.GetComponent<Image>().color = new Color(0.15f, 0.85f, 0.85f, 0.55f);
             handleObject.GetComponent<Image>().raycastTarget = false;
 
-            var joystick = stickObject.GetComponent<VirtualJoystick>();
+            var joystick = zoneObject.GetComponent<VirtualJoystick>();
             var serialized = new SerializedObject(joystick);
+            serialized.FindProperty("_visual").objectReferenceValue = stick;
             serialized.FindProperty("_handle").objectReferenceValue = handleRect;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -390,7 +422,7 @@ namespace BomberLegends.Editor
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
 
             // Landscape reference resolution: the game is landscape-only on mobile.
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.referenceResolution = ReferenceResolution;
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
         }
