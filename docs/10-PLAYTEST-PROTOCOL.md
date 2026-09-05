@@ -162,10 +162,10 @@ allowed to initiate.
 One sheet per tester. Most of it is filled in while watching, not afterwards.
 
 ```
-Tester ___   Date ___   Input: keyboard / gamepad / touch   Seed ___
+Tester ___   Date ___   Input: keyboard / gamepad / touch   Build ___ (pause menu)
 
-RUN 1   died on arena ___   length ___ min
-RUN 2   died on arena ___   length ___ min      (leave blank if there was none)
+RUN 1   seed ___ (pause menu)   died on arena ___   length ___ min
+RUN 2   seed ___                died on arena ___   length ___ min   (leave blank if there was none)
         Started run 2 unprompted?   YES / NO                          <- metric 3
 
 ITEM OFFERS — one line per offer, in the order they came, across every run
@@ -1097,9 +1097,8 @@ whether the build has an arc — not a comparison between two runs that testers 
 >
 > **Seed policy.** Rounds 1–3 ran on a fixed seed 1, which hands every tester the same first triple
 > and turns row 1 of the §5 sheet into a fact about three items. Round 4 uses a fresh seed per run,
-> shown on screen and written on the sheet with the offered triple per row. *(Depends on the
-> development tooling listed in 15-AUTHOR-SESSIONS.md; until it exists the seed is an Inspector
-> field.)*
+> shown in the pause menu with the build commit, and written on the sheet with the offered triple
+> per row. *Built 2026-09-05: the scene ships seed 0, which draws a fresh seed for every attempt.*
 >
 > **Round 3's first picks cannot be read for the pool question.** With seed 1 fixed since 2026-08-05
 > and `GameRun.Restart` re-seeding the offer generator, every fresh run should have shown one first

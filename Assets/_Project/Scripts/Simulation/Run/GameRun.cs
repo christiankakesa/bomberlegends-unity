@@ -82,6 +82,16 @@ namespace BomberLegends.Simulation.Run
         /// <summary>The arena currently being fought, counting from one.</summary>
         public int ArenaNumber => _arenaIndex + 1;
 
+        /// <summary>
+        /// The seed every arena and every offer in this run derives from.
+        /// </summary>
+        /// <remarks>
+        /// Exposed so it can be shown to whoever is holding the device and written on a sheet: a
+        /// bug seen on a phone is reproducible from the seed and the arena number, and from nothing
+        /// less.
+        /// </remarks>
+        public uint Seed => _seed;
+
         /// <summary>Where the run is in its lifecycle.</summary>
         public RunPhase Phase { get; private set; }
 
@@ -282,11 +292,39 @@ namespace BomberLegends.Simulation.Run
         /// allocations rather than a scene transition. Players who have just died want to be playing
         /// again immediately, and a loading screen between attempts is how a roguelite loses them.
         /// </remarks>
-        public void Restart()
+        public void Restart() => Restart(_seed, arenaIndex: 0);
+
+        /// <summary>
+        /// Starts a run over on a different seed, and optionally deeper in.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Two development aids in one seam, both in the same spirit as the starting items: a way to
+        /// reach a specific state without playing up to it, that survives a restart. A fresh seed per
+        /// attempt is what makes a bug report reproducible and what stops a player learning one
+        /// board sequence by heart; starting on arena nine is what makes a performance session
+        /// cost ten minutes rather than a twenty-five-minute climb that a single death erases.
+        /// </para>
+        /// <para>
+        /// The run begins at full health, holding the starting items, exactly as a fresh run does.
+        /// Nothing is carried from before, so this is a restart and not a jump.
+        /// </para>
+        /// </remarks>
+        /// <param name="seed">The seed for every arena and offer from here on.</param>
+        /// <param name="arenaIndex">Which arena to begin on, counting from zero.</param>
+        /// <exception cref="ArgumentOutOfRangeException">The arena index is negative.</exception>
+        public void Restart(uint seed, int arenaIndex)
         {
+            if (arenaIndex < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(arenaIndex), arenaIndex, "A run cannot start before its first arena.");
+            }
+
+            _seed = seed;
             _heldCount = 0;
             _offerCount = 0;
-            _arenaIndex = 0;
+            _arenaIndex = arenaIndex;
             _pending = ItemId.None;
             _random = new DeterministicRandom(_seed);
 

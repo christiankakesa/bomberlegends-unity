@@ -42,7 +42,7 @@ may be fixed. If it needs an adjective, it waits for a round.
 Session   S-YYYY-MM-DD-a
 Build     <short commit> clean|dirty · Development|Release · APK|WebGL|Editor
 Device    S21 Ultra | Seeker 2 | RedMagic NP05J | desktop      Input: touch | pad | kb+m
-Config    seed __ (from the screen) · startingItems EMPTY | <list> · startingArena __ · overrides or "defaults"
+Config    seed __ (pause menu) · startingItems EMPTY | <list> · startingArena __ · overrides or "defaults"
 Label     BUG | DEVICE | MECHANISM | FEEL          (one per session, chosen before it starts)
 Purpose   one line, written before playing
 
@@ -78,13 +78,13 @@ FOLLOW-UPS
 
 ---
 
-## The programme — about six hours over five evenings
+## The programme — about five hours over five evenings
 
 Written so a skipped evening is visible as a gap rather than silently absorbed.
 
 | | Where | ~ | What |
 |---|---|---|---|
-| 1 | desk | 1.5 h | The development tooling this programme depends on (see below). Create the first entry. Five-minute browser check: a WebGL run resumes across a page refresh (07 §4l). |
+| 1 | desk | 30 min | Build a Development APK and note its commit. Create the first entry. Five-minute browser check: a WebGL run resumes across a page refresh (07 §4l). |
 | 2 | S21 Ultra | 45 min | **DEVICE.** Start at arena 9 with a starting build. Phone idle and unplugged 15 min first. Ten-minute heavy window with the recorder *off*: the tail wake-up with twelve alerted Sentinels on a 31 × 21 board; a Bomb Trail + Overcharge chain; the arena-clear rebuild into arena 10. Numbers at 0/5/10 from the overlay and `adb shell dumpsys battery` over wireless adb. Profiler attached on this device only; that capture is the T-036 baseline. |
 | 3 | RedMagic + Seeker 2 | 1.5 h | **DEVICE.** Same window on each, cooling one while measuring the other. Tablet: HUD line and touch cluster against the 25-unit camera, reach of SHOT / DASH / cancel from the resting thumb. Seeker 2: bomb drop audible and dash quieter, at default media volume at arm's length — into FEEL, not DEVICE NUMBERS. Record each SoC (`adb shell getprop ro.board.platform`); the slowest is the working floor device, with the note that none of the three is the mid-tier 02 §6 names. |
 | 4 | S21 Ultra | 75 min | **BUG.** Random seed shown on screen, nothing held, one climb to arena 9+. Touch counts in arena 1 before anything wakes: 30 taps, 30 short drags, 20 aimed shots at one destructible block from a fixed distance. Mechanism ticks on the way up. Background and resume once at depth. One bait attempt. Quit to hub before dying. |
@@ -97,14 +97,16 @@ round 4 is read. Every value round 4 will be measured against is frozen and list
 [10 §10d](10-PLAYTEST-PROTOCOL.md). No kill-source shares or per-arena HP from frame-stepping an
 hour of video — a run's facts that take an hour to extract get filled in from memory or not at all.
 
-**The tooling evening 1 depends on**, none of it reachable by a player build: a seed of 0 draws a
-fresh run seed and shows it, with the short commit, in the pause menu; a starting arena so a DEVICE
-run does not begin with a 25-minute climb that one death erases; a saved run is ignored when either
-is set, because today the only way to abandon a run is to die in it; a rolling frame-time line in
-the device overlay so the number comes off the phone and not from `dumpsys gfxinfo`, which reads
-Android's own view frames and not Unity's; the profiler connection flag on the development APK.
-Until it exists, a seed is an Inspector field and a rebuild, and evenings 2–4 cannot be run as
-written.
+**The tooling, built 2026-09-05.** On `MatchInstaller` in the Match scene: **Seed** 0 draws a fresh
+seed for every attempt (the shipped value; any other number fixes the run for replaying one board),
+and **Starting arena** above 1 begins every attempt there with the starting items and full health —
+a run that starts deep neither resumes the saved run nor writes over it. The **pause menu** shows
+`SEED n · commit · DEV|REL`, which is the line an entry's Config and Build fields are copied from;
+the commit is stamped into the player version by every build and carries a `*` when the tree was
+dirty. The development overlay's first line is `FRAME p50 · p99` over the last ten seconds, which is
+where a frame-time number comes from — `dumpsys gfxinfo` reads Android's own view frames and not
+Unity's surface. The development APK connects to the Editor's profiler on launch when one is
+listening over adb. So evening 1 is the first entry and the WebGL refresh check, and nothing else.
 
 ---
 

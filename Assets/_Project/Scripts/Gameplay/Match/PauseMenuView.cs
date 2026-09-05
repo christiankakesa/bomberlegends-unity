@@ -33,6 +33,17 @@ namespace BomberLegends.Gameplay.Match
 
         private GameObject? _panel;
         private Button? _resume;
+        private Text? _status;
+
+        /// <summary>
+        /// A line of facts about the run, read each time the menu opens.
+        /// </summary>
+        /// <remarks>
+        /// The seed and the build, so that whoever is holding the device can write down what a bug
+        /// report needs without a cable. Read on showing rather than once, because a run that draws
+        /// a fresh seed per attempt changes it between restarts.
+        /// </remarks>
+        public Func<string>? Status { get; set; }
 
         /// <summary>Raised when the player wants to carry on.</summary>
         public event Action? Resumed;
@@ -67,6 +78,9 @@ namespace BomberLegends.Gameplay.Match
                 _panel.transform, "QUIT TO HUB", new Vector2(0f, -88f), ButtonSize, QuitColour, BodySize);
             quit.onClick.AddListener(() => Quit?.Invoke());
 
+            _status = GreyboxUi.CreateLabel(
+                _panel.transform, string.Empty, BodySize, new Vector2(0f, -230f), new Vector2(1500f, 60f));
+
             // Hidden before the keeper is attached. Adding it to a live object would fire OnEnable
             // and select Resume immediately, leaving a hidden control focused for the whole match —
             // which on a pad means the bomb button also presses it.
@@ -85,6 +99,11 @@ namespace BomberLegends.Gameplay.Match
             }
 
             _panel.SetActive(true);
+
+            if (_status != null)
+            {
+                _status.text = Status?.Invoke() ?? string.Empty;
+            }
 
             // Resume is focused, not quit. The safe option should be the one a blind press lands on.
             UiFocus.Select(_resume != null ? _resume.gameObject : null);

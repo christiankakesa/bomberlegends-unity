@@ -308,8 +308,9 @@ MonoBehaviour:
     #E....X....X....X....X...E#
 
     ###########################'
-  _seed: 1
+  _seed: 0
   _startingItems: 
+  _startingArena: 1
 --- !u!4 &62270303
 Transform:
   m_ObjectHideFlags: 0

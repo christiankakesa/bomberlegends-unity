@@ -466,6 +466,62 @@ namespace BomberLegends.Tests.EditMode.Simulation
             Assert.That(concrete, Is.GreaterThanOrEqualTo(GameRun.OfferCount));
         }
 
+        // ---------- starting somewhere else ----------
+
+        [Test]
+        public void ARunCanBeginDeeperIn()
+        {
+            // The development aid behind a ten-minute performance session on arena nine, instead
+            // of a twenty-five-minute climb that one death erases.
+            var run = new GameRun(Config(), Arenas(5), seed: 1u, new[] { ItemId.Momentum });
+
+            run.Restart(seed: 7u, arenaIndex: 3);
+
+            Assert.That(run.ArenaNumber, Is.EqualTo(4));
+            Assert.That(run.Phase, Is.EqualTo(RunPhase.Fighting));
+            Assert.That(run.Held.ToArray(), Is.EqualTo(new[] { ItemId.Momentum }),
+                "the starting build must come along, exactly as on a fresh run");
+            Assert.That(run.Current.State.Player.Health.Current, Is.EqualTo(Config().PlayerMaxHealth),
+                "a restart begins at full health wherever it begins");
+        }
+
+        [Test]
+        public void RestartingOnANewSeedIsANewRun()
+        {
+            var run = new GameRun(Config(), Arenas(3), seed: 1u);
+
+            run.Restart(seed: 99u, arenaIndex: 0);
+
+            Assert.That(run.Seed, Is.EqualTo(99u));
+            Assert.That(run.CreateSnapshot().Seed, Is.EqualTo(99u),
+                "what is saved must be the seed the run is actually on");
+            Assert.That(run.ArenaNumber, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ADeepStartStillCarriesItsBuildIntoTheNextArena()
+        {
+            // Starting deep must not leave the run in a state that clearing an arena cannot leave.
+            var run = new GameRun(Config(itemSlots: 3), Arenas(6), seed: 1u, new[] { ItemId.Momentum });
+
+            run.Restart(seed: 1u, arenaIndex: 2);
+            ClearArena(run);
+            run.TryChoose(run.Offers[0]);
+
+            Assert.That(run.ArenaNumber, Is.EqualTo(4));
+            Assert.That(run.Held.Length, Is.EqualTo(2));
+            Assert.That(run.Current.State.Player.Items.Contains(ItemId.Momentum), Is.True);
+        }
+
+        [Test]
+        public void ARunCannotBeginBeforeItsFirstArena()
+        {
+            var run = new GameRun(Config(), Arenas(3), seed: 1u);
+
+            Assert.That(() => run.Restart(seed: 1u, arenaIndex: -1),
+                Throws.TypeOf<System.ArgumentOutOfRangeException>());
+        }
+
         [Test]
         public void OffersNeverIncludeSomethingAlreadyHeld()
         {

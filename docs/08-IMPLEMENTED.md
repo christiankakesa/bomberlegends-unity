@@ -1,6 +1,6 @@
 # What is actually built
 
-**Updated 2026-08-24 · 498 EditMode + 28 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
+**Updated 2026-09-05 · 513 EditMode + 28 PlayMode tests green, zero warnings · device-verified on a Galaxy S21
 Ultra, a Solana Seeker 2 and a RedMagic (NP05J) tablet**
 
 A plain inventory of what exists in the project right now, so proposals can be validated against
@@ -71,6 +71,8 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Health carries between arenas | ✅ | +25 restored per clear — **the number most likely wrong** |
 | Death ends the run | ✅ | |
 | Clean restart, in place | ✅ | No scene load; 200 restarts well under a second |
+| Fresh seed per attempt | 🧪 | Scene ships seed 0: every attempt draws its own, shown in the pause menu. Any other value fixes the run for replaying one board. Rounds 1–3 ran on seed 1 |
+| Start on a chosen arena | 🧪 | `Starting arena` on the installer: full health, starting items, neither resumes nor writes the saved run. For measuring arena 9 without the climb |
 | Item descriptions on cards | ✅ | Added 2026-08-07, font raised to 20 |
 
 ## Presentation and platform
@@ -101,6 +103,9 @@ Nine items, two passive slots. Adding one is a row in `ItemCatalog` — no syste
 | Feedback table (event → sound + shake) | ✅ | Designer-editable asset; falls back to placeholders |
 | Camera kick scaled to the event | ✅ | View-only; never touches simulation state |
 | Android build pipeline | ✅ | Device-verified 2026-08-08; 86 MB dev APK |
+| Build stamped with its commit | 🧪 | Every build writes `1.0+<sha>` into the player version and restores it after; `*` when the tree was dirty. Shown with the seed in the pause menu as `SEED n · sha · DEV\|REL`. Round 1 lost a defect to an unknown build; the round-3 deploy recorded none |
+| Frame time on the device overlay | 🧪 | `FRAME p50 · p99` over the last ten seconds, development builds only. Android's `gfxinfo` reads its own view frames, not Unity's |
+| Development APK connects to the profiler | 🧪 | `ConnectWithProfiler` on the dev build; silent when nothing is listening |
 | Windows build pipeline | ✅ | Mono; release 92 MB in 36 s; launches clean |
 | WebGL build pipeline | ✅ | Brotli + fallback, 10 MB; runs windowed and fullscreen |
 | Block inset for readability | ✅ | Blocks fill 88% of their tile; collision unchanged |

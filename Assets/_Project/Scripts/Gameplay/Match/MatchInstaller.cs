@@ -11,6 +11,7 @@ using BomberLegends.Simulation.Board;
 using BomberLegends.Simulation.Items;
 using BomberLegends.Simulation.Run;
 using BomberLegends.Gameplay.Run;
+using BomberLegends.Services.Diagnostics;
 using BomberLegends.Gameplay.Ui;
 using UnityEngine;
 using UnityEngine.UI;
@@ -183,16 +184,26 @@ namespace BomberLegends.Gameplay.Match
         };
 
         [SerializeField]
-        [Tooltip("Seed for every random decision the run makes. A fixed value makes runs repeatable.")]
-        private uint _seed = 1u;
+        [Tooltip(
+            "Seed for every random decision the run makes. Zero draws a fresh seed for every " +
+            "attempt, shown in the pause menu so it can be written down; any other value fixes the " +
+            "run so a specific board can be replayed.")]
+        private uint _seed;
 
-        [Header("Loadout")]
+        [Header("Development")]
         [SerializeField]
         [Tooltip(
             "A build every attempt begins with. Leave empty to earn items by clearing arenas; fill " +
             "it to try a specific pairing without playing up to it. Survives a restart and occupies " +
             "real slots, so the run offers correspondingly fewer.")]
         private ItemId[] _startingItems = System.Array.Empty<ItemId>();
+
+        [SerializeField, Min(1)]
+        [Tooltip(
+            "The arena every attempt begins on. Above 1 the run neither resumes nor overwrites the " +
+            "saved run, and a death restarts here rather than at the beginning — for measuring a " +
+            "deep arena without the climb to reach it.")]
+        private int _startingArena = 1;
 
         private GameContext? _context;
         private PauseController? _pause;
@@ -239,9 +250,21 @@ namespace BomberLegends.Gameplay.Match
             var projector = new BoardProjector(_tileSize, _blockHeight);
             var config = SimulationConfig.FromTilesPerSecond(
                 _moveSpeedTilesPerSecond, laneAssistStrength: _laneAssist);
-            var run = new GameRun(config, CreateArenaSource(arenas), _seed, _startingItems);
+            var start = new RunStart(_seed, _startingArena);
+            var run = new GameRun(config, CreateArenaSource(arenas), start.NextSeed(), _startingItems);
 
-            ResumeIfUnfinished(context, run);
+            if (start.StartsDeep)
+            {
+                // A development run. It neither resumes the saved run nor writes over it, so a
+                // player's real progress on a test device survives the session.
+                run.Restart(run.Seed, start.StartingArenaIndex);
+                Debug.LogWarning(
+                    $"[Match] Development start on arena {run.ArenaNumber} with {run.Held.Length} items.");
+            }
+            else
+            {
+                ResumeIfUnfinished(context, run);
+            }
 
             _playerView.Initialise(projector);
 
@@ -268,9 +291,10 @@ namespace BomberLegends.Gameplay.Match
                 _views,
                 _cameraRig,
                 overlay,
-                context.Save);
+                start.StartsDeep ? null : context.Save,
+                start);
 
-            InstallPauseMenu(overlay);
+            InstallPauseMenu(overlay, run);
             InstallFeedback(context, projector);
             InstallTouchControlVisibility(input, overlay);
 
@@ -313,7 +337,7 @@ namespace BomberLegends.Gameplay.Match
         /// lets a pad leave a match at all: selection has to stay clear while playing, because
         /// Submit and Bomb are the same button on a pad, so no in-world control can be reachable.
         /// </remarks>
-        private void InstallPauseMenu(RunOverlayView? overlay)
+        private void InstallPauseMenu(RunOverlayView? overlay, GameRun run)
         {
             if (_runner == null)
             {
@@ -332,6 +356,10 @@ namespace BomberLegends.Gameplay.Match
 
             var menu = host.AddComponent<PauseMenuView>();
             menu.Build(canvas);
+
+            // Read on each showing, because a fresh seed per attempt changes between restarts. What
+            // a tester writes on the sheet, and what a bug report needs, is exactly this line.
+            menu.Status = () => $"SEED {run.Seed}   ·   {BuildStamp.Label}";
 
             var pause = _runner.gameObject.AddComponent<PauseController>();
             pause.Begin(_runner, menu, ReturnToHub, () => overlay != null && overlay.IsShowing);

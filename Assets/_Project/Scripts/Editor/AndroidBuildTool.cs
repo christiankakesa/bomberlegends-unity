@@ -77,8 +77,12 @@ namespace BomberLegends.Editor
                 locationPathName = outputPath,
                 target = BuildTarget.Android,
                 targetGroup = BuildTargetGroup.Android,
+                // The development APK reaches for the Editor's profiler as it starts. On a device
+                // with nothing listening the attempt fails silently and costs nothing; with the
+                // Editor open over adb it is the T-036 baseline capture without a menu to find.
                 options = development
-                    ? BuildOptions.Development | BuildOptions.AllowDebugging
+                    ? BuildOptions.Development | BuildOptions.AllowDebugging |
+                      BuildOptions.ConnectWithProfiler
                     : BuildOptions.None
             };
 

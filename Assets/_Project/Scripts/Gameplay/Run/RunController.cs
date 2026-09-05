@@ -39,6 +39,7 @@ namespace BomberLegends.Gameplay.Run
         private MatchCameraRig? _camera;
         private RunOverlayView? _overlay;
         private ISaveService? _save;
+        private RunStart? _start;
         private IInputSource _input = null!;
 
         private GameSimulation? _shown;
@@ -56,7 +57,8 @@ namespace BomberLegends.Gameplay.Run
             MatchViewSynchroniser? views = null,
             MatchCameraRig? camera = null,
             RunOverlayView? overlay = null,
-            ISaveService? save = null)
+            ISaveService? save = null,
+            RunStart? start = null)
         {
             _run = run;
             _runner = runner;
@@ -68,6 +70,7 @@ namespace BomberLegends.Gameplay.Run
             _camera = camera;
             _overlay = overlay;
             _save = save;
+            _start = start;
 
             if (_overlay != null)
             {
@@ -126,7 +129,23 @@ namespace BomberLegends.Gameplay.Run
 
         private void OnSkipped() => _run.Skip();
 
-        private void OnRestart() => _run.Restart();
+        /// <summary>
+        /// Begins another attempt, on whatever seed and arena the start policy says.
+        /// </summary>
+        /// <remarks>
+        /// Without a policy a restart replays the same seed from the first arena, which is what a
+        /// player build does today and what a tuning session on one board wants.
+        /// </remarks>
+        private void OnRestart()
+        {
+            if (_start == null)
+            {
+                _run.Restart();
+                return;
+            }
+
+            _run.Restart(_start.NextSeed(), _start.StartingArenaIndex);
+        }
 
         private void ApplyPhase(bool force)
         {
